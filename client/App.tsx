@@ -10,6 +10,11 @@ import { Layout } from "@/components/Layout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Store from "./pages/Store";
+import Admin from "./pages/Admin";
+import Slots from "./pages/Slots";
+import Poker from "./pages/Poker";
+import Bingo from "./pages/Bingo";
+import Sportsbook from "./pages/Sportsbook";
 import PlaceholderPage from "./pages/PlaceholderPage";
 
 const queryClient = new QueryClient();
@@ -24,11 +29,11 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/store" element={<Store />} />
-            <Route path="/slots" element={<PlaceholderPage title="Slots" description="25 customizable games featuring SlotsAI RTP monitoring." />} />
-            <Route path="/poker" element={<PlaceholderPage title="Poker" description="Real-money SC tables monitored by JoseyAI." />} />
-            <Route path="/bingo" element={<PlaceholderPage title="Bingo" description="10 rooms with rolling jackpots and auto-ball calling." />} />
-            <Route path="/sportsbook" element={<PlaceholderPage title="Sportsbook" description="SC-only parlay bets with live lines and spreads." />} />
-            <Route path="/admin" element={<PlaceholderPage title="Admin Panel" description="Full control over games, AI employees, and analytics." />} />
+            <Route path="/slots" element={<Slots />} />
+            <Route path="/poker" element={<Poker />} />
+            <Route path="/bingo" element={<Bingo />} />
+            <Route path="/sportsbook" element={<Sportsbook />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>

@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Wallet } from '@shared/api';
+import { io } from 'socket.io-client';
+
+const socket = io();
 
 export function useWallet() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
@@ -15,6 +18,15 @@ export function useWallet() {
         }
       })
       .finally(() => setIsLoading(false));
+
+    // Listen for real-time wallet updates
+    socket.on('wallet:update', (updatedWallet: Wallet) => {
+      setWallet(updatedWallet);
+    });
+
+    return () => {
+      socket.off('wallet:update');
+    };
   }, []);
 
   const toggleCurrency = () => {
