@@ -33,8 +33,37 @@ export const handleGetAdminStats: RequestHandler = (req, res) => {
       aiStatus: [
         { name: "LuckyAI", status: "Active" },
         { name: "SecurityAI", status: "Monitoring" },
-        { name: "SlotsAI", status: "Active" }
+        { name: "SlotsAI", status: "Active" },
+        { name: "JoseyAI", status: "Idle" },
+        { name: "SocialAI", status: "Active" },
+        { name: "PromotionsAI", status: "Active" }
+      ],
+      revenueData: [40, 60, 45, 90, 85, 100, 75],
+      recentTransactions: [
+        { id: 'tx-1', user: 'Sharky99', type: 'Purchase', amount: '$49.99', currency: 'GC', time: '2m ago' },
+        { id: 'tx-2', user: 'AceHigh', type: 'Win', amount: '210 SC', currency: 'SC', time: '5m ago' },
+        { id: 'tx-3', user: 'Lucky_7', type: 'Bet', amount: '50 SC', currency: 'SC', time: '12m ago' },
       ]
     }
   });
+};
+
+export const handleUpdateGameConfig: RequestHandler = (req, res) => {
+  const { gameId, config } = req.body;
+  console.log(`Updating config for ${gameId}:`, config);
+  // In production, save to DB
+  res.json({ success: true, message: `${gameId} configuration updated successfully` });
+};
+
+export const handleUpdateStorePack: RequestHandler = (req, res) => {
+  const { packId, packData } = req.body;
+  console.log(`Updating store pack ${packId}:`, packData);
+  // In production, save to DB
+  res.json({ success: true, message: `Store pack ${packId} updated successfully` });
+};
+
+export const handleAssignAIDuty: RequestHandler = (req, res) => {
+  const { aiName, duty } = req.body;
+  console.log(`Assigning duty to ${aiName}:`, duty);
+  res.json({ success: true, message: `${aiName} has been assigned a new duty: ${duty}` });
 };

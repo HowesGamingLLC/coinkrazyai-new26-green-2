@@ -4,7 +4,7 @@ import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleGetWallet, handleUpdateWallet } from "./routes/wallet";
 import { handleGetPacks, handlePurchase, handleSquareWebhook } from "./routes/store";
-import { handleAdminLogin, handleGetAdminStats } from "./routes/admin";
+import { handleAdminLogin, handleGetAdminStats, handleUpdateGameConfig, handleUpdateStorePack, handleAssignAIDuty } from "./routes/admin";
 import { handleSpin } from "./routes/slots";
 import { handleGetPokerTables, handleJoinTable } from "./routes/poker";
 import { handleGetBingoRooms, handleBuyBingoTicket } from "./routes/bingo";
@@ -49,6 +49,9 @@ export function createServer() {
   // Admin routes
   app.post("/api/admin/login", handleAdminLogin);
   app.get("/api/admin/stats", handleGetAdminStats);
+  app.post("/api/admin/game-config", handleUpdateGameConfig);
+  app.post("/api/admin/store-pack", handleUpdateStorePack);
+  app.post("/api/admin/assign-duty", handleAssignAIDuty);
 
   // Example API routes
   app.get("/api/ping", (_req, res) => {
