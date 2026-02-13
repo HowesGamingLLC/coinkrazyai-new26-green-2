@@ -33,10 +33,11 @@ const Admin = () => {
   const fetchStats = async () => {
     try {
       const res = await fetch('/api/admin/stats');
+      if (!res.ok) throw new Error('Failed to fetch admin stats');
       const data = await res.json();
       if (data.success) setStats(data.data);
     } catch (e) {
-      console.error(e);
+      console.error("Admin stats fetch error:", e);
     }
   };
 

@@ -10,14 +10,22 @@ export function useWallet() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/wallet')
-      .then(res => res.json())
-      .then(res => {
+    const fetchWallet = async () => {
+      try {
+        const response = await fetch('/api/wallet');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const res = await response.json();
         if (res.success) {
           setWallet(res.data);
         }
-      })
-      .finally(() => setIsLoading(false));
+      } catch (error) {
+        console.error("Failed to fetch wallet:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchWallet();
 
     // Listen for real-time wallet updates
     socket.on('wallet:update', (updatedWallet: Wallet) => {

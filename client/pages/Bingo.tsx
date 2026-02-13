@@ -13,12 +13,19 @@ const Bingo = () => {
   const { wallet, currency } = useWallet();
 
   useEffect(() => {
-    fetch('/api/bingo/rooms')
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) setRooms(res.data);
-      })
-      .finally(() => setIsLoading(false));
+    const fetchRooms = async () => {
+      try {
+        const res = await fetch('/api/bingo/rooms');
+        if (!res.ok) throw new Error('Failed to fetch bingo rooms');
+        const data = await res.json();
+        if (data.success) setRooms(data.data);
+      } catch (e) {
+        console.error("Bingo rooms fetch error:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchRooms();
   }, []);
 
   const handleJoin = (room: any) => {
