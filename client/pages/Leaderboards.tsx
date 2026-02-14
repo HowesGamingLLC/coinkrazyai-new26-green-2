@@ -27,7 +27,7 @@ const Leaderboards = () => {
           leaderboards.getLeaderboard(),
           leaderboards.getMyRank(),
         ]);
-        setLeaderboard(leaderboardRes.data || []);
+        setLeaderboard(leaderboardRes.data?.entries || []);
         setMyRank(myRankRes.data || null);
       } catch (error: any) {
         console.error('Failed to fetch leaderboards:', error);

@@ -309,7 +309,7 @@ export const sportsbook = {
 // ===== LEADERBOARDS =====
 export const leaderboards = {
   getLeaderboard: async () => {
-    return apiCall<{ success: boolean; data: LeaderboardEntry[] }>('/leaderboards');
+    return apiCall<{ success: boolean; data: { entries: LeaderboardEntry[] } }>('/leaderboards');
   },
 
   getMyRank: async () => {
