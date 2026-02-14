@@ -1,40 +1,57 @@
 import React, { useEffect, useState } from 'react';
 import { adminV2 } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Users, TrendingUp, Gamepad2, AlertCircle, DollarSign, Activity } from 'lucide-react';
+import { Loader2, Users, TrendingUp, Gamepad2, AlertCircle, DollarSign, Activity, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 interface DashboardStats {
-  totalPlayers: number;
-  activePlayers: number;
-  totalRevenue: number;
-  totalWagered: number;
-  totalWon: number;
-  averagePlayerValue: number;
-  gamesToday: number;
-  newPlayersToday: number;
-  openTickets: number;
-  pendingKyc: number;
-  pendingWithdrawals: number;
+  totalPlayers?: number;
+  activePlayers?: number;
+  totalRevenue?: number;
+  totalWagered?: number;
+  totalWon?: number;
+  averagePlayerValue?: number;
+  gamesToday?: number;
+  newPlayersToday?: number;
+  openTickets?: number;
+  pendingKyc?: number;
+  pendingWithdrawals?: number;
 }
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [stats, setStats] = useState<DashboardStats>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchStats = async () => {
+    try {
+      setRefreshing(true);
+      const response = await adminV2.dashboard.getStats();
+      const data = response.data || response || {};
+      setStats({
+        totalPlayers: data.totalPlayers || 0,
+        activePlayers: data.activePlayers || 0,
+        totalRevenue: data.totalRevenue || 0,
+        totalWagered: data.totalWagered || 0,
+        totalWon: data.totalWon || 0,
+        averagePlayerValue: data.averagePlayerValue || 0,
+        gamesToday: data.gamesToday || 0,
+        newPlayersToday: data.newPlayersToday || 0,
+        openTickets: data.openTickets || 0,
+        pendingKyc: data.pendingKyc || 0,
+        pendingWithdrawals: data.pendingWithdrawals || 0,
+      });
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error);
+      toast.error('Failed to load dashboard statistics');
+    } finally {
+      setRefreshing(false);
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await adminV2.dashboard.getStats();
-        setStats(response.data || response);
-      } catch (error) {
-        console.error('Failed to fetch dashboard stats:', error);
-        toast.error('Failed to load dashboard statistics');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchStats();
   }, []);
 
@@ -48,6 +65,22 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header with Refresh */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Dashboard Overview</h2>
+          <p className="text-sm text-muted-foreground">Real-time platform statistics</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchStats}
+          disabled={refreshing}
+        >
+          {refreshing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+          Refresh
+        </Button>
+      </div>
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Players */}
@@ -57,9 +90,9 @@ const AdminDashboard = () => {
             <Users className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black">{stats?.totalPlayers || 0}</div>
+            <div className="text-3xl font-black">{(stats.totalPlayers || 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              {stats?.activePlayers || 0} active today
+              {(stats.activePlayers || 0).toLocaleString()} active today
             </p>
           </CardContent>
         </Card>
@@ -72,7 +105,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-green-600">
-              ${(stats?.totalRevenue || 0).toFixed(2)}
+              ${(stats.totalRevenue || 0).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
@@ -86,7 +119,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-blue-600">
-              ${(stats?.totalWagered || 0).toFixed(2)}
+              ${(stats.totalWagered || 0).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">Lifetime</p>
           </CardContent>
@@ -100,7 +133,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-purple-600">
-              ${(stats?.averagePlayerValue || 0).toFixed(2)}
+              ${(stats.averagePlayerValue || 0).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">Per player</p>
           </CardContent>
@@ -116,7 +149,7 @@ const AdminDashboard = () => {
             <Gamepad2 className="w-4 h-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats?.gamesToday || 0}</div>
+            <div className="text-2xl font-bold text-orange-600">{(stats.gamesToday || 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Gaming sessions</p>
           </CardContent>
         </Card>
@@ -128,7 +161,7 @@ const AdminDashboard = () => {
             <Users className="w-4 h-4 text-cyan-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-cyan-600">{stats?.newPlayersToday || 0}</div>
+            <div className="text-2xl font-bold text-cyan-600">{(stats.newPlayersToday || 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Registrations</p>
           </CardContent>
         </Card>
@@ -140,7 +173,7 @@ const AdminDashboard = () => {
             <AlertCircle className="w-4 h-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats?.pendingKyc || 0}</div>
+            <div className="text-2xl font-bold text-yellow-600">{(stats.pendingKyc || 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Awaiting review</p>
           </CardContent>
         </Card>
@@ -152,7 +185,7 @@ const AdminDashboard = () => {
             <AlertCircle className="w-4 h-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats?.openTickets || 0}</div>
+            <div className="text-2xl font-bold text-red-600">{(stats.openTickets || 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Needs attention</p>
           </CardContent>
         </Card>
@@ -184,8 +217,8 @@ const AdminDashboard = () => {
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">House Edge</span>
                 <span className="font-bold">
-                  {stats && stats.totalWagered > 0 
-                    ? (((stats.totalWagered - stats.totalWon) / stats.totalWagered) * 100).toFixed(1) 
+                  {stats.totalWagered && stats.totalWagered > 0
+                    ? (((stats.totalWagered - (stats.totalWon || 0)) / stats.totalWagered) * 100).toFixed(1)
                     : 0}%
                 </span>
               </div>
@@ -203,23 +236,23 @@ const AdminDashboard = () => {
               <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                 <div>
                   <p className="font-semibold text-sm">KYC Reviews Pending</p>
-                  <p className="text-xs text-muted-foreground">{stats?.pendingKyc || 0} players</p>
+                  <p className="text-xs text-muted-foreground">{(stats.pendingKyc || 0).toLocaleString()} players</p>
                 </div>
-                <span className="text-lg font-bold text-yellow-600">{stats?.pendingKyc || 0}</span>
+                <span className="text-lg font-bold text-yellow-600">{(stats.pendingKyc || 0).toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
                 <div>
                   <p className="font-semibold text-sm">Withdrawals Pending</p>
-                  <p className="text-xs text-muted-foreground">{stats?.pendingWithdrawals || 0} requests</p>
+                  <p className="text-xs text-muted-foreground">{(stats.pendingWithdrawals || 0).toLocaleString()} requests</p>
                 </div>
-                <span className="text-lg font-bold text-red-600">{stats?.pendingWithdrawals || 0}</span>
+                <span className="text-lg font-bold text-red-600">{(stats.pendingWithdrawals || 0).toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <div>
                   <p className="font-semibold text-sm">Support Tickets</p>
-                  <p className="text-xs text-muted-foreground">{stats?.openTickets || 0} open</p>
+                  <p className="text-xs text-muted-foreground">{(stats.openTickets || 0).toLocaleString()} open</p>
                 </div>
-                <span className="text-lg font-bold text-blue-600">{stats?.openTickets || 0}</span>
+                <span className="text-lg font-bold text-blue-600">{(stats.openTickets || 0).toLocaleString()}</span>
               </div>
             </div>
           </CardContent>

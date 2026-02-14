@@ -19,27 +19,30 @@ interface Transaction {
 
 const AdminWallet = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
-  const [totalVolume, setTotalVolume] = useState(0);
+  const [totalGCCirculation, setTotalGCCirculation] = useState(0);
+  const [totalSCCirculation, setTotalSCCirculation] = useState(0);
+
+  const fetchTransactions = async (playerId: string) => {
+    if (!playerId) {
+      setTransactions([]);
+      return;
+    }
+    try {
+      setIsLoading(true);
+      const response = await adminV2.players.getTransactions(parseInt(playerId), 1, 50);
+      setTransactions(response.transactions || []);
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error);
+      toast.error('Failed to load transactions');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        setIsLoading(true);
-        if (selectedPlayerId) {
-          const response = await adminV2.players.getTransactions(parseInt(selectedPlayerId), 1, 50);
-          setTransactions(response.transactions || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch transactions:', error);
-        toast.error('Failed to load transactions');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTransactions();
+    fetchTransactions(selectedPlayerId);
   }, [selectedPlayerId]);
 
   return (
@@ -137,48 +140,80 @@ const AdminWallet = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 border rounded-lg">
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              try {
+                const playerId = parseInt(formData.get('playerId') as string);
+                const gc = parseFloat(formData.get('gcAmount') as string);
+                const sc = parseFloat(formData.get('scAmount') as string);
+                await adminV2.players.updateBalance(playerId, gc, sc, 'Admin fund addition');
+                toast.success('Funds added successfully');
+                (e.target as HTMLFormElement).reset();
+              } catch (error) {
+                toast.error('Failed to add funds');
+              }
+            }} className="p-4 border rounded-lg">
               <h4 className="font-semibold mb-3">Add Funds</h4>
               <div className="space-y-2">
-                <Input placeholder="Player ID" type="number" />
-                <Input placeholder="GC Amount" type="number" />
-                <Input placeholder="SC Amount" type="number" />
-                <Button className="w-full">Add Funds</Button>
+                <Input name="playerId" placeholder="Player ID" type="number" required />
+                <Input name="gcAmount" placeholder="GC Amount" type="number" step="0.01" required />
+                <Input name="scAmount" placeholder="SC Amount" type="number" step="0.01" required />
+                <Button className="w-full" type="submit">Add Funds</Button>
               </div>
-            </div>
+            </form>
 
-            <div className="p-4 border rounded-lg">
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              try {
+                const playerId = parseInt(formData.get('playerId') as string);
+                const gc = -parseFloat(formData.get('gcAmount') as string);
+                const sc = -parseFloat(formData.get('scAmount') as string);
+                await adminV2.players.updateBalance(playerId, gc, sc, 'Admin fund removal');
+                toast.success('Funds removed successfully');
+                (e.target as HTMLFormElement).reset();
+              } catch (error) {
+                toast.error('Failed to remove funds');
+              }
+            }} className="p-4 border rounded-lg">
               <h4 className="font-semibold mb-3">Remove Funds</h4>
               <div className="space-y-2">
-                <Input placeholder="Player ID" type="number" />
-                <Input placeholder="GC Amount" type="number" />
-                <Input placeholder="SC Amount" type="number" />
-                <Button variant="destructive" className="w-full">Remove Funds</Button>
+                <Input name="playerId" placeholder="Player ID" type="number" required />
+                <Input name="gcAmount" placeholder="GC Amount" type="number" step="0.01" required />
+                <Input name="scAmount" placeholder="SC Amount" type="number" step="0.01" required />
+                <Button variant="destructive" className="w-full" type="submit">Remove Funds</Button>
               </div>
-            </div>
+            </form>
 
-            <div className="p-4 border rounded-lg">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              toast.info('Transfer feature coming soon');
+            }} className="p-4 border rounded-lg">
               <h4 className="font-semibold mb-3">Transfer Between Players</h4>
               <div className="space-y-2">
-                <Input placeholder="From Player ID" type="number" />
-                <Input placeholder="To Player ID" type="number" />
-                <Input placeholder="GC Amount" type="number" />
-                <Button className="w-full">Transfer</Button>
+                <Input placeholder="From Player ID" type="number" required />
+                <Input placeholder="To Player ID" type="number" required />
+                <Input placeholder="GC Amount" type="number" required />
+                <Button className="w-full" type="submit">Transfer</Button>
               </div>
-            </div>
+            </form>
 
-            <div className="p-4 border rounded-lg">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              toast.info('Reset wallet feature coming soon');
+            }} className="p-4 border rounded-lg">
               <h4 className="font-semibold mb-3">Reset Wallet</h4>
               <div className="space-y-2">
-                <Input placeholder="Player ID" type="number" />
+                <Input placeholder="Player ID" type="number" required />
                 <select className="w-full px-3 py-2 border rounded-md text-sm">
                   <option>Select action...</option>
                   <option>Reset to Zero</option>
                   <option>Reset to Default</option>
                 </select>
-                <Button variant="destructive" className="w-full">Reset Wallet</Button>
+                <Button variant="destructive" className="w-full" type="submit">Reset Wallet</Button>
               </div>
-            </div>
+            </form>
           </div>
         </CardContent>
       </Card>
