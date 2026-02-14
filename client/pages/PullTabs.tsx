@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, RefreshCw, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiCall } from '@/lib/api';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/lib/auth-context';
 import { useWallet } from '@/hooks/use-wallet';
 import { TicketDesignCard } from '@/components/pull-tabs/TicketDesignCard';
 import { PullTabTicket } from '@/components/pull-tabs/PullTabTicket';

@@ -16,8 +16,6 @@ import AdminGamesSports from '@/components/admin/AdminGamesSports';
 import AdminOperations from '@/components/admin/AdminOperations';
 import AdminAdvanced from '@/components/admin/AdminAdvanced';
 import AdminStore from '@/components/admin/AdminStore';
-import { PullTabDesigner } from '@/components/admin/PullTabDesigner';
-import { PullTabAnalytics } from '@/components/admin/PullTabAnalytics';
 
 const Admin = () => {
   const { isAdmin, isLoading: authLoading } = useAuth();
@@ -54,13 +52,12 @@ const Admin = () => {
 
       {/* Main Tabs Navigation */}
       <Tabs value={activeSection} onValueChange={setActiveSection} className="w-full">
-        <TabsList className="grid w-full grid-cols-10 mb-6 overflow-x-auto">
+        <TabsList className="grid w-full grid-cols-9 mb-6 overflow-x-auto">
           <TabsTrigger value="dashboard" className="text-xs">Dashboard</TabsTrigger>
           <TabsTrigger value="players" className="text-xs">Players</TabsTrigger>
           <TabsTrigger value="kyc" className="text-xs">KYC</TabsTrigger>
           <TabsTrigger value="wallet" className="text-xs">Wallet</TabsTrigger>
           <TabsTrigger value="store" className="text-xs">Store</TabsTrigger>
-          <TabsTrigger value="pull-tabs" className="text-xs">Pull Tabs</TabsTrigger>
           <TabsTrigger value="financial" className="text-xs">Financial</TabsTrigger>
           <TabsTrigger value="games" className="text-xs">Games & Sports</TabsTrigger>
           <TabsTrigger value="operations" className="text-xs">Operations</TabsTrigger>
@@ -90,14 +87,6 @@ const Admin = () => {
         {/* Store Management */}
         <TabsContent value="store">
           <AdminStore />
-        </TabsContent>
-
-        {/* Pull Tab Lottery */}
-        <TabsContent value="pull-tabs">
-          <div className="space-y-6">
-            <PullTabDesigner />
-            <PullTabAnalytics />
-          </div>
         </TabsContent>
 
         {/* Financial Management */}

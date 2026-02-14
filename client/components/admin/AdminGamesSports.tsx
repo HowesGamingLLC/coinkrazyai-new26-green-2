@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ScratchTicketDesigner } from './ScratchTicketDesigner';
+import { PullTabDesigner } from './PullTabDesigner';
+import { PullTabAnalytics } from './PullTabAnalytics';
 
 const AdminGamesSports = () => {
   const [games, setGames] = useState<any[]>([]);
@@ -44,11 +46,12 @@ const AdminGamesSports = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="games" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="games">Games</TabsTrigger>
           <TabsTrigger value="poker">Poker</TabsTrigger>
           <TabsTrigger value="bingo">Bingo</TabsTrigger>
           <TabsTrigger value="sports">Sports</TabsTrigger>
+          <TabsTrigger value="pull-tabs">Pull Tabs</TabsTrigger>
           <TabsTrigger value="scratch">Scratch</TabsTrigger>
           <TabsTrigger value="ingestion">Ingestion</TabsTrigger>
         </TabsList>
@@ -380,6 +383,14 @@ const AdminGamesSports = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Pull Tabs Management */}
+        <TabsContent value="pull-tabs" className="space-y-4">
+          <div className="space-y-6">
+            <PullTabDesigner />
+            <PullTabAnalytics />
+          </div>
         </TabsContent>
 
         {/* Scratch Tickets */}

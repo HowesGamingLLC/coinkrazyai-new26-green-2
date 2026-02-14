@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { PlayerProfile } from '@shared/api';
 import { auth } from './api';
+import { io } from 'socket.io-client';
 
 interface AuthContextType {
   user: PlayerProfile | null;
@@ -20,6 +21,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<PlayerProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // Socket connection for real-time balance updates
+  useEffect(() => {
+    if (user) {
+      const socket = io(); // Connect to same host
+
+      socket.on(`wallet:${user.id}`, (data: any) => {
+        console.log('[Socket] Received wallet update:', data);
+        setUser(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            gc_balance: data.goldCoins !== undefined ? data.goldCoins : prev.gc_balance,
+            sc_balance: data.sweepsCoins !== undefined ? data.sweepsCoins : prev.sc_balance,
+          };
+        });
+      });
+
+      socket.on('wallet:update', (data: any) => {
+        // Fallback or global update
+        if (data.userId === user.id || !data.userId) {
+          setUser(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              gc_balance: data.goldCoins !== undefined ? data.goldCoins : prev.gc_balance,
+              sc_balance: data.sweepsCoins !== undefined ? data.sweepsCoins : prev.sc_balance,
+            };
+          });
+        }
+      });
+
+      return () => {
+        socket.disconnect();
+      };
+    }
+  }, [user?.id]);
 
   // Check if user is already logged in on mount
   useEffect(() => {
