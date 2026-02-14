@@ -59,7 +59,7 @@ export function PullTabAnalytics() {
   const loadStats = async () => {
     try {
       setIsLoadingStats(true);
-      const response = await apiCall('/api/admin/v2/pull-tabs/stats', {
+      const response = await apiCall('/admin/v2/pull-tabs/stats', {
         headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (response.success) {
@@ -78,7 +78,7 @@ export function PullTabAnalytics() {
   const loadTransactions = async () => {
     try {
       setIsLoadingTransactions(true);
-      const response = await apiCall('/api/admin/v2/pull-tabs/transactions?limit=100', {
+      const response = await apiCall('/admin/v2/pull-tabs/transactions?limit=100', {
         headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (response.success) {
@@ -94,7 +94,7 @@ export function PullTabAnalytics() {
   const loadResults = async () => {
     try {
       setIsLoadingResults(true);
-      const response = await apiCall('/api/admin/v2/pull-tabs/results?limit=100', {
+      const response = await apiCall('/admin/v2/pull-tabs/results?limit=100', {
         headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (response.success) {

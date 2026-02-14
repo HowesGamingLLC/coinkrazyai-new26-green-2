@@ -88,7 +88,7 @@ export const ScratchTicket: React.FC<ScratchTicketProps> = ({ ticket, onRefresh 
     if (scratchedSlots.has(slotIndex) || claimStatus === 'claimed') return;
 
     try {
-      const response = await apiCall('/api/scratch-tickets/reveal', {
+      const response = await apiCall('/scratch-tickets/reveal', {
         method: 'POST',
         body: JSON.stringify({
           ticketId: ticket.id,
@@ -190,7 +190,7 @@ export const ScratchTicket: React.FC<ScratchTicketProps> = ({ ticket, onRefresh 
   const handleClaim = async () => {
     try {
       setIsClaiming(true);
-      const response = await apiCall('/api/scratch-tickets/claim', {
+      const response = await apiCall('/scratch-tickets/claim', {
         method: 'POST',
         body: JSON.stringify({ ticketId: ticket.id }),
       });

@@ -66,7 +66,7 @@ export const PullTabTicket: React.FC<PullTabTicketProps> = ({
 
     try {
       setRevealing(tabIndex);
-      const response = await apiCall('/api/pull-tabs/reveal', {
+      const response = await apiCall('/pull-tabs/reveal', {
         method: 'POST',
         body: JSON.stringify({
           ticketId: ticket.id,
@@ -105,7 +105,7 @@ export const PullTabTicket: React.FC<PullTabTicketProps> = ({
   const handleClaim = async () => {
     try {
       setIsClaiming(true);
-      const response = await apiCall('/api/pull-tabs/claim', {
+      const response = await apiCall('/pull-tabs/claim', {
         method: 'POST',
         body: JSON.stringify({ ticketId: ticket.id }),
       });

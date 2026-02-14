@@ -70,7 +70,7 @@ export function PullTabDesigner() {
   const loadDesigns = async () => {
     try {
       setIsLoading(true);
-      const response = await apiCall('/api/admin/v2/pull-tabs/designs', {
+      const response = await apiCall('/admin/v2/pull-tabs/designs', {
         headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (response.success) {
@@ -126,7 +126,7 @@ export function PullTabDesigner() {
       setIsSaving(true);
       if (editingId) {
         // Update existing design
-        const response = await apiCall(`/api/admin/v2/pull-tabs/designs/${editingId}`, {
+        const response = await apiCall(`/admin/v2/pull-tabs/designs/${editingId}`, {
           method: 'PUT',
           headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
           body: JSON.stringify(formData),
@@ -141,7 +141,7 @@ export function PullTabDesigner() {
         }
       } else {
         // Create new design
-        const response = await apiCall('/api/admin/v2/pull-tabs/designs', {
+        const response = await apiCall('/admin/v2/pull-tabs/designs', {
           method: 'POST',
           headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
           body: JSON.stringify(formData),
@@ -167,7 +167,7 @@ export function PullTabDesigner() {
     if (!confirm('Are you sure you want to delete this design?')) return;
 
     try {
-      const response = await apiCall(`/api/admin/v2/pull-tabs/designs/${id}`, {
+      const response = await apiCall(`/admin/v2/pull-tabs/designs/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
       });

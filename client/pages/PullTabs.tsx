@@ -66,7 +66,7 @@ export default function PullTabs() {
   const loadDesigns = async () => {
     try {
       setIsLoadingDesigns(true);
-      const response = await apiCall('/api/pull-tabs/designs');
+      const response = await apiCall('/pull-tabs/designs');
       if (response.success) {
         setDesigns(response.data);
       } else {
@@ -83,7 +83,7 @@ export default function PullTabs() {
   const loadMyTickets = async () => {
     try {
       setIsLoadingTickets(true);
-      const response = await apiCall('/api/pull-tabs', {
+      const response = await apiCall('/pull-tabs', {
         headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (response.success) {
@@ -99,7 +99,7 @@ export default function PullTabs() {
   const loadTransactions = async () => {
     try {
       setIsLoadingTransactions(true);
-      const response = await apiCall('/api/pull-tabs/history/transactions?limit=50', {
+      const response = await apiCall('/pull-tabs/history/transactions?limit=50', {
         headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (response.success) {
@@ -120,7 +120,7 @@ export default function PullTabs() {
 
     try {
       setPurchasingDesignId(designId);
-      const response = await apiCall('/api/pull-tabs/purchase', {
+      const response = await apiCall('/pull-tabs/purchase', {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
         body: JSON.stringify({ designId }),

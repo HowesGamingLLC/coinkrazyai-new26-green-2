@@ -65,7 +65,7 @@ const ScratchTickets = () => {
   const fetchDesigns = async () => {
     try {
       setIsLoadingDesigns(true);
-      const response = await apiCall('/api/scratch-tickets/designs');
+      const response = await apiCall('/scratch-tickets/designs');
       if (response.success) {
         setDesigns(response.data || []);
       }
@@ -80,7 +80,7 @@ const ScratchTickets = () => {
   const fetchMyTickets = async () => {
     try {
       setIsLoadingTickets(true);
-      const response = await apiCall('/api/scratch-tickets');
+      const response = await apiCall('/scratch-tickets');
       if (response.success) {
         setMyTickets(response.data || []);
       }
@@ -108,7 +108,7 @@ const ScratchTickets = () => {
 
     try {
       setIsCreatingTicket(true);
-      const response = await apiCall('/api/scratch-tickets/purchase', {
+      const response = await apiCall('/scratch-tickets/purchase', {
         method: 'POST',
         body: JSON.stringify({ designId }),
       });

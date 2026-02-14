@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { auth } from '@/lib/api';
 
 const Account = () => {
   const { user, isLoading, isAuthenticated, refreshProfile } = useAuth();
@@ -64,10 +65,15 @@ const Account = () => {
         return;
       }
 
-      // TODO: Call API to update profile
-      // For now, just show success
-      await refreshProfile();
-      toast.success('Profile updated successfully');
+      // Update profile via API
+      const response = await auth.updateProfile(updates);
+
+      if (response.success) {
+        await refreshProfile();
+        toast.success('Profile updated successfully');
+      } else {
+        toast.error('Failed to update profile');
+      }
     } catch (err: any) {
       const message = err.message || 'Update failed';
       setError(message);
@@ -104,14 +110,20 @@ const Account = () => {
     setIsUpdating(true);
 
     try {
-      // TODO: Call API to update password
-      toast.success('Password updated successfully');
-      setFormData(prev => ({
-        ...prev,
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      }));
+      // Update password via API
+      const response = await auth.updateProfile({ password: formData.newPassword });
+
+      if (response.success) {
+        toast.success('Password updated successfully');
+        setFormData(prev => ({
+          ...prev,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        }));
+      } else {
+        toast.error('Failed to update password');
+      }
     } catch (err: any) {
       const message = err.message || 'Password update failed';
       setError(message);
