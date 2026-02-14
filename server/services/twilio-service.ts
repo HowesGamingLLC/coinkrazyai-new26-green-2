@@ -1,16 +1,26 @@
 import twilio from 'twilio';
 
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID || '',
-  process.env.TWILIO_AUTH_TOKEN || ''
-);
+let client: ReturnType<typeof twilio> | null = null;
+
+function getTwilioClient() {
+  if (!client) {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    if (!accountSid || !authToken) {
+      console.warn('Twilio credentials not configured - SMS features disabled');
+    }
+    client = twilio(accountSid, authToken);
+  }
+  return client;
+}
 
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
 
 export class TwilioService {
   static async sendSMS(phoneNumber: string, message: string) {
     try {
-      const result = await client.messages.create({
+      const twilioClient = getTwilioClient();
+      const result = await twilioClient.messages.create({
         body: message,
         from: TWILIO_PHONE_NUMBER,
         to: phoneNumber,
@@ -64,7 +74,8 @@ export class TwilioService {
 
   static async initiateCall(phoneNumber: string, twimlUrl: string) {
     try {
-      const call = await client.calls.create({
+      const twilioClient = getTwilioClient();
+      const call = await twilioClient.calls.create({
         url: twimlUrl,
         to: phoneNumber,
         from: TWILIO_PHONE_NUMBER,
@@ -78,7 +89,8 @@ export class TwilioService {
 
   static async getMessageStatus(messageSid: string) {
     try {
-      const message = await client.messages(messageSid).fetch();
+      const twilioClient = getTwilioClient();
+      const message = await twilioClient.messages(messageSid).fetch();
       return message.status;
     } catch (error) {
       console.error('Twilio message status error:', error);

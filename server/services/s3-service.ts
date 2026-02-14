@@ -8,13 +8,20 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import crypto from 'crypto';
 
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
-});
+let s3Client: S3Client | null = null;
+
+function getS3Client(): S3Client {
+  if (!s3Client) {
+    s3Client = new S3Client({
+      region: process.env.AWS_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      },
+    });
+  }
+  return s3Client;
+}
 
 const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'coinkrazy-files';
 
@@ -35,7 +42,8 @@ export class S3Service {
         ACL: 'public-read',
       });
 
-      await s3Client.send(command);
+      const client = getS3Client();
+      await client.send(command);
       const fileUrl = `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
       return { success: true, url: fileUrl, key };
     } catch (error) {
@@ -78,7 +86,8 @@ export class S3Service {
         Bucket: BUCKET_NAME,
         Key: key,
       });
-      await s3Client.send(command);
+      const client = getS3Client();
+      await client.send(command);
       return { success: true };
     } catch (error) {
       console.error('S3 delete error:', error);
@@ -92,7 +101,8 @@ export class S3Service {
         Bucket: BUCKET_NAME,
         Key: key,
       });
-      const url = await getSignedUrl(s3Client, command, { expiresIn });
+      const client = getS3Client();
+      const url = await getSignedUrl(client, command, { expiresIn });
       return { success: true, url };
     } catch (error) {
       console.error('S3 signed URL error:', error);
@@ -107,7 +117,8 @@ export class S3Service {
         Prefix: folder,
         MaxKeys: maxKeys,
       });
-      const response = await s3Client.send(command);
+      const client = getS3Client();
+      const response = await client.send(command);
       return {
         success: true,
         files: response.Contents || [],
@@ -132,7 +143,8 @@ export class S3Service {
         Key: key,
         ContentType: mimeType,
       });
-      const url = await getSignedUrl(s3Client, command, { expiresIn });
+      const client = getS3Client();
+      const url = await getSignedUrl(client, command, { expiresIn });
       return { success: true, uploadUrl: url, key };
     } catch (error) {
       console.error('S3 presigned URL error:', error);

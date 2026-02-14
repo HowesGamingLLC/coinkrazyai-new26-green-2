@@ -1,8 +1,19 @@
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16',
-});
+let stripe: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!stripe) {
+    const apiKey = process.env.STRIPE_SECRET_KEY;
+    if (!apiKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
+    stripe = new Stripe(apiKey, {
+      apiVersion: '2023-10-16',
+    });
+  }
+  return stripe;
+}
 
 export class StripeService {
   static async createPaymentIntent(
@@ -12,7 +23,8 @@ export class StripeService {
     metadata: Record<string, string> = {}
   ) {
     try {
-      const intent = await stripe.paymentIntents.create({
+      const stripeClient = getStripe();
+      const intent = await stripeClient.paymentIntents.create({
         amount: Math.round(amount * 100),
         currency,
         payment_method_types: ['card'],
@@ -30,7 +42,8 @@ export class StripeService {
 
   static async retrievePaymentIntent(intentId: string) {
     try {
-      const intent = await stripe.paymentIntents.retrieve(intentId);
+      const stripeClient = getStripe();
+      const intent = await stripeClient.paymentIntents.retrieve(intentId);
       return intent;
     } catch (error) {
       console.error('Stripe retrieve intent error:', error);
@@ -40,7 +53,8 @@ export class StripeService {
 
   static async createRefund(paymentIntentId: string, amount?: number) {
     try {
-      const refund = await stripe.refunds.create({
+      const stripeClient = getStripe();
+      const refund = await stripeClient.refunds.create({
         payment_intent: paymentIntentId,
         amount: amount ? Math.round(amount * 100) : undefined,
       });
@@ -53,7 +67,8 @@ export class StripeService {
 
   static async createCustomer(email: string, name: string, playerId: number) {
     try {
-      const customer = await stripe.customers.create({
+      const stripeClient = getStripe();
+      const customer = await stripeClient.customers.create({
         email,
         name,
         metadata: { playerId: String(playerId) },
@@ -71,7 +86,8 @@ export class StripeService {
     currency: string = 'usd'
   ) {
     try {
-      const charge = await stripe.charges.create({
+      const stripeClient = getStripe();
+      const charge = await stripeClient.charges.create({
         amount: Math.round(amount * 100),
         currency,
         customer: customerId,
@@ -85,7 +101,8 @@ export class StripeService {
 
   static async getBalance() {
     try {
-      const balance = await stripe.balance.retrieve();
+      const stripeClient = getStripe();
+      const balance = await stripeClient.balance.retrieve();
       return balance;
     } catch (error) {
       console.error('Stripe balance error:', error);
@@ -95,7 +112,8 @@ export class StripeService {
 
   static async verifyWebhookSignature(body: string, signature: string, secret: string) {
     try {
-      return stripe.webhooks.constructEvent(body, signature, secret);
+      const stripeClient = getStripe();
+      return stripeClient.webhooks.constructEvent(body, signature, secret);
     } catch (error) {
       console.error('Webhook signature verification failed:', error);
       throw error;

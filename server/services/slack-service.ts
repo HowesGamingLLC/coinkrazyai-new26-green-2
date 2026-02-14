@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
+const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 const SLACK_ADMIN_CHANNEL = process.env.SLACK_ADMIN_CHANNEL || '#admin-notifications';
 const SLACK_ALERTS_CHANNEL = process.env.SLACK_ALERTS_CHANNEL || '#security-alerts';
 const SLACK_BOT_NAME = 'CoinKrazy Bot';
