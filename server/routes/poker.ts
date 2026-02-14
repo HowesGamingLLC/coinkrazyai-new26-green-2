@@ -1,6 +1,7 @@
 import { RequestHandler } from "express";
 import * as dbQueries from "../db/queries";
 import { query } from "../db/connection";
+import { PokerService } from "../services/poker-service";
 
 // Game configuration
 let gameConfig = {
@@ -162,20 +163,33 @@ export const handleFold: RequestHandler = async (req, res) => {
       });
     }
 
-    const { table_id, session_id } = req.body;
+    const { table_id } = req.body;
 
-    // In a real poker system, this would:
-    // 1. Record the fold action
-    // 2. Update game state
-    // 3. Potentially advance to next player
-    // For now, just acknowledge
+    if (!table_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Table ID required'
+      });
+    }
+
+    // Process fold in game service
+    const folded = PokerService.playerFold(table_id, req.user.playerId);
+
+    if (!folded) {
+      return res.status(400).json({
+        success: false,
+        error: 'Failed to process fold - invalid game or player state'
+      });
+    }
+
+    const tableState = PokerService.getTableState(table_id);
 
     res.json({
       success: true,
       data: {
         message: 'Fold recorded',
         table_id,
-        session_id
+        tableState
       }
     });
   } catch (error) {

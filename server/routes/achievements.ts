@@ -1,6 +1,7 @@
 import { RequestHandler } from "express";
 import * as dbQueries from "../db/queries";
 import { query } from "../db/connection";
+import { AchievementsService } from "../services/achievements-service";
 
 // Get all achievements
 export const handleGetAchievements: RequestHandler = async (req, res) => {
@@ -133,56 +134,20 @@ export const handleCheckAchievements: RequestHandler = async (req, res) => {
       });
     }
 
-    // Get player stats
-    const playerResult = await dbQueries.getPlayerById(req.user.playerId);
-    if (playerResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'Player not found'
-      });
-    }
-
-    const player = playerResult.rows[0];
-
-    // Get all achievements
-    const achievementsResult = await query(
-      'SELECT * FROM achievements WHERE enabled = true'
+    // Check and award all achievable achievements
+    const earnedAchievements = await AchievementsService.checkAndAwardAchievements(
+      req.user.playerId
     );
-
-    const earnedAchievements = [];
-    const achievements = achievementsResult.rows;
-
-    // Check each achievement criteria
-    for (const achievement of achievements) {
-      let shouldEarn = false;
-
-      switch (achievement.requirement_type) {
-        case 'balance':
-          shouldEarn = player.gc_balance >= achievement.requirement_value;
-          break;
-        case 'games_played':
-          // Would need to query stats table
-          shouldEarn = false;
-          break;
-        case 'wins':
-          // Would need to query game results
-          shouldEarn = false;
-          break;
-      }
-
-      if (shouldEarn) {
-        const result = await dbQueries.awardAchievement(req.user.playerId, achievement.id);
-        if (result.rows.length > 0) {
-          earnedAchievements.push(achievement);
-        }
-      }
-    }
 
     res.json({
       success: true,
       data: {
         newly_earned: earnedAchievements,
-        count: earnedAchievements.length
+        count: earnedAchievements.length,
+        message:
+          earnedAchievements.length > 0
+            ? `Congratulations! You earned ${earnedAchievements.length} new achievement(s)!`
+            : 'No new achievements at this time. Keep playing!'
       }
     });
   } catch (error) {

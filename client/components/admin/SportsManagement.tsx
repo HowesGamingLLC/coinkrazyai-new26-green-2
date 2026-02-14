@@ -102,7 +102,7 @@ export const SportsManagement = () => {
                     <h4 className="font-bold text-lg">{event.event}</h4>
                     <p className="text-sm text-muted-foreground">{event.sport} • {event.date}</p>
                   </div>
-                  <Badge className={event.status === 'Live' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'} style={{borderStyle: 'none'}}>
+                  <Badge className={cn(event.status === 'Live' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500', 'border-none')}>
                     {event.status}
                   </Badge>
                 </div>
@@ -183,7 +183,7 @@ export const SportsManagement = () => {
             ].map((bet) => (
               <div key={bet.name} className="flex items-center justify-between p-2 bg-muted/30 rounded border border-border">
                 <p className="font-bold text-sm">{bet.name}</p>
-                <Badge className={bet.active ? 'bg-green-500/10 text-green-500' : 'bg-gray-500/10 text-gray-500'} style={{borderStyle: 'none'}} className="text-xs">
+                <Badge className={cn(bet.active ? 'bg-green-500/10 text-green-500' : 'bg-gray-500/10 text-gray-500', 'border-none text-xs')}>
                   {bet.active ? 'Enabled' : 'Disabled'}
                 </Badge>
               </div>

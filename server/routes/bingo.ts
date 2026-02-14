@@ -1,6 +1,7 @@
 import { RequestHandler } from "express";
 import * as dbQueries from "../db/queries";
 import { query } from "../db/connection";
+import { BingoService } from "../services/bingo-service";
 
 // Game configuration
 let gameConfig = {
@@ -167,17 +168,26 @@ export const handleMarkNumber: RequestHandler = async (req, res) => {
 
     const { game_id, number } = req.body;
 
-    // In a real system, this would:
-    // 1. Update the player's card state
-    // 2. Check if player has won
-    // 3. Emit real-time updates
+    if (!game_id || !number) {
+      return res.status(400).json({
+        success: false,
+        error: 'Game ID and number required'
+      });
+    }
+
+    // Mark the number on the player's card
+    const hasBingo = BingoService.markNumber(game_id, req.user.playerId, number);
+
+    const gameState = BingoService.getGameState(game_id);
 
     res.json({
       success: true,
       data: {
-        message: `Marked number ${number}`,
+        message: hasBingo ? 'BINGO! You won!' : `Marked number ${number}`,
         game_id,
-        number
+        number,
+        hasBingo,
+        gameState
       }
     });
   } catch (error) {

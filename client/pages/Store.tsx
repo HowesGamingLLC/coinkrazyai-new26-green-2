@@ -30,7 +30,7 @@ const Store = () => {
       const response = await fetch('/api/store/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packId, method: 'demo' })
+        body: JSON.stringify({ packId: parseInt(packId), payment_method: 'stripe' })
       });
       const data = await response.json();
 
@@ -38,7 +38,7 @@ const Store = () => {
         const pack = data.data.pack;
         toast({
           title: "Purchase Successful!",
-          description: `You received ${pack.goldCoins.toLocaleString()} Gold Coins + ${pack.sweepsCoinsBonus} Sweeps Coin bonus!`,
+          description: `You received ${pack.gold_coins.toLocaleString()} Gold Coins + ${pack.sweeps_coins} Sweeps Coin bonus!`,
           className: "bg-primary text-primary-foreground font-bold"
         });
 
@@ -87,31 +87,31 @@ const Store = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {packs.map((pack) => (
           <Card key={pack.id} className="relative overflow-hidden border-2 border-border/50 hover:border-primary transition-all group flex flex-col">
-            {pack.price > 20 && (
+            {pack.is_best_value && (
               <div className="absolute top-0 right-0">
                 <Badge className="rounded-tr-none rounded-bl-lg bg-primary text-primary-foreground font-bold px-3 py-1">BEST VALUE</Badge>
               </div>
             )}
-            
+
             <CardHeader className="text-center pt-8">
               <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <Coins className="w-10 h-10 text-secondary" />
               </div>
               <CardTitle className="text-2xl font-bold">{pack.title}</CardTitle>
               <CardDescription className="text-primary font-bold text-lg">
-                +{pack.sweepsCoinsBonus} FREE SC
+                +{pack.sweeps_coins} FREE SC
               </CardDescription>
             </CardHeader>
 
             <CardContent className="text-center flex-1">
               <div className="space-y-2">
-                <p className="text-4xl font-black">{pack.goldCoins.toLocaleString()}</p>
+                <p className="text-4xl font-black">{pack.gold_coins.toLocaleString()}</p>
                 <p className="text-muted-foreground font-semibold uppercase tracking-widest text-xs">Gold Coins</p>
               </div>
               <div className="mt-8 pt-8 border-t border-border space-y-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
                   <ShieldCheck className="w-4 h-4 text-green-500" />
-                  <span>Secure Square Payment</span>
+                  <span>Secure Stripe Payment</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
                   <Zap className="w-4 h-4 text-primary" />
@@ -121,11 +121,11 @@ const Store = () => {
             </CardContent>
 
             <CardFooter className="p-6">
-              <Button 
-                onClick={() => handlePurchase(pack.id)}
+              <Button
+                onClick={() => handlePurchase(pack.id.toString())}
                 className="w-full h-14 text-xl font-black bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                ${pack.price}
+                ${pack.price_usd}
               </Button>
             </CardFooter>
           </Card>

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Trophy, Users, Timer, Ticket, Zap } from 'lucide-react';
 import { useWallet } from '@/hooks/use-wallet';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const Bingo = () => {
   const [rooms, setRooms] = useState<any[]>([]);
