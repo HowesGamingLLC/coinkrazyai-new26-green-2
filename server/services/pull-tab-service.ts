@@ -104,16 +104,17 @@ export class PullTabService {
 
       const design = designResult.rows[0] as PullTabDesign;
 
-      // Get player's current SC balance
-      const playerResult = await query(`SELECT sc_balance FROM players WHERE id = $1`, [playerId]);
+      // Get player's current balances
+      const playerResult = await query(`SELECT gc_balance, sc_balance FROM players WHERE id = $1`, [playerId]);
 
       if (playerResult.rows.length === 0) {
         return { success: false, error: 'Player not found' };
       }
 
-      const currentBalance = parseFloat(playerResult.rows[0].sc_balance);
+      const currentGcBalance = parseFloat(playerResult.rows[0].gc_balance);
+      const currentScBalance = parseFloat(playerResult.rows[0].sc_balance);
 
-      if (currentBalance < design.cost_sc) {
+      if (currentScBalance < design.cost_sc) {
         return { success: false, error: 'Insufficient Sweeps Coins' };
       }
 
@@ -146,8 +147,8 @@ export class PullTabService {
         const ticket = ticketResult.rows[0];
 
         // Deduct SC from player balance
-        const newBalance = currentBalance - design.cost_sc;
-        await client.query(`UPDATE players SET sc_balance = $1 WHERE id = $2`, [newBalance, playerId]);
+        const newScBalance = currentScBalance - design.cost_sc;
+        await client.query(`UPDATE players SET sc_balance = $1 WHERE id = $2`, [newScBalance, playerId]);
 
         // Log transaction
         await client.query(
@@ -158,8 +159,8 @@ export class PullTabService {
             ticket.id,
             'purchase',
             design.cost_sc,
-            currentBalance,
-            newBalance,
+            currentScBalance,
+            newScBalance,
             `Purchased CoinKrazy Pull Tab Ticket - ${design.name}`,
           ]
         );
@@ -172,7 +173,7 @@ export class PullTabService {
             playerId,
             'Pull Tab Purchase',
             -design.cost_sc,
-            newBalance,
+            newScBalance,
             `Purchased CoinKrazy Pull Tab Ticket - ${design.name}`,
           ]
         );
@@ -181,8 +182,8 @@ export class PullTabService {
 
         // Notify wallet update via socket
         WalletService.notifyWalletUpdate(playerId, {
-          goldCoins: 0, // Not used for this notification as it only updates what's changed if handled correctly, but notifyWalletUpdate takes a Wallet object
-          sweepsCoins: newBalance
+          goldCoins: currentGcBalance,
+          sweepsCoins: newScBalance
         } as any);
 
         // Send notification/receipt
@@ -346,8 +347,9 @@ export class PullTabService {
       // Get player's current balance
       const playerResult = await query(`SELECT sc_balance FROM players WHERE id = $1`, [playerId]);
 
-      const currentBalance = parseFloat(playerResult.rows[0].sc_balance);
-      const newBalance = currentBalance + prizeAmount;
+      const currentGcBalance = parseFloat(playerResult.rows[0].gc_balance);
+      const currentScBalance = parseFloat(playerResult.rows[0].sc_balance);
+      const newScBalance = currentScBalance + prizeAmount;
 
       // Start transaction
       try {
@@ -362,7 +364,7 @@ export class PullTabService {
         );
 
         // Credit prize to player
-        await query(`UPDATE players SET sc_balance = $1 WHERE id = $2`, [newBalance, playerId]);
+        await query(`UPDATE players SET sc_balance = $1 WHERE id = $2`, [newScBalance, playerId]);
 
         // Log winning result
         await query(
@@ -380,8 +382,8 @@ export class PullTabService {
             ticketId,
             'claim',
             prizeAmount,
-            currentBalance,
-            newBalance,
+            currentScBalance,
+            newScBalance,
             `Claimed CoinKrazy Pull Tab Prize - ${prizeAmount} SC`,
           ]
         );
@@ -394,12 +396,18 @@ export class PullTabService {
             playerId,
             'Pull Tab Prize Claim',
             prizeAmount,
-            newBalance,
+            newScBalance,
             `Claimed CoinKrazy Pull Tab Prize - ${prizeAmount} SC`,
           ]
         );
 
         await query('COMMIT', []);
+
+        // Notify wallet update via socket
+        WalletService.notifyWalletUpdate(playerId, {
+          goldCoins: currentGcBalance,
+          sweepsCoins: newScBalance
+        } as any);
 
         return { success: true, prizeAmount };
       } catch (error) {

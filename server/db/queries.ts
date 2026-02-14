@@ -1,4 +1,5 @@
 import { query } from './connection';
+import { WalletService } from '../services/wallet-service';
 
 // ===== PLAYERS =====
 export const getPlayers = async (limit = 20, offset = 0) => {
@@ -319,12 +320,20 @@ export const recordWalletTransaction = async (playerId: number, type: string, gc
   );
 
   // Record in ledger
-  return query(
+  const result = await query(
     `INSERT INTO wallet_ledger (player_id, transaction_type, gc_amount, sc_amount, gc_balance_after, sc_balance_after, description)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
     [playerId, type, gcAmount, scAmount, newGc, newSc, description]
   );
+
+  // Notify wallet update via socket
+  WalletService.notifyWalletUpdate(playerId, {
+    goldCoins: newGc,
+    sweepsCoins: newSc
+  } as any);
+
+  return result;
 };
 
 export const getWalletHistory = async (playerId: number, limit = 50) => {

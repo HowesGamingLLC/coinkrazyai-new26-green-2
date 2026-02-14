@@ -9,7 +9,17 @@ import { Loader2, Zap, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { GameInfo } from '@shared/api';
 
-const SYMBOLS = ['🍒', '🍊', '🍋', '🍌', '🍉', '⭐', '💎', '🔔'];
+const SYMBOLS_MAP: Record<string, string> = {
+  'cherry': '🍒',
+  'lemon': '🍋',
+  'orange': '🍊',
+  'plum': '🍇',
+  'bell': '🔔',
+  'diamond': '💎',
+  'seven': '7️⃣',
+};
+
+const SYMBOLS = Object.values(SYMBOLS_MAP);
 const WINNING_COMBINATIONS = {
   'three_of_a_kind': 10,
   'two_pair': 3,
@@ -88,56 +98,68 @@ const Slots = () => {
 
     setGameState(prev => ({ ...prev, isSpinning: true, lastWinnings: 0 }));
 
-    // Simulate spinning
-    const spinDuration = 1500;
-    let spinCount = 0;
-    const spinInterval = setInterval(async () => {
-      const newReels: [string, string, string] = [
+    // Start local spinning animation
+    const spinStartTime = Date.now();
+    const minSpinDuration = 1500;
+
+    const animationInterval = setInterval(() => {
+      const randomReels: [string, string, string] = [
         SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
         SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
         SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
       ];
-      setGameState(prev => ({ ...prev, reels: newReels }));
-      spinCount++;
+      setGameState(prev => ({ ...prev, reels: randomReels }));
+    }, 50);
 
-      if (spinCount * 50 >= spinDuration) {
-        clearInterval(spinInterval);
-        // Final result
+    try {
+      // Call API to get real result
+      const response = await slots.spin(selectedGame.id as number, betAmount);
+
+      if (response.success) {
+        const { reels: serverReels, winnings, result_type } = response.data;
+
+        // Map server symbol IDs to emojis (using the middle row reels[1])
         const finalReels: [string, string, string] = [
-          SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
-          SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
-          SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+          SYMBOLS_MAP[serverReels[1][0]] || '❓',
+          SYMBOLS_MAP[serverReels[1][1]] || '❓',
+          SYMBOLS_MAP[serverReels[1][2]] || '❓',
         ];
-        setGameState(prev => {
-          const winAmount = getWinAmount(finalReels);
-          const newState = {
+
+        // Ensure minimum spin duration for better UX
+        const elapsed = Date.now() - spinStartTime;
+        const remaining = Math.max(0, minSpinDuration - elapsed);
+
+        setTimeout(() => {
+          clearInterval(animationInterval);
+
+          setGameState(prev => ({
             ...prev,
             reels: finalReels,
             isSpinning: false,
-            lastWinnings: winAmount,
-            totalWins: prev.totalWins + winAmount,
-            totalLosses: prev.totalLosses + (winAmount === 0 ? betAmount : 0),
+            lastWinnings: winnings,
+            totalWins: prev.totalWins + winnings,
+            totalLosses: prev.totalLosses + (winnings === 0 ? betAmount : 0),
             spins: prev.spins + 1,
-          };
+          }));
 
-          if (winAmount > 0) {
-            toast.success(`You won ${winAmount} GC!`);
+          if (winnings > 0) {
+            toast.success(`You won ${winnings.toLocaleString()} GC!`);
             if (!isMuted) playSound();
           } else {
             toast.info('No win this time. Try again!');
           }
-
-          return newState;
-        });
-
-        // Call API to record result
-        try {
-          await slots.spin(selectedGame.id as number, betAmount);
-        } catch (error) {
-          console.error('Failed to record spin:', error);
-        }
+        }, remaining);
+      } else {
+        clearInterval(animationInterval);
+        setGameState(prev => ({ ...prev, isSpinning: false }));
+        toast.error(response.error || 'Failed to spin');
       }
-    }, 50);
+    } catch (error: any) {
+      clearInterval(animationInterval);
+      setGameState(prev => ({ ...prev, isSpinning: false }));
+      console.error('Spin failed:', error);
+      toast.error(error.message || 'Failed to connect to server');
+    }
   };
 
   const playSound = () => {

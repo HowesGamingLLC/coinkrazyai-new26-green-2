@@ -2,6 +2,7 @@ import { RequestHandler } from 'express';
 import { query } from '../db/connection';
 import { AuthService } from '../services/auth-service';
 import { SlackService } from '../services/slack-service';
+import { WalletService } from '../services/wallet-service';
 
 // Helper function to resolve username to playerId
 export const resolvePlayerIdentifier = async (identifier: string): Promise<number | null> => {
@@ -186,6 +187,12 @@ export const updatePlayerBalance: RequestHandler = async (req, res) => {
       [playerId, 'admin_adjustment', gcDelta, scDelta, newGcBalance, newScBalance, reason || 'Manual adjustment']
     );
 
+    // Notify wallet update via socket
+    WalletService.notifyWalletUpdate(playerId, {
+      goldCoins: newGcBalance,
+      sweepsCoins: newScBalance
+    } as any);
+
     res.json({ success: true, newGcBalance, newScBalance });
   } catch (error) {
     console.error('Update player balance error:', error);
@@ -360,6 +367,12 @@ export const updatePlayerBalanceByUsername: RequestHandler = async (req, res) =>
       'INSERT INTO wallet_ledger (player_id, transaction_type, gc_amount, sc_amount, gc_balance_after, sc_balance_after, description) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [playerId, 'admin_adjustment', gcDelta, scDelta, newGcBalance, newScBalance, reason || 'Manual adjustment']
     );
+
+    // Notify wallet update via socket
+    WalletService.notifyWalletUpdate(playerId, {
+      goldCoins: newGcBalance,
+      sweepsCoins: newScBalance
+    } as any);
 
     res.json({ success: true, newGcBalance, newScBalance });
   } catch (error) {

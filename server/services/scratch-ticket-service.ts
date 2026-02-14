@@ -101,9 +101,9 @@ export class ScratchTicketService {
 
       const design = designResult.rows[0] as ScratchTicketDesign;
 
-      // Get player's current SC balance
+      // Get player's current balances
       const playerResult = await query(
-        `SELECT sc_balance FROM players WHERE id = $1`,
+        `SELECT gc_balance, sc_balance FROM players WHERE id = $1`,
         [playerId]
       );
 
@@ -111,9 +111,10 @@ export class ScratchTicketService {
         return { success: false, error: 'Player not found' };
       }
 
-      const currentBalance = parseFloat(playerResult.rows[0].sc_balance);
+      const currentGcBalance = parseFloat(playerResult.rows[0].gc_balance);
+      const currentScBalance = parseFloat(playerResult.rows[0].sc_balance);
 
-      if (currentBalance < design.cost_sc) {
+      if (currentScBalance < design.cost_sc) {
         return { success: false, error: 'Insufficient Sweeps Coins' };
       }
 
@@ -138,10 +139,10 @@ export class ScratchTicketService {
         const ticket = ticketResult.rows[0];
 
         // Deduct SC from player balance
-        const newBalance = currentBalance - design.cost_sc;
+        const newScBalance = currentScBalance - design.cost_sc;
         await client.query(
           `UPDATE players SET sc_balance = $1 WHERE id = $2`,
-          [newBalance, playerId]
+          [newScBalance, playerId]
         );
 
         // Log transaction
@@ -153,8 +154,8 @@ export class ScratchTicketService {
             ticket.id,
             'purchase',
             design.cost_sc,
-            currentBalance,
-            newBalance,
+            currentScBalance,
+            newScBalance,
             `Purchased CoinKrazy Scratch Ticket - ${design.name}`,
           ]
         );
@@ -167,7 +168,7 @@ export class ScratchTicketService {
             playerId,
             'Scratch Ticket Purchase',
             -design.cost_sc,
-            newBalance,
+            newScBalance,
             `Purchased CoinKrazy Scratch Ticket - ${design.name}`,
           ]
         );
@@ -176,8 +177,8 @@ export class ScratchTicketService {
 
         // Notify wallet update via socket
         WalletService.notifyWalletUpdate(playerId, {
-          goldCoins: 0,
-          sweepsCoins: newBalance
+          goldCoins: currentGcBalance,
+          sweepsCoins: newScBalance
         } as any);
 
         // Send notification/receipt
@@ -337,14 +338,15 @@ export class ScratchTicketService {
         return { success: false, error: 'No prize on this ticket' };
       }
 
-      // Get player's current balance
+      // Get player's current balances
       const playerResult = await query(
-        `SELECT sc_balance FROM players WHERE id = $1`,
+        `SELECT gc_balance, sc_balance FROM players WHERE id = $1`,
         [playerId]
       );
 
-      const currentBalance = parseFloat(playerResult.rows[0].sc_balance);
-      const newBalance = currentBalance + prizeAmount;
+      const currentGcBalance = parseFloat(playerResult.rows[0].gc_balance);
+      const currentScBalance = parseFloat(playerResult.rows[0].sc_balance);
+      const newScBalance = currentScBalance + prizeAmount;
 
       // Start transaction
       try {
@@ -361,7 +363,7 @@ export class ScratchTicketService {
         // Credit prize to player
         await query(
           `UPDATE players SET sc_balance = $1 WHERE id = $2`,
-          [newBalance, playerId]
+          [newScBalance, playerId]
         );
 
         // Log winning result
@@ -380,8 +382,8 @@ export class ScratchTicketService {
             ticketId,
             'claim',
             prizeAmount,
-            currentBalance,
-            newBalance,
+            currentScBalance,
+            newScBalance,
             `Claimed CoinKrazy Scratch Ticket Prize - ${prizeAmount} SC`,
           ]
         );
@@ -394,12 +396,24 @@ export class ScratchTicketService {
             playerId,
             'Scratch Ticket Prize Claim',
             prizeAmount,
-            newBalance,
+            newScBalance,
             `Claimed CoinKrazy Scratch Ticket Prize - ${prizeAmount} SC`,
           ]
         );
 
         await query('COMMIT', []);
+
+        // Notify wallet update via socket
+        WalletService.notifyWalletUpdate(playerId, {
+          goldCoins: currentGcBalance,
+          sweepsCoins: newScBalance
+        } as any);
+
+        // Notify wallet update via socket
+        WalletService.notifyWalletUpdate(playerId, {
+          goldCoins: 0,
+          sweepsCoins: newBalance
+        } as any);
 
         return { success: true, prizeAmount };
       } catch (error) {
