@@ -156,7 +156,7 @@ const ScratchTickets = () => {
             {user && (
               <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-lg px-4 py-2">
                 <Coins className="w-5 h-5 text-yellow-500" />
-                <span className="font-bold text-lg">{(user.sc_balance || 0).toFixed(2)}</span>
+                <span className="font-bold text-lg">{Number(user.sc_balance || 0).toFixed(2)}</span>
                 <span className="text-sm text-gray-600 dark:text-gray-400">SC</span>
               </div>
             )}
