@@ -3,7 +3,7 @@ import { PlayerProfile, AuthResponse, StorePack, Wallet, Transaction, GameInfo, 
 const API_BASE = '/api';
 
 // Helper function to make API calls (player)
-async function apiCall<T>(
+export async function apiCall<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> {

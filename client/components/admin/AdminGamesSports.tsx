@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ScratchTicketDesigner } from './ScratchTicketDesigner';
 
 const AdminGamesSports = () => {
   const [games, setGames] = useState<any[]>([]);
@@ -43,11 +44,12 @@ const AdminGamesSports = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="games" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="games">Games</TabsTrigger>
           <TabsTrigger value="poker">Poker</TabsTrigger>
           <TabsTrigger value="bingo">Bingo</TabsTrigger>
           <TabsTrigger value="sports">Sports</TabsTrigger>
+          <TabsTrigger value="scratch">Scratch</TabsTrigger>
           <TabsTrigger value="ingestion">Ingestion</TabsTrigger>
         </TabsList>
 
@@ -378,6 +380,11 @@ const AdminGamesSports = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Scratch Tickets */}
+        <TabsContent value="scratch" className="space-y-4">
+          <ScratchTicketDesigner />
         </TabsContent>
 
         {/* Game Ingestion */}
