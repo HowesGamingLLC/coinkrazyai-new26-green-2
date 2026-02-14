@@ -11,13 +11,26 @@ export default function Casino() {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Combine all games (Pragmatic + Other casino games)
+  // Combine all games (Pragmatic + Other casino games) and deduplicate by ID
   const allGames = useMemo(() => {
     const pragmaticCasted = PRAGMATIC_GAMES.map(g => ({
       ...g,
       costPerPlay: g.costPerPlay,
     }));
-    return [...pragmaticCasted, ...casinoGames];
+
+    // Combine and deduplicate by game ID
+    const combined = [...pragmaticCasted, ...casinoGames];
+    const seen = new Set<string>();
+    const deduplicated: any[] = [];
+
+    for (const game of combined) {
+      if (!seen.has(game.id)) {
+        seen.add(game.id);
+        deduplicated.push(game);
+      }
+    }
+
+    return deduplicated;
   }, []);
 
   // Separate Pragmatic games from others
@@ -93,14 +106,15 @@ export default function Casino() {
       )}
 
       {/* Game Popup */}
-      {selectedGame && (
-        allGames.find(g => g.id === selectedGame) && (
+      {selectedGame && (() => {
+        const game = allGames.find(g => g.id === selectedGame);
+        return game ? (
           <GamePopup
-            game={allGames.find(g => g.id === selectedGame)!}
+            game={game}
             onClose={() => setSelectedGame(null)}
           />
-        )
-      )}
+        ) : null;
+      })()}
     </div>
   );
 }
