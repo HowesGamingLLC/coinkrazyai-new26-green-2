@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { ApiClient } from '@/lib/api';
 import { 
   Users, 
   Settings, 
@@ -228,13 +229,10 @@ const Admin = () => {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await fetch('/api/admin/stats', {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
-      if (!res.ok) throw new Error('Failed to fetch admin stats');
-      const data = await res.json();
-      if (data.success) setStats(data.data);
+      const res = await ApiClient.getAdminStats();
+      if (res.success) {
+        setStats(res.data);
+      }
     } catch (e) {
       console.error("Admin stats fetch error:", e);
     }
