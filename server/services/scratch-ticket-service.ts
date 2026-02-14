@@ -1,4 +1,6 @@
-import { query } from '../db/connection';
+import { query, getClient } from '../db/connection';
+import { WalletService } from './wallet-service';
+import { NotificationService } from './notification-service';
 
 interface ScratchTicketSlot {
   index: number;
@@ -120,11 +122,13 @@ export class ScratchTicketService {
       const ticketNumber = this.generateTicketNumber();
 
       // Start transaction
-      const client = await query('BEGIN', []);
+      const client = await getClient();
 
       try {
+        await client.query('BEGIN');
+
         // Create ticket
-        const ticketResult = await query(
+        const ticketResult = await client.query(
           `INSERT INTO scratch_tickets (design_id, player_id, ticket_number, slots, status, claim_status)
            VALUES ($1, $2, $3, $4, $5, $6)
            RETURNING *`,
@@ -135,13 +139,13 @@ export class ScratchTicketService {
 
         // Deduct SC from player balance
         const newBalance = currentBalance - design.cost_sc;
-        await query(
+        await client.query(
           `UPDATE players SET sc_balance = $1 WHERE id = $2`,
           [newBalance, playerId]
         );
 
         // Log transaction
-        await query(
+        await client.query(
           `INSERT INTO scratch_ticket_transactions (player_id, ticket_id, transaction_type, amount_sc, balance_before, balance_after, description)
            VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [
@@ -156,7 +160,7 @@ export class ScratchTicketService {
         );
 
         // Log wallet transaction
-        await query(
+        await client.query(
           `INSERT INTO wallet_ledger (player_id, transaction_type, sc_amount, sc_balance_after, description)
            VALUES ($1, $2, $3, $4, $5)`,
           [
@@ -168,7 +172,25 @@ export class ScratchTicketService {
           ]
         );
 
-        await query('COMMIT', []);
+        await client.query('COMMIT');
+
+        // Notify wallet update via socket
+        WalletService.notifyWalletUpdate(playerId, {
+          goldCoins: 0,
+          sweepsCoins: newBalance
+        } as any);
+
+        // Send notification/receipt
+        const playerEmailResult = await query('SELECT email FROM players WHERE id = $1', [playerId]);
+        if (playerEmailResult.rows.length > 0) {
+          NotificationService.notifyPurchase(
+            playerId,
+            playerEmailResult.rows[0].email,
+            design.cost_sc,
+            'SC',
+            `Scratch Ticket: ${design.name}`
+          );
+        }
 
         return {
           success: true,
@@ -184,8 +206,10 @@ export class ScratchTicketService {
           },
         };
       } catch (error) {
-        await query('ROLLBACK', []);
+        await client.query('ROLLBACK');
         throw error;
+      } finally {
+        client.release();
       }
     } catch (error) {
       console.error('Failed to purchase ticket:', error);

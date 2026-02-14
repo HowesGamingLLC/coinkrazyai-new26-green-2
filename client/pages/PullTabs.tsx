@@ -45,23 +45,29 @@ interface PullTabTransaction {
   design_name?: string;
 }
 
+import { useNavigate } from 'react-router-dom';
+
 export default function PullTabs() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const { wallet, refreshWallet } = useWallet();
   const [activeTab, setActiveTab] = useState('shop');
-  const [designs, setDesigns] = useState<PullTabDesign[]>([]);
-  const [myTickets, setMyTickets] = useState<PullTabTicketData[]>([]);
-  const [transactions, setTransactions] = useState<PullTabTransaction[]>([]);
-  const [isLoadingDesigns, setIsLoadingDesigns] = useState(false);
-  const [isLoadingTickets, setIsLoadingTickets] = useState(false);
-  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
-  const [purchasingDesignId, setPurchasingDesignId] = useState<number | null>(null);
+  // ... rest of state
 
   useEffect(() => {
-    loadDesigns();
-    loadMyTickets();
-    loadTransactions();
-  }, []);
+    if (!authLoading && !isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+  }, [isAuthenticated, authLoading, navigate]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadDesigns();
+      loadMyTickets();
+      loadTransactions();
+    }
+  }, [isAuthenticated]);
 
   const loadDesigns = async () => {
     try {

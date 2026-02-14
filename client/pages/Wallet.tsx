@@ -273,10 +273,22 @@ const Wallet = () => {
                         : 'text-red-600'
                     }`}>
                       {tx.type === 'Deposit' || tx.type === 'Win' || tx.type === 'Bonus' ? '+' : '-'}
-                      ${tx.gc_amount ? Number(tx.gc_amount).toFixed(2) : Number(tx.sc_amount ?? 0).toFixed(2)}
+                      {tx.gc_amount && Number(tx.gc_amount) !== 0 ? (
+                        <>
+                          {Number(tx.gc_amount).toLocaleString()} <span className="text-xs">GC</span>
+                        </>
+                      ) : (
+                        <>
+                          {Number(tx.sc_amount ?? 0).toFixed(2)} <span className="text-xs">SC</span>
+                        </>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Balance: ${tx.gc_amount ? Number(tx.gc_balance_after ?? 0).toFixed(2) : Number(tx.sc_balance_after ?? 0).toFixed(2)}
+                      Balance: {tx.gc_amount && Number(tx.gc_amount) !== 0 ? (
+                        <>{Number(tx.gc_balance_after ?? 0).toLocaleString()} GC</>
+                      ) : (
+                        <>{Number(tx.sc_balance_after ?? 0).toFixed(2)} SC</>
+                      )}
                     </p>
                   </div>
                 </div>

@@ -1,4 +1,6 @@
-import { query } from '../db/connection';
+import { query, getClient } from '../db/connection';
+import { WalletService } from './wallet-service';
+import { NotificationService } from './notification-service';
 
 interface PullTabTab {
   index: number;
@@ -129,11 +131,12 @@ export class PullTabService {
       }
 
       // Start transaction
+      const client = await getClient();
       try {
-        await query('BEGIN', []);
+        await client.query('BEGIN');
 
         // Create ticket
-        const ticketResult = await query(
+        const ticketResult = await client.query(
           `INSERT INTO pull_tab_tickets (design_id, player_id, ticket_number, tabs, status, claim_status, winning_tab_index)
            VALUES ($1, $2, $3, $4, $5, $6, $7)
            RETURNING *`,
@@ -144,10 +147,10 @@ export class PullTabService {
 
         // Deduct SC from player balance
         const newBalance = currentBalance - design.cost_sc;
-        await query(`UPDATE players SET sc_balance = $1 WHERE id = $2`, [newBalance, playerId]);
+        await client.query(`UPDATE players SET sc_balance = $1 WHERE id = $2`, [newBalance, playerId]);
 
         // Log transaction
-        await query(
+        await client.query(
           `INSERT INTO pull_tab_transactions (player_id, ticket_id, transaction_type, amount_sc, balance_before, balance_after, description)
            VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [
@@ -162,7 +165,7 @@ export class PullTabService {
         );
 
         // Log wallet transaction
-        await query(
+        await client.query(
           `INSERT INTO wallet_ledger (player_id, transaction_type, sc_amount, sc_balance_after, description)
            VALUES ($1, $2, $3, $4, $5)`,
           [
@@ -174,7 +177,25 @@ export class PullTabService {
           ]
         );
 
-        await query('COMMIT', []);
+        await client.query('COMMIT');
+
+        // Notify wallet update via socket
+        WalletService.notifyWalletUpdate(playerId, {
+          goldCoins: 0, // Not used for this notification as it only updates what's changed if handled correctly, but notifyWalletUpdate takes a Wallet object
+          sweepsCoins: newBalance
+        } as any);
+
+        // Send notification/receipt
+        const playerEmailResult = await query('SELECT email FROM players WHERE id = $1', [playerId]);
+        if (playerEmailResult.rows.length > 0) {
+          NotificationService.notifyPurchase(
+            playerId,
+            playerEmailResult.rows[0].email,
+            design.cost_sc,
+            'SC',
+            `Pull Tab: ${design.name}`
+          );
+        }
 
         return {
           success: true,
@@ -191,8 +212,10 @@ export class PullTabService {
           },
         };
       } catch (error) {
-        await query('ROLLBACK', []);
+        await client.query('ROLLBACK');
         throw error;
+      } finally {
+        client.release();
       }
     } catch (error) {
       console.error('Failed to purchase ticket:', error);
