@@ -1,6 +1,6 @@
 import { query } from '../db/connection';
 import * as bcrypt from 'bcrypt';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 import * as dbQueries from '../db/queries';
 
