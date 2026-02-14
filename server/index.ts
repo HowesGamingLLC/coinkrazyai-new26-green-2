@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { initializeDatabase } from "./db/init";
 import { handleDemo } from "./routes/demo";
 import { handleGetWallet, handleUpdateWallet, handleGetTransactions } from "./routes/wallet";
 import { 
@@ -42,17 +43,24 @@ import {
   handleGetConfig as getBingoConfig,
   handleUpdateConfig as updateBingoConfig
 } from "./routes/bingo";
-import { 
-  handleGetLiveGames, 
+import {
+  handleGetLiveGames,
   handlePlaceParlay,
   handleSingleBet,
   handleGetConfig as getSportsbookConfig,
   handleUpdateConfig as updateSportsbookConfig
 } from "./routes/sportsbook";
+import * as adminDb from "./routes/admin-db";
 import { AIService } from "./services/ai-service";
 
 export function createServer() {
   const app = express();
+
+  // Initialize database
+  initializeDatabase().catch(err => {
+    console.error('Failed to initialize database:', err);
+    // Continue anyway, some features will fail but the app will still run
+  });
 
   // Start AI processes
   AIService.startAIProcesses();
@@ -116,6 +124,44 @@ export function createServer() {
   app.post("/api/admin/maintenance", handleSetMaintenanceMode);
   app.get("/api/admin/health", handleGetSystemHealth);
   app.post("/api/admin/logout", handleLogout);
+
+  // ===== DATABASE-DRIVEN ADMIN ROUTES =====
+  // Dashboard
+  app.get("/api/admin/dashboard/stats", adminDb.getAdminDashboardStats);
+
+  // Players
+  app.get("/api/admin/players", adminDb.getPlayersList);
+  app.get("/api/admin/players/:id", adminDb.getPlayer);
+  app.post("/api/admin/players/balance", adminDb.updatePlayerBalance);
+  app.post("/api/admin/players/status", adminDb.updatePlayerStatus);
+
+  // Games
+  app.get("/api/admin/games", adminDb.getGamesList);
+  app.post("/api/admin/games/rtp", adminDb.updateGameRTP);
+  app.post("/api/admin/games/toggle", adminDb.toggleGame);
+
+  // Bonuses
+  app.get("/api/admin/bonuses", adminDb.getBonusesList);
+  app.post("/api/admin/bonuses/create", adminDb.createBonus);
+
+  // Transactions
+  app.get("/api/admin/transactions", adminDb.getTransactionsList);
+
+  // Security
+  app.get("/api/admin/alerts", adminDb.getSecurityAlerts);
+
+  // KYC
+  app.get("/api/admin/kyc/:playerId", adminDb.getKYCDocs);
+  app.post("/api/admin/kyc/approve", adminDb.approveKYC);
+
+  // Poker
+  app.get("/api/admin/poker/tables", adminDb.getPokerTablesList);
+
+  // Bingo
+  app.get("/api/admin/bingo/games", adminDb.getBingoGamesList);
+
+  // Sports
+  app.get("/api/admin/sports/events", adminDb.getSportsEventsList);
 
   // ===== EXAMPLE ROUTES =====
   app.get("/api/ping", (_req, res) => {

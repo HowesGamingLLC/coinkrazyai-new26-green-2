@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,8 +9,42 @@ import { cn } from '@/lib/utils';
 export const PlayerManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [players, setPlayers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
 
-  const players = [
+  useEffect(() => {
+    fetchPlayers();
+    fetchStats();
+  }, []);
+
+  const fetchPlayers = async () => {
+    try {
+      const response = await fetch('/api/admin/players?limit=50');
+      const data = await response.json();
+      if (data.success) {
+        setPlayers(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch players:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/admin/dashboard/stats');
+      const data = await response.json();
+      if (data.success) {
+        setStats(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
+  };
+
+  const mockPlayers = [
     { id: 1, name: 'John Doe', email: 'john@example.com', joinDate: '2024-01-15', balance: '$1,250.50', status: 'Active', lastLogin: '2 hours ago' },
     { id: 2, name: 'Jane Smith', email: 'jane@example.com', joinDate: '2024-02-03', balance: '$3,420.00', status: 'Active', lastLogin: '1 day ago' },
     { id: 3, name: 'Mike Johnson', email: 'mike@example.com', joinDate: '2024-01-22', balance: '$560.25', status: 'Suspended', lastLogin: 'Never' },
@@ -32,28 +66,28 @@ export const PlayerManagement = () => {
         <Card className="border-border">
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground uppercase font-bold">Total Players</p>
-            <p className="text-3xl font-black">1,527</p>
+            <p className="text-3xl font-black">{stats?.players?.total_players || '1,527'}</p>
             <p className="text-xs text-green-500 mt-2">+12% this week</p>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground uppercase font-bold">Active Now</p>
-            <p className="text-3xl font-black">342</p>
+            <p className="text-3xl font-black">{stats?.players?.active_players || '342'}</p>
             <p className="text-xs text-muted-foreground mt-2">22% of total</p>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-6">
-            <p className="text-sm text-muted-foreground uppercase font-bold">New This Week</p>
-            <p className="text-3xl font-black">156</p>
-            <p className="text-xs text-blue-500 mt-2">From marketing</p>
+            <p className="text-sm text-muted-foreground uppercase font-bold">Verified</p>
+            <p className="text-3xl font-black">{stats?.players?.verified_players || '156'}</p>
+            <p className="text-xs text-blue-500 mt-2">KYC Complete</p>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-6">
-            <p className="text-sm text-muted-foreground uppercase font-bold">Avg Session</p>
-            <p className="text-3xl font-black">42m</p>
+            <p className="text-sm text-muted-foreground uppercase font-bold">Avg GC Balance</p>
+            <p className="text-3xl font-black">{stats?.players?.avg_gc_balance ? Math.round(stats.players.avg_gc_balance) : '42'}</p>
             <p className="text-xs text-muted-foreground mt-2">Per player</p>
           </CardContent>
         </Card>
@@ -116,7 +150,7 @@ export const PlayerManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {players.map((player) => (
+                {(players.length > 0 ? players : mockPlayers).map((player) => (
                   <tr key={player.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                     <td className="p-3">
                       <div>
@@ -124,15 +158,15 @@ export const PlayerManagement = () => {
                         <p className="text-xs text-muted-foreground">{player.email}</p>
                       </div>
                     </td>
-                    <td className="p-3 text-muted-foreground">{player.joinDate}</td>
-                    <td className="p-3 font-bold">{player.balance}</td>
-                    <td className="p-3 text-muted-foreground text-xs">{player.lastLogin}</td>
+                    <td className="p-3 text-muted-foreground">{player.join_date ? new Date(player.join_date).toLocaleDateString() : 'N/A'}</td>
+                    <td className="p-3 font-bold">${(parseFloat(player.gc_balance || 0) + parseFloat(player.sc_balance || 0)).toFixed(2)}</td>
+                    <td className="p-3 text-muted-foreground text-xs">{player.last_login ? new Date(player.last_login).toLocaleString() : 'Never'}</td>
                     <td className="p-3">
                       <Badge className={cn(
-                        player.status === 'Active' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500',
+                        (player.status || 'Active') === 'Active' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500',
                         'border-none'
                       )}>
-                        {player.status}
+                        {player.status || 'Active'}
                       </Badge>
                     </td>
                     <td className="p-3">
@@ -153,10 +187,12 @@ export const PlayerManagement = () => {
 
           {/* Pagination */}
           <div className="flex items-center justify-between pt-4 border-t border-border">
-            <p className="text-sm text-muted-foreground">Showing 5 of 1,527 players</p>
+            <p className="text-sm text-muted-foreground">
+              Showing {(players.length > 0 ? players : mockPlayers).length} of {stats?.players?.total_players || 1527} players
+            </p>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">Previous</Button>
-              <Button variant="outline" size="sm">Next</Button>
+              <Button variant="outline" size="sm" disabled={loading}>Previous</Button>
+              <Button variant="outline" size="sm" disabled={loading}>Next</Button>
             </div>
           </div>
         </CardContent>
