@@ -275,9 +275,74 @@ const seedDatabase = async () => {
         );
       }
 
+      // Seed scratch ticket designs
+      const scratchDesigns = [
+        ['Gold Rush', 'Scratch to find hidden gold!', 5, 6, 16.67, 1, 50, null, '#FFD700'],
+        ['Lucky Clover', 'Find the 4-leaf clover and win big!', 2, 4, 20, 0.5, 20, null, '#4CAF50'],
+        ['Diamond Dazzle', 'Diamonds are a player\'s best friend!', 10, 9, 15, 5, 100, null, '#00BCD4'],
+      ];
+
+      for (const design of scratchDesigns) {
+        await query(
+          `INSERT INTO scratch_ticket_designs (name, description, cost_sc, slot_count, win_probability, prize_min_sc, prize_max_sc, image_url, background_color)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          design
+        );
+      }
+
+      // Seed pull tab designs
+      const pullTabDesigns = [
+        ['Orange Heat', 'Traditional pull tabs with big wins!', 5, 3, 20, 1, 25, null, '#FF6B35'],
+        ['Midnight Stars', 'Pull the stars and reach for the moon!', 1, 3, 25, 0.25, 10, null, '#3F51B5'],
+        ['Royal Jackpot', 'Only for the elite - massive prizes await!', 25, 5, 15, 10, 500, null, '#9C27B0'],
+      ];
+
+      for (const design of pullTabDesigns) {
+        await query(
+          `INSERT INTO pull_tab_designs (name, description, cost_sc, tab_count, win_probability, prize_min_sc, prize_max_sc, image_url, background_color)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          design
+        );
+      }
+
       console.log('[DB] Sample data seeded successfully');
     } else {
-      console.log('[DB] Database already contains data, skipping seed');
+      console.log('[DB] Database already contains data, skipping main seed');
+    }
+
+    // Always ensure some designs exist for testing if table is empty
+    const scratchCount = await query('SELECT COUNT(*) as count FROM scratch_ticket_designs');
+    if (parseInt(scratchCount.rows[0].count) === 0) {
+      console.log('[DB] Seeding scratch ticket designs...');
+      const scratchDesigns = [
+        ['Gold Rush', 'Scratch to find hidden gold!', 5, 6, 16.67, 1, 50, null, '#FFD700'],
+        ['Lucky Clover', 'Find the 4-leaf clover and win big!', 2, 4, 20, 0.5, 20, null, '#4CAF50'],
+        ['Diamond Dazzle', 'Diamonds are a player\'s best friend!', 10, 9, 15, 5, 100, null, '#00BCD4'],
+      ];
+      for (const design of scratchDesigns) {
+        await query(
+          `INSERT INTO scratch_ticket_designs (name, description, cost_sc, slot_count, win_probability, prize_min_sc, prize_max_sc, image_url, background_color)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          design
+        );
+      }
+    }
+
+    const pullTabCount = await query('SELECT COUNT(*) as count FROM pull_tab_designs');
+    if (parseInt(pullTabCount.rows[0].count) === 0) {
+      console.log('[DB] Seeding pull tab designs...');
+      const pullTabDesigns = [
+        ['Orange Heat', 'Traditional pull tabs with big wins!', 5, 3, 20, 1, 25, null, '#FF6B35'],
+        ['Midnight Stars', 'Pull the stars and reach for the moon!', 1, 3, 25, 0.25, 10, null, '#3F51B5'],
+        ['Royal Jackpot', 'Only for the elite - massive prizes await!', 25, 5, 15, 10, 500, null, '#9C27B0'],
+      ];
+      for (const design of pullTabDesigns) {
+        await query(
+          `INSERT INTO pull_tab_designs (name, description, cost_sc, tab_count, win_probability, prize_min_sc, prize_max_sc, image_url, background_color)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          design
+        );
+      }
     }
   } catch (error) {
     console.error('[DB] Seeding failed:', error);

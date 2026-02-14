@@ -39,7 +39,9 @@ function expressPlugin(): Plugin {
 
       // Add middleware that runs BEFORE SPA handler to intercept /api routes
       server.middlewares.use((req, res, next) => {
-        if (req.url.startsWith('/api/')) {
+        console.log(`[ViteProxy] Checking URL: ${req.url}`);
+        if (req.url && req.url.startsWith('/api/')) {
+          console.log(`[ViteProxy] Intercepting: ${req.url}`);
           app(req, res);
         } else {
           next();
