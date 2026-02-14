@@ -10,6 +10,8 @@ import { useWallet } from '@/hooks/use-wallet';
 import { TicketDesignCard } from '@/components/pull-tabs/TicketDesignCard';
 import { PullTabTicket } from '@/components/pull-tabs/PullTabTicket';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ReceiptModal } from '@/components/ui/ReceiptModal';
+import { useNavigate } from 'react-router-dom';
 
 interface PullTabDesign {
   id: number;
@@ -45,14 +47,27 @@ interface PullTabTransaction {
   design_name?: string;
 }
 
-import { useNavigate } from 'react-router-dom';
-
 export default function PullTabs() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { wallet, refreshWallet } = useWallet();
   const [activeTab, setActiveTab] = useState('shop');
-  // ... rest of state
+  const [designs, setDesigns] = useState<PullTabDesign[]>([]);
+  const [myTickets, setMyTickets] = useState<PullTabTicketData[]>([]);
+  const [transactions, setTransactions] = useState<PullTabTransaction[]>([]);
+  const [isLoadingDesigns, setIsLoadingDesigns] = useState(false);
+  const [isLoadingTickets, setIsLoadingTickets] = useState(false);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+  const [purchasingDesignId, setPurchasingDesignId] = useState<number | null>(null);
+
+  // Receipt State
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [receiptData, setReceiptData] = useState<{
+    title: string;
+    description: string;
+    amount: string;
+    currency: 'GC' | 'SC';
+  } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -133,6 +148,18 @@ export default function PullTabs() {
       });
 
       if (response.success) {
+        // Show receipt
+        const design = designs.find(d => d.id === designId);
+        if (design) {
+          setReceiptData({
+            title: `Pull Tab: ${design.name}`,
+            description: `Purchased instant reveal ticket`,
+            amount: design.cost_sc.toString(),
+            currency: 'SC'
+          });
+          setShowReceipt(true);
+        }
+
         toast.success('Ticket purchased! Check your collection.');
         await loadMyTickets();
         await refreshWallet();
@@ -343,6 +370,17 @@ export default function PullTabs() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {receiptData && (
+        <ReceiptModal
+          isOpen={showReceipt}
+          onClose={() => setShowReceipt(false)}
+          title={receiptData.title}
+          description={receiptData.description}
+          amount={receiptData.amount}
+          currency={receiptData.currency}
+        />
+      )}
     </div>
   );
 }
