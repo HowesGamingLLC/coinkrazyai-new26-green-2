@@ -1017,3 +1017,81 @@ CREATE INDEX IF NOT EXISTS idx_scratch_ticket_transactions_player_id ON scratch_
 CREATE INDEX IF NOT EXISTS idx_scratch_ticket_transactions_ticket_id ON scratch_ticket_transactions(ticket_id);
 CREATE INDEX IF NOT EXISTS idx_scratch_ticket_transactions_type ON scratch_ticket_transactions(transaction_type);
 CREATE INDEX IF NOT EXISTS idx_scratch_ticket_transactions_created_at ON scratch_ticket_transactions(created_at);
+
+-- ===== COINKRAZY PULL TAB LOTTERY TICKETS =====
+-- Ticket design templates created by admins
+CREATE TABLE IF NOT EXISTS pull_tab_designs (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  cost_sc DECIMAL(8, 2) NOT NULL,
+  tab_count INTEGER NOT NULL DEFAULT 3,
+  win_probability DECIMAL(5, 2) NOT NULL DEFAULT 20,
+  prize_min_sc DECIMAL(8, 2) NOT NULL DEFAULT 1,
+  prize_max_sc DECIMAL(8, 2) NOT NULL DEFAULT 20,
+  image_url VARCHAR(500),
+  background_color VARCHAR(7) DEFAULT '#FF6B35',
+  winning_tab_text VARCHAR(100) DEFAULT 'WINNER!',
+  losing_tab_text VARCHAR(100) DEFAULT 'TRY AGAIN',
+  enabled BOOLEAN DEFAULT TRUE,
+  created_by INTEGER REFERENCES admin_users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pull_tab_designs_enabled ON pull_tab_designs(enabled);
+
+-- Purchased pull tab tickets for individual players
+CREATE TABLE IF NOT EXISTS pull_tab_tickets (
+  id SERIAL PRIMARY KEY,
+  design_id INTEGER NOT NULL REFERENCES pull_tab_designs(id),
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  ticket_number VARCHAR(50) UNIQUE NOT NULL,
+  tabs JSONB NOT NULL,
+  revealed_tabs INTEGER[] DEFAULT ARRAY[]::INTEGER[],
+  winning_tab_index INTEGER,
+  status VARCHAR(50) DEFAULT 'active',
+  claim_status VARCHAR(50) DEFAULT 'unclaimed',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  claimed_at TIMESTAMP,
+  expires_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pull_tab_tickets_player_id ON pull_tab_tickets(player_id);
+CREATE INDEX IF NOT EXISTS idx_pull_tab_tickets_design_id ON pull_tab_tickets(design_id);
+CREATE INDEX IF NOT EXISTS idx_pull_tab_tickets_status ON pull_tab_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_pull_tab_tickets_ticket_number ON pull_tab_tickets(ticket_number);
+
+-- Detailed results of pull tab outcomes
+CREATE TABLE IF NOT EXISTS pull_tab_results (
+  id SERIAL PRIMARY KEY,
+  ticket_id INTEGER NOT NULL UNIQUE REFERENCES pull_tab_tickets(id) ON DELETE CASCADE,
+  design_id INTEGER NOT NULL REFERENCES pull_tab_designs(id),
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  won BOOLEAN NOT NULL,
+  prize_amount DECIMAL(8, 2),
+  winning_tab_index INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pull_tab_results_player_id ON pull_tab_results(player_id);
+CREATE INDEX IF NOT EXISTS idx_pull_tab_results_design_id ON pull_tab_results(design_id);
+CREATE INDEX IF NOT EXISTS idx_pull_tab_results_won ON pull_tab_results(won);
+
+-- Transaction history for purchases and claims
+CREATE TABLE IF NOT EXISTS pull_tab_transactions (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  ticket_id INTEGER REFERENCES pull_tab_tickets(id) ON DELETE CASCADE,
+  transaction_type VARCHAR(50) NOT NULL,
+  amount_sc DECIMAL(8, 2) NOT NULL,
+  balance_before DECIMAL(15, 2),
+  balance_after DECIMAL(15, 2),
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pull_tab_transactions_player_id ON pull_tab_transactions(player_id);
+CREATE INDEX IF NOT EXISTS idx_pull_tab_transactions_ticket_id ON pull_tab_transactions(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_pull_tab_transactions_type ON pull_tab_transactions(transaction_type);
+CREATE INDEX IF NOT EXISTS idx_pull_tab_transactions_created_at ON pull_tab_transactions(created_at);

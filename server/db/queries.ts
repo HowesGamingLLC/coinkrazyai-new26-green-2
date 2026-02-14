@@ -638,3 +638,91 @@ export const getAdminStats = async () => {
     transactions: transactionStats.rows[0],
   };
 };
+
+// ===== PULL TAB LOTTERY TICKETS =====
+export const getPullTabDesigns = async (limit = 50, offset = 0) => {
+  return query(
+    `SELECT * FROM pull_tab_designs
+     WHERE enabled = true
+     ORDER BY created_at DESC
+     LIMIT $1 OFFSET $2`,
+    [limit, offset]
+  );
+};
+
+export const getPullTabDesignById = async (designId: number) => {
+  return query(
+    `SELECT * FROM pull_tab_designs WHERE id = $1`,
+    [designId]
+  );
+};
+
+export const getPullTabTicket = async (ticketId: number, playerId: number) => {
+  return query(
+    `SELECT * FROM pull_tab_tickets WHERE id = $1 AND player_id = $2`,
+    [ticketId, playerId]
+  );
+};
+
+export const getPullTabPlayerTickets = async (playerId: number, limit = 50) => {
+  return query(
+    `SELECT * FROM pull_tab_tickets
+     WHERE player_id = $1
+     ORDER BY created_at DESC
+     LIMIT $2`,
+    [playerId, limit]
+  );
+};
+
+export const getPullTabTransactionHistory = async (playerId: number, limit = 50, offset = 0) => {
+  return query(
+    `SELECT ptt.*, ptd.name as design_name, ptt.ticket_id
+     FROM pull_tab_transactions ptt
+     LEFT JOIN pull_tab_tickets pkt ON ptt.ticket_id = pkt.id
+     LEFT JOIN pull_tab_designs ptd ON pkt.design_id = ptd.id
+     WHERE ptt.player_id = $1
+     ORDER BY ptt.created_at DESC
+     LIMIT $2 OFFSET $3`,
+    [playerId, limit, offset]
+  );
+};
+
+export const getPullTabTransactionHistoryAdmin = async (limit = 100, offset = 0) => {
+  return query(
+    `SELECT ptt.*, p.username, p.name as player_name, ptd.name as design_name
+     FROM pull_tab_transactions ptt
+     JOIN players p ON ptt.player_id = p.id
+     LEFT JOIN pull_tab_tickets pkt ON ptt.ticket_id = pkt.id
+     LEFT JOIN pull_tab_designs ptd ON pkt.design_id = ptd.id
+     ORDER BY ptt.created_at DESC
+     LIMIT $1 OFFSET $2`,
+    [limit, offset]
+  );
+};
+
+export const getPullTabStats = async () => {
+  return query(`
+    SELECT
+      COUNT(DISTINCT pkt.player_id) as total_players,
+      COUNT(pkt.id) as total_tickets_purchased,
+      SUM(CASE WHEN ptr.won = true THEN 1 ELSE 0 END) as winning_tickets,
+      ROUND(100.0 * SUM(CASE WHEN ptr.won = true THEN 1 ELSE 0 END) / NULLIF(COUNT(pkt.id), 0), 2) as win_percentage,
+      SUM(ptr.prize_amount) as total_prizes_awarded,
+      SUM(ptd.cost_sc) as total_sc_spent
+    FROM pull_tab_tickets pkt
+    LEFT JOIN pull_tab_results ptr ON pkt.id = ptr.ticket_id
+    LEFT JOIN pull_tab_designs ptd ON pkt.design_id = ptd.id
+  `);
+};
+
+export const getPullTabResults = async (limit = 100, offset = 0) => {
+  return query(
+    `SELECT ptr.*, p.username, p.name as player_name, ptd.name as design_name
+     FROM pull_tab_results ptr
+     JOIN players p ON ptr.player_id = p.id
+     JOIN pull_tab_designs ptd ON ptr.design_id = ptd.id
+     ORDER BY ptr.created_at DESC
+     LIMIT $1 OFFSET $2`,
+    [limit, offset]
+  );
+};

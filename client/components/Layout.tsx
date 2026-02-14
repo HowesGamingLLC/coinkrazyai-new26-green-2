@@ -23,6 +23,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { label: 'Bingo', path: '/bingo', icon: Gamepad2 },
     { label: 'Sports', path: '/sportsbook', icon: BarChart3 },
     { label: 'Scratch Tickets', path: '/scratch-tickets', icon: Ticket },
+    { label: 'Pull Tabs', path: '/pull-tabs', icon: Ticket },
     { label: 'Store', path: '/store', icon: ShoppingCart },
     { label: 'Leaderboard', path: '/leaderboards', icon: Trophy },
     { label: 'Achievements', path: '/achievements', icon: Award },

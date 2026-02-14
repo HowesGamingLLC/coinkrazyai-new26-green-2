@@ -225,6 +225,25 @@ import {
   getTransactionHistory as getScratchAdminTransactionHistory,
   getTicketResults as getScratchTicketResults
 } from "./routes/scratch-tickets-admin";
+import {
+  getAvailableDesigns as getPullTabDesigns,
+  purchaseTicket as purchasePullTabTicket,
+  revealTab as revealPullTab,
+  claimPrize as claimPullTabPrize,
+  getTicket as getPullTabTicket,
+  getMyTickets as getMyPullTabTickets,
+  getTransactionHistory as getPullTabTransactionHistory
+} from "./routes/pull-tabs";
+import {
+  getDesigns as getPullTabAdminDesigns,
+  getDesign as getPullTabAdminDesign,
+  createDesign as createPullTabDesign,
+  updateDesign as updatePullTabDesign,
+  deleteDesign as deletePullTabDesign,
+  getStatistics as getPullTabStatistics,
+  getTransactionHistory as getPullTabAdminTransactionHistory,
+  getResults as getPullTabResults
+} from "./routes/pull-tabs-admin";
 
 export function createServer() {
   const app = express();
@@ -302,6 +321,15 @@ export function createServer() {
   app.get("/api/scratch-tickets/history/transactions", verifyPlayer, getScratchTransactionHistory);
   app.get("/api/scratch-tickets", verifyPlayer, getMyTickets);
   app.get("/api/scratch-tickets/:ticketId", verifyPlayer, getTicket);
+
+  // ===== PULL TAB LOTTERY TICKETS ROUTES =====
+  app.get("/api/pull-tabs/designs", getPullTabDesigns);
+  app.post("/api/pull-tabs/purchase", verifyPlayer, purchasePullTabTicket);
+  app.post("/api/pull-tabs/reveal", verifyPlayer, revealPullTab);
+  app.post("/api/pull-tabs/claim", verifyPlayer, claimPullTabPrize);
+  app.get("/api/pull-tabs/history/transactions", verifyPlayer, getPullTabTransactionHistory);
+  app.get("/api/pull-tabs", verifyPlayer, getMyPullTabTickets);
+  app.get("/api/pull-tabs/:ticketId", verifyPlayer, getPullTabTicket);
 
   // ===== GAMES ROUTES =====
   app.get("/api/games", handleGetGames);
@@ -452,6 +480,16 @@ export function createServer() {
   app.get("/api/admin/v2/scratch-tickets/stats", verifyAdmin, getScratchStatistics);
   app.get("/api/admin/v2/scratch-tickets/transactions", verifyAdmin, getScratchAdminTransactionHistory);
   app.get("/api/admin/v2/scratch-tickets/results", verifyAdmin, getScratchTicketResults);
+
+  // Pull Tab Lottery Tickets
+  app.get("/api/admin/v2/pull-tabs/designs", verifyAdmin, getPullTabAdminDesigns);
+  app.get("/api/admin/v2/pull-tabs/designs/:designId", verifyAdmin, getPullTabAdminDesign);
+  app.post("/api/admin/v2/pull-tabs/designs", verifyAdmin, createPullTabDesign);
+  app.put("/api/admin/v2/pull-tabs/designs/:designId", verifyAdmin, updatePullTabDesign);
+  app.delete("/api/admin/v2/pull-tabs/designs/:designId", verifyAdmin, deletePullTabDesign);
+  app.get("/api/admin/v2/pull-tabs/stats", verifyAdmin, getPullTabStatistics);
+  app.get("/api/admin/v2/pull-tabs/transactions", verifyAdmin, getPullTabAdminTransactionHistory);
+  app.get("/api/admin/v2/pull-tabs/results", verifyAdmin, getPullTabResults);
 
   // ===== OPERATIONS ROUTES =====
   // Security
