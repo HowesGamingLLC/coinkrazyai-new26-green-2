@@ -192,8 +192,8 @@ const AdminPlayers = () => {
                       <td className="py-3 px-2 text-xs">{player.email}</td>
                       <td className="py-3 px-2">
                         <div className="text-xs">
-                          <p className="font-mono">{player.gc_balance.toLocaleString()} GC</p>
-                          <p className="font-mono text-muted-foreground">{player.sc_balance.toFixed(2)} SC</p>
+                          <p className="font-mono">{Number(player.gc_balance ?? 0).toLocaleString()} GC</p>
+                          <p className="font-mono text-muted-foreground">{Number(player.sc_balance ?? 0).toFixed(2)} SC</p>
                         </div>
                       </td>
                       <td className="py-3 px-2">
