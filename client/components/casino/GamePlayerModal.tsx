@@ -17,6 +17,7 @@ export function GamePlayerModal({ gameId, onClose }: GamePlayerModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [hasStarted, setHasStarted] = useState(false);
   const [betAmount, setBetAmount] = useState(CASINO_MIN_BET);
+  const [transactionStatus, setTransactionStatus] = useState<'pending' | 'success' | 'failed' | null>(null);
 
   if (!game || !user) return null;
 
@@ -33,18 +34,29 @@ export function GamePlayerModal({ gameId, onClose }: GamePlayerModalProps) {
     setError(null);
 
     try {
-      // Deduct SC from wallet
-      const response = await wallet.updateBalance(0, -betAmount);
-      
-      if (response.success) {
-        setHasStarted(true);
-      } else {
-        setError('Failed to deduct SC. Please try again.');
-      }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
-      console.error(err);
-    } finally {
+      console.log('[Casino] Starting game with bet amount:', betAmount);
+      setTransactionStatus('pending');
+
+      // Start the game immediately
+      setHasStarted(true);
+
+      // Process wallet deduction in background
+      wallet.updateBalance(0, -betAmount)
+        .then((response) => {
+          console.log('[Casino] Wallet transaction successful:', response);
+          setTransactionStatus('success');
+        })
+        .catch((err: any) => {
+          console.error('[Casino] Wallet transaction failed:', err);
+          setTransactionStatus('failed');
+          // Show error but don't interrupt game
+          const errorMsg = err?.message || 'Failed to deduct SC from wallet';
+          console.warn('[Casino]', errorMsg);
+        });
+    } catch (err: any) {
+      const errorMessage = err?.message || 'An error occurred. Please try again.';
+      console.error('[Casino] Error starting game:', err);
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -187,8 +199,19 @@ export function GamePlayerModal({ gameId, onClose }: GamePlayerModalProps) {
                 </div>
                 <p className="text-gray-400">Loading game...</p>
                 <p className="text-sm text-gray-500">
-                  {betAmount.toFixed(2)} SC has been deducted from your balance
+                  Bet: {betAmount.toFixed(2)} SC
                 </p>
+                {transactionStatus === 'pending' && (
+                  <p className="text-xs text-amber-400">Processing wallet transaction...</p>
+                )}
+                {transactionStatus === 'success' && (
+                  <p className="text-xs text-green-400">Wallet transaction confirmed</p>
+                )}
+                {transactionStatus === 'failed' && (
+                  <p className="text-xs text-red-400">
+                    Note: Wallet transaction failed, but game is running
+                  </p>
+                )}
               </div>
             </div>
           )}
