@@ -5,7 +5,7 @@ import { storeService } from '../services/store-service';
 
 export const getStorePackages: RequestHandler = async (req, res) => {
   try {
-    const packages = storeService.getPackages();
+    const packages = await storeService.getPackages();
     res.json({ success: true, data: packages });
   } catch (error) {
     console.error('Failed to get packages:', error);
@@ -22,7 +22,7 @@ export const createStorePackage: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const newPackage = storeService.createPackage({
+    const newPackage = await storeService.createPackage({
       title,
       description: description || '',
       price_usd: parseFloat(price_usd),
@@ -33,6 +33,7 @@ export const createStorePackage: RequestHandler = async (req, res) => {
       is_popular: is_popular || false,
       is_best_value: is_best_value || false,
       display_order: parseInt(display_order) || 1,
+      enabled: true,
     });
 
     res.status(201).json({ success: true, data: newPackage });
@@ -48,13 +49,13 @@ export const updateStorePackage: RequestHandler = async (req, res) => {
     const { title, description, price_usd, gold_coins, sweeps_coins, bonus_sc, bonus_percentage, is_popular, is_best_value, display_order } = req.body;
 
     const packageId = parseInt(id);
-    const existingPackage = storeService.getPackageById(packageId);
+    const existingPackage = await storeService.getPackageById(packageId);
 
     if (!existingPackage) {
       return res.status(404).json({ error: 'Package not found' });
     }
 
-    const updatedPackage = storeService.updatePackage(packageId, {
+    const updatedPackage = await storeService.updatePackage(packageId, {
       title: title !== undefined ? title : existingPackage.title,
       description: description !== undefined ? description : existingPackage.description,
       price_usd: price_usd !== undefined ? parseFloat(price_usd) : existingPackage.price_usd,
@@ -79,7 +80,7 @@ export const deleteStorePackage: RequestHandler = async (req, res) => {
     const { id } = req.params;
     const packageId = parseInt(id);
 
-    const success = storeService.deletePackage(packageId);
+    const success = await storeService.deletePackage(packageId);
     if (!success) {
       return res.status(404).json({ error: 'Package not found' });
     }
@@ -95,7 +96,7 @@ export const deleteStorePackage: RequestHandler = async (req, res) => {
 
 export const getPaymentMethods: RequestHandler = async (req, res) => {
   try {
-    const methods = storeService.getPaymentMethods();
+    const methods = await storeService.getPaymentMethods();
     res.json({ success: true, data: methods });
   } catch (error) {
     console.error('Failed to get payment methods:', error);
@@ -111,7 +112,7 @@ export const createPaymentMethod: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: name, provider' });
     }
 
-    const newMethod = storeService.createPaymentMethod({
+    const newMethod = await storeService.createPaymentMethod({
       name,
       provider,
       is_active: is_active !== false,
@@ -131,13 +132,13 @@ export const updatePaymentMethod: RequestHandler = async (req, res) => {
     const { name, provider, config, is_active } = req.body;
 
     const methodId = parseInt(id);
-    const existingMethod = storeService.getPaymentMethodById(methodId);
+    const existingMethod = await storeService.getPaymentMethodById(methodId);
 
     if (!existingMethod) {
       return res.status(404).json({ error: 'Payment method not found' });
     }
 
-    const updatedMethod = storeService.updatePaymentMethod(methodId, {
+    const updatedMethod = await storeService.updatePaymentMethod(methodId, {
       name: name !== undefined ? name : existingMethod.name,
       provider: provider !== undefined ? provider : existingMethod.provider,
       is_active: is_active !== undefined ? is_active : existingMethod.is_active,
@@ -156,7 +157,7 @@ export const deletePaymentMethod: RequestHandler = async (req, res) => {
     const { id } = req.params;
     const methodId = parseInt(id);
 
-    const success = storeService.deletePaymentMethod(methodId);
+    const success = await storeService.deletePaymentMethod(methodId);
     if (!success) {
       return res.status(404).json({ error: 'Payment method not found' });
     }
