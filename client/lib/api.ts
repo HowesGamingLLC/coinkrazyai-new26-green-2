@@ -149,6 +149,10 @@ export const store = {
   getPurchaseHistory: async () => {
     return apiCall<{ success: boolean; data: any[] }>('/store/history');
   },
+
+  getPaymentMethods: async () => {
+    return apiCall<{ success: boolean; data: any[] }>('/store/payment-methods');
+  },
 };
 
 // ===== GAMES =====
@@ -827,6 +831,61 @@ export const adminV2 = {
       return adminApiCall<any>(`/admin/v2/compliance/aml-checks/${checkId}/verify`, {
         method: 'POST',
         body: JSON.stringify({ status, riskLevel }),
+      });
+    },
+  },
+
+  // Store Management
+  store: {
+    getPackages: async () => {
+      return adminApiCall<any>('/admin/v2/store/packages');
+    },
+    createPackage: async (package_data: any) => {
+      return adminApiCall<any>('/admin/v2/store/packages', {
+        method: 'POST',
+        body: JSON.stringify(package_data),
+      });
+    },
+    updatePackage: async (packageId: number, package_data: any) => {
+      return adminApiCall<any>(`/admin/v2/store/packages/${packageId}`, {
+        method: 'PUT',
+        body: JSON.stringify(package_data),
+      });
+    },
+    deletePackage: async (packageId: number) => {
+      return adminApiCall<any>(`/admin/v2/store/packages/${packageId}`, {
+        method: 'DELETE',
+      });
+    },
+
+    getPaymentMethods: async () => {
+      return adminApiCall<any>('/admin/v2/store/payment-methods');
+    },
+    createPaymentMethod: async (method_data: any) => {
+      return adminApiCall<any>('/admin/v2/store/payment-methods', {
+        method: 'POST',
+        body: JSON.stringify(method_data),
+      });
+    },
+    updatePaymentMethod: async (methodId: number, method_data: any) => {
+      return adminApiCall<any>(`/admin/v2/store/payment-methods/${methodId}`, {
+        method: 'PUT',
+        body: JSON.stringify(method_data),
+      });
+    },
+    deletePaymentMethod: async (methodId: number) => {
+      return adminApiCall<any>(`/admin/v2/store/payment-methods/${methodId}`, {
+        method: 'DELETE',
+      });
+    },
+
+    getSettings: async () => {
+      return adminApiCall<any>('/admin/v2/store/settings');
+    },
+    updateSettings: async (settings: any) => {
+      return adminApiCall<any>('/admin/v2/store/settings', {
+        method: 'PUT',
+        body: JSON.stringify(settings),
       });
     },
   },

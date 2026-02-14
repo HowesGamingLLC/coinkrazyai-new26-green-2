@@ -5,16 +5,26 @@ import { store } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Zap, Gift, TrendingUp } from 'lucide-react';
+import { Loader2, Zap, Gift, TrendingUp, CreditCard, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { StorePack } from '@shared/api';
+
+interface PaymentMethod {
+  id: number;
+  name: string;
+  provider: string;
+  is_active: boolean;
+}
 
 const Store = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [packs, setPacks] = useState<StorePack[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPurchasing, setIsPurchasing] = useState<number | null>(null);
+  const [selectedPack, setSelectedPack] = useState<StorePack | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -22,32 +32,56 @@ const Store = () => {
       return;
     }
 
-    const fetchPacks = async () => {
+    const fetchData = async () => {
       try {
-        const response = await store.getPacks();
-        setPacks(response.data || []);
+        const [packsRes, methodsRes] = await Promise.all([
+          store.getPacks(),
+          store.getPaymentMethods()
+        ]);
+        setPacks(packsRes.data || []);
+        const activeMethods = (methodsRes.data || []).filter((m: any) => m.is_active);
+        setPaymentMethods(activeMethods);
       } catch (error: any) {
-        console.error('Failed to fetch store packs:', error);
-        toast.error('Failed to load store packs');
+        console.error('Failed to fetch store data:', error);
+        toast.error('Failed to load store data');
       } finally {
         setIsLoading(false);
       }
     };
 
     if (isAuthenticated) {
-      fetchPacks();
+      fetchData();
     }
   }, [isAuthenticated, authLoading, navigate]);
 
-  const handlePurchase = async (packId: number) => {
-    setIsPurchasing(packId);
+  const handlePurchase = async (pack: StorePack) => {
+    setSelectedPack(pack);
+    if (paymentMethods.length === 0) {
+      toast.error('No payment methods available');
+      return;
+    }
+    if (paymentMethods.length === 1) {
+      setSelectedPaymentMethod(paymentMethods[0]);
+    }
+  };
+
+  const processPurchase = async () => {
+    if (!selectedPack || !selectedPaymentMethod) {
+      toast.error('Please select a payment method');
+      return;
+    }
+
+    setIsPurchasing(selectedPack.id);
     try {
-      // In a real app, this would redirect to a payment processor
-      // For now, we'll show a message
-      toast.success('Purchase feature coming soon! Please check with admin.');
-      setIsPurchasing(null);
+      await store.purchase(selectedPack.id, selectedPaymentMethod.provider);
+      toast.success(`Purchase of ${selectedPack.title} completed! Check your wallet.`);
+      setSelectedPack(null);
+      setSelectedPaymentMethod(null);
+      // Optionally refresh packs or navigate
+      setTimeout(() => navigate('/wallet'), 1500);
     } catch (error: any) {
-      toast.error('Purchase failed');
+      toast.error(error.message || 'Purchase failed');
+    } finally {
       setIsPurchasing(null);
     }
   };
@@ -147,7 +181,7 @@ const Store = () => {
 
                   {/* Buy Button */}
                   <Button
-                    onClick={() => handlePurchase(pack.id)}
+                    onClick={() => handlePurchase(pack)}
                     disabled={isPurchasing === pack.id}
                     className={`w-full font-bold text-base ${
                       pack.is_best_value ? '' : ''
@@ -209,6 +243,108 @@ const Store = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Payment Method Selection Modal */}
+      {selectedPack && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Select Payment Method</CardTitle>
+              <CardDescription>
+                Choose how you want to pay for {selectedPack.title}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Order Summary */}
+              <div className="bg-muted p-4 rounded-lg space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Package:</span>
+                  <span className="font-semibold">{selectedPack.title}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Price:</span>
+                  <span className="font-bold text-primary">${Number(selectedPack.price_usd).toFixed(2)}</span>
+                </div>
+                <div className="border-t pt-2 mt-2 flex justify-between">
+                  <span className="text-sm font-semibold">You'll receive:</span>
+                  <div className="text-right">
+                    <div className="text-secondary font-bold">{Number(selectedPack.gold_coins).toLocaleString()} GC</div>
+                    <div className="text-primary font-bold">{Number(selectedPack.sweeps_coins).toFixed(2)} SC</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Methods */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Payment Methods</label>
+                {paymentMethods.length > 0 ? (
+                  <div className="space-y-2">
+                    {paymentMethods.map((method) => (
+                      <div
+                        key={method.id}
+                        onClick={() => setSelectedPaymentMethod(method)}
+                        className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                          selectedPaymentMethod?.id === method.id
+                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <CreditCard className="w-4 h-4" />
+                            <div>
+                              <p className="font-semibold text-sm">{method.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {method.provider.replace('_', ' ').toUpperCase()}
+                              </p>
+                            </div>
+                          </div>
+                          {selectedPaymentMethod?.id === method.id && (
+                            <Check className="w-5 h-5 text-primary" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No payment methods available</p>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedPack(null);
+                    setSelectedPaymentMethod(null);
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={processPurchase}
+                  disabled={!selectedPaymentMethod || isPurchasing === selectedPack.id}
+                  className="flex-1"
+                >
+                  {isPurchasing === selectedPack.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Pay ${Number(selectedPack.price_usd).toFixed(2)}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

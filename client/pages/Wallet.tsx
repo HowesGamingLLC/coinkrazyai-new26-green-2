@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
-import { wallet } from '@/lib/api';
+import { wallet, store } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, TrendingUp, TrendingDown, Send, Download, Coins } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Send, Download, Coins, Gift } from 'lucide-react';
 import { toast } from 'sonner';
-import { Transaction } from '@shared/api';
+import { Transaction, StorePack } from '@shared/api';
 
 const Wallet = () => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [packages, setPackages] = useState<StorePack[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [packagesLoading, setPackagesLoading] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -21,20 +23,25 @@ const Wallet = () => {
       return;
     }
 
-    const fetchTransactions = async () => {
+    const fetchData = async () => {
       try {
-        const response = await wallet.getTransactions();
-        setTransactions(response.data || []);
+        const [txResponse, packResponse] = await Promise.all([
+          wallet.getTransactions(),
+          store.getPacks(),
+        ]);
+        setTransactions(txResponse.data || []);
+        setPackages(packResponse.data || []);
       } catch (error: any) {
-        console.error('Failed to fetch transactions:', error);
-        toast.error('Failed to load transactions');
+        console.error('Failed to fetch wallet data:', error);
+        toast.error('Failed to load wallet data');
       } finally {
         setIsLoading(false);
+        setPackagesLoading(false);
       }
     };
 
     if (isAuthenticated) {
-      fetchTransactions();
+      fetchData();
     }
   }, [isAuthenticated, authLoading, navigate]);
 
@@ -137,6 +144,91 @@ const Wallet = () => {
           Withdraw
         </Button>
       </div>
+
+      {/* Get Coins Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gift className="w-5 h-5" />
+            Get More Coins
+          </CardTitle>
+          <CardDescription>Available coin packages</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {packagesLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : packages.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {packages.slice(0, 6).map((pkg) => (
+                <div
+                  key={pkg.id}
+                  className={`p-4 border rounded-lg transition-all hover:shadow-md ${
+                    pkg.is_best_value
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border'
+                  }`}
+                >
+                  {pkg.is_best_value && (
+                    <Badge className="mb-2 bg-primary">Best Value</Badge>
+                  )}
+                  {pkg.is_popular && !pkg.is_best_value && (
+                    <Badge className="mb-2 bg-blue-500">Popular</Badge>
+                  )}
+                  <h4 className="font-semibold text-lg mb-1">{pkg.title}</h4>
+                  <p className="text-2xl font-black text-primary mb-3">
+                    ${Number(pkg.price_usd).toFixed(2)}
+                  </p>
+                  <div className="space-y-2 mb-4 text-sm">
+                    {pkg.gold_coins > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Gold Coins:</span>
+                        <span className="font-bold text-secondary">
+                          {Number(pkg.gold_coins).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                    {pkg.sweeps_coins > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Sweeps Coins:</span>
+                        <span className="font-bold text-primary">
+                          {Number(pkg.sweeps_coins).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    {pkg.bonus_percentage > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Bonus:</span>
+                        <span className="font-bold text-green-600">
+                          +{pkg.bonus_percentage}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <Button asChild className="w-full">
+                    <a href="/store">Buy Now</a>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">No packages available</p>
+              <Button asChild>
+                <a href="/store">Go to Store</a>
+              </Button>
+            </div>
+          )}
+          {packages.length > 6 && (
+            <div className="text-center mt-4">
+              <Button asChild variant="outline">
+                <a href="/store">View All Packages</a>
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Transaction History */}
       <Card>
