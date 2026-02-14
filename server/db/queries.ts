@@ -212,7 +212,7 @@ export const getPlayerByEmail = async (email: string) => {
 export const createPlayer = async (username: string, name: string, email: string, passwordHash: string) => {
   return query(
     `INSERT INTO players (username, name, email, password_hash, gc_balance, sc_balance, status)
-     VALUES ($1, $2, $3, $4, 1000, 100, 'Active')
+     VALUES ($1, $2, $3, $4, 10000, 5, 'Active')
      RETURNING id, username, name, email, gc_balance, sc_balance, status, created_at`,
     [username, name, email, passwordHash]
   );
