@@ -37,8 +37,14 @@ function expressPlugin(): Plugin {
         setupSocketIO(server.httpServer as any);
       }
 
-      // Add Express app as middleware to Vite dev server
-      server.middlewares.use(app);
+      // Add middleware that runs BEFORE SPA handler to intercept /api routes
+      server.middlewares.use((req, res, next) => {
+        if (req.url.startsWith('/api/')) {
+          app(req, res);
+        } else {
+          next();
+        }
+      });
     },
   };
 }
