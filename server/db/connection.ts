@@ -1,7 +1,13 @@
 import { Pool } from 'pg';
 
+// Clean DATABASE_URL if it includes the psql command wrapper
+let connectionString = process.env.DATABASE_URL || '';
+if (connectionString.startsWith('psql ')) {
+  connectionString = connectionString.replace(/^psql\s+'/, '').replace(/'$/, '');
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: connectionString,
   ssl: {
     rejectUnauthorized: false,
   },
