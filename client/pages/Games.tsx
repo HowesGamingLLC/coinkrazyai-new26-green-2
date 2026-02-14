@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Star, Users, TrendingUp, Search, Loader } from 'lucide-react';
 import { GameInfo } from '@shared/api';
-import ApiClient from '@/lib/api';
+import { ApiClient } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 
 export default function Games() {
