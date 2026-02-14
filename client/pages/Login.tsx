@@ -171,21 +171,6 @@ const Login = () => {
                   Sign up now
                 </Link>
               </div>
-
-              {/* Demo credentials for testing */}
-              {!isAdminLogin && (
-                <div className="bg-muted/50 p-3 rounded text-xs border border-border/30">
-                  <p className="font-semibold mb-2">Demo Accounts:</p>
-                  <p>User: johndoe | Pass: testpass123</p>
-                </div>
-              )}
-
-              {isAdminLogin && (
-                <div className="bg-muted/50 p-3 rounded text-xs border border-border/30">
-                  <p className="font-semibold mb-2">Admin Account:</p>
-                  <p>Email: coinkrazy26@gmail.com | Pass: admin123</p>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
