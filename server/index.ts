@@ -70,7 +70,8 @@ import {
 } from "./routes/bingo";
 import {
   handleGetGames,
-  handleGetGameById
+  handleGetGameById,
+  handleDebugGetGames
 } from "./routes/games";
 import {
   handleGetLiveGames,
@@ -339,6 +340,7 @@ export function createServer() {
   app.get("/api/pull-tabs/:ticketId", verifyPlayer, getPullTabTicket);
 
   // ===== GAMES ROUTES =====
+  app.get("/api/games/debug", handleDebugGetGames);
   app.get("/api/games", handleGetGames);
   app.get("/api/games/:id", handleGetGameById);
 

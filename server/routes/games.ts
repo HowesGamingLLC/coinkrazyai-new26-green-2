@@ -53,13 +53,38 @@ const mockGames = [
   }
 ];
 
+// DEBUG: Get ALL games in DB
+export const handleDebugGetGames: RequestHandler = async (req, res) => {
+  try {
+    const result = await db.getGames();
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+};
+
 // Get all enabled games
 export const handleGetGames: RequestHandler = async (req, res) => {
   try {
     const result = await db.getGames();
+    const allGamesFromDb = result.rows;
+    console.log(`[Games] DB has ${allGamesFromDb.length} total games:`, allGamesFromDb.map(g => ({ name: g.name, category: g.category, enabled: g.enabled })));
 
-    // Filter to only enabled games
-    const enabledGames = result.rows.filter(game => game.enabled !== false);
+    // Filter to only enabled games and ensure they have a 'type' field for the frontend
+    const enabledGames = result.rows
+      .filter(game => game.enabled !== false)
+      .map(game => {
+        const type = game.type || (game.category ? game.category.toLowerCase() : 'other');
+        return {
+          ...game,
+          type: type
+        };
+      });
+
+    console.log(`[Games] Returning ${enabledGames.length} enabled games. Games:`, enabledGames.map(g => ({ name: g.name, type: g.type, enabled: g.enabled })));
 
     res.json({
       success: true,
