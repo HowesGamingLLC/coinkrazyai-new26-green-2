@@ -6,6 +6,8 @@ import { Trophy, Users, Timer, Ticket, Zap } from 'lucide-react';
 import { useWallet } from '@/hooks/use-wallet';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { ApiClient } from '@/lib/api';
+import { io } from 'socket.io-client';
 
 const Bingo = () => {
   const [rooms, setRooms] = useState<any[]>([]);
@@ -16,12 +18,15 @@ const Bingo = () => {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const res = await fetch('/api/bingo/rooms');
-        if (!res.ok) throw new Error('Failed to fetch bingo rooms');
-        const data = await res.json();
-        if (data.success) setRooms(data.data);
-      } catch (e) {
-        console.error("Bingo rooms fetch error:", e);
+        const res = await ApiClient.getBingoRooms();
+        if (res.success && res.data) {
+          setRooms(res.data);
+        } else {
+          toast({ title: 'Error', description: 'Failed to load bingo rooms', variant: 'destructive' });
+        }
+      } catch (error) {
+        console.error('Failed to fetch bingo rooms:', error);
+        toast({ title: 'Error', description: 'Failed to load bingo rooms', variant: 'destructive' });
       } finally {
         setIsLoading(false);
       }
@@ -30,8 +35,8 @@ const Bingo = () => {
   }, []);
 
   const handleJoin = (room: any) => {
-    if (currency !== 'SC') {
-      toast({ title: "SC Only", description: "Bingo is exclusive to Sweeps Coins.", variant: "destructive" });
+    if (!wallet || wallet.sweepsCoins < room.ticketPrice) {
+      toast({ title: "Insufficient Balance", description: `You need at least ${room.ticketPrice} SC to play.`, variant: "destructive" });
       return;
     }
     setSelectedRoom(room);
@@ -97,17 +102,61 @@ const BingoRoom = ({ room, onLeave }: any) => {
   const [calledBalls, setCalledBalls] = useState<number[]>([]);
   const [myTickets, setMyTickets] = useState<any[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { wallet, refreshWallet } = useWallet();
+  const [socket, setSocket] = useState<any>(null);
+
+  useEffect(() => {
+    // Connect to Socket.io for real-time updates
+    const newSocket = io();
+    setSocket(newSocket);
+
+    // Join the bingo room
+    newSocket.emit('bingo:join_room', { roomId: room.id });
+
+    // Listen for called numbers
+    newSocket.on('bingo:number_called', (data: any) => {
+      setCalledBalls(prev => [...prev, data.number]);
+    });
+
+    // Listen for game started
+    newSocket.on('bingo:game_started', () => {
+      setGameStarted(true);
+    });
+
+    // Listen for game finished
+    newSocket.on('bingo:game_finished', (data: any) => {
+      toast({ title: 'Game Finished', description: `Winner: ${data.winner}. Jackpot: ${data.jackpot}`, variant: 'default' });
+      setGameStarted(false);
+      setCalledBalls([]);
+    });
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [room.id]);
 
   const buyTicket = async () => {
-    const res = await fetch('/api/bingo/buy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomId: room.id, count: 1 })
-    });
-    const data = await res.json();
-    if (data.success) {
-      setMyTickets([...myTickets, ...data.data.tickets]);
-      toast({ title: "Ticket Purchased", description: "Good luck!" });
+    if (!wallet || wallet.sweepsCoins < room.ticketPrice) {
+      toast({ title: 'Insufficient Balance', description: `You need at least ${room.ticketPrice} SC.`, variant: 'destructive' });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const res = await ApiClient.buyBingoTicket(room.id);
+      if (res.success) {
+        setMyTickets([...myTickets, res.data.ticket]);
+        toast({ title: 'Ticket Purchased', description: 'Good luck!' });
+        refreshWallet();
+      } else {
+        toast({ title: 'Error', description: res.message || 'Failed to purchase ticket', variant: 'destructive' });
+      }
+    } catch (error) {
+      console.error('Failed to buy bingo ticket:', error);
+      toast({ title: 'Error', description: 'Failed to purchase ticket', variant: 'destructive' });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -131,8 +180,13 @@ const BingoRoom = ({ room, onLeave }: any) => {
                 <h3 className="text-2xl font-bold">NEXT GAME STARTING SOON</h3>
                 <p className="text-muted-foreground">Buy your tickets now to participate in this round!</p>
                 <div className="flex justify-center gap-4">
-                  <Button size="lg" onClick={buyTicket} className="font-bold h-16 px-12 text-xl">
-                    BUY TICKET (1 SC)
+                  <Button
+                    size="lg"
+                    onClick={buyTicket}
+                    disabled={isProcessing}
+                    className="font-bold h-16 px-12 text-xl"
+                  >
+                    {isProcessing ? 'PURCHASING...' : `BUY TICKET (${room.ticketPrice} SC)`}
                   </Button>
                 </div>
               </div>
@@ -174,13 +228,18 @@ const BingoRoom = ({ room, onLeave }: any) => {
         <div className="space-y-6">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle className="text-sm uppercase tracking-widest text-muted-foreground">Called Balls</CardTitle>
+              <CardTitle className="text-sm uppercase tracking-widest text-muted-foreground">Called Balls ({calledBalls.length})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-5 gap-2">
-                {Array.from({ length: 20 }).map((_, i) => (
-                  <div key={i} className="aspect-square rounded-full bg-muted border border-border flex items-center justify-center text-[10px] font-bold text-muted-foreground">
-                    ?
+                {calledBalls.map((num) => (
+                  <div key={num} className="aspect-square rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold border border-primary">
+                    {num}
+                  </div>
+                ))}
+                {Array.from({ length: Math.max(0, 20 - calledBalls.length) }).map((_, i) => (
+                  <div key={`empty-${i}`} className="aspect-square rounded-full bg-muted border border-border flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                    -
                   </div>
                 ))}
               </div>

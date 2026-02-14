@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, Filter, MoreVertical, UserPlus, Lock, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ApiClient } from '@/lib/api';
+import { toast } from '@/hooks/use-toast';
 
 export const PlayerManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -12,6 +14,9 @@ export const PlayerManagement = () => {
   const [players, setPlayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
+  const [updateAmount, setUpdateAmount] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     fetchPlayers();
@@ -20,13 +25,15 @@ export const PlayerManagement = () => {
 
   const fetchPlayers = async () => {
     try {
-      const response = await fetch('/api/admin/players?limit=50');
-      const data = await response.json();
-      if (data.success) {
-        setPlayers(data.data);
+      const response = await ApiClient.getAdminPlayers(50, 0);
+      if (response.success) {
+        setPlayers(response.data);
+      } else {
+        toast({ title: 'Error', description: 'Failed to load players', variant: 'destructive' });
       }
     } catch (error) {
       console.error('Failed to fetch players:', error);
+      toast({ title: 'Error', description: 'Failed to load players', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -34,10 +41,9 @@ export const PlayerManagement = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/admin/dashboard/stats');
-      const data = await response.json();
-      if (data.success) {
-        setStats(data.data);
+      const response = await ApiClient.getAdminStats();
+      if (response.success) {
+        setStats(response.data);
       }
     } catch (error) {
       console.error('Failed to fetch stats:', error);
@@ -58,6 +64,26 @@ export const PlayerManagement = () => {
     { id: 'suspended', label: 'Suspended', count: 42 },
     { id: 'vip', label: 'VIP', count: 35 },
   ];
+
+  const handleUpdateBalance = async (player: any, gcAmount: number, scAmount: number) => {
+    setIsUpdating(true);
+    try {
+      const res = await ApiClient.updateAdminPlayerBalance(player.id, gcAmount, scAmount);
+      if (res.success) {
+        toast({ title: 'Success', description: `Updated balance for ${player.username}` });
+        fetchPlayers();
+      } else {
+        toast({ title: 'Error', description: res.message || 'Failed to update balance', variant: 'destructive' });
+      }
+    } catch (error) {
+      console.error('Failed to update player balance:', error);
+      toast({ title: 'Error', description: 'Failed to update balance', variant: 'destructive' });
+    } finally {
+      setIsUpdating(false);
+      setSelectedPlayer(null);
+      setUpdateAmount('');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -171,10 +197,21 @@ export const PlayerManagement = () => {
                     </td>
                     <td className="p-3">
                       <div className="flex gap-2">
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setSelectedPlayer(player)}
+                          title={player.status === 'Active' ? 'Suspend player' : 'Activate player'}
+                        >
                           {player.status === 'Active' ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setSelectedPlayer(player)}
+                        >
                           <MoreVertical className="w-4 h-4" />
                         </Button>
                       </div>
@@ -197,6 +234,57 @@ export const PlayerManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Player Detail Modal */}
+      {selectedPlayer && (
+        <Card className="border-border mt-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Edit Player: {selectedPlayer.username}</CardTitle>
+              <Button variant="outline" size="sm" onClick={() => setSelectedPlayer(null)}>Close</Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-bold text-muted-foreground">Email</label>
+                <p className="font-bold mt-1">{selectedPlayer.email}</p>
+              </div>
+              <div>
+                <label className="text-sm font-bold text-muted-foreground">Current Balance</label>
+                <p className="font-bold mt-1">GC: {selectedPlayer.gc_balance || 0}, SC: {selectedPlayer.sc_balance || 0}</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-muted-foreground">Update Balance (amount)</label>
+              <Input
+                type="number"
+                placeholder="Amount to add (negative to subtract)"
+                value={updateAmount}
+                onChange={(e) => setUpdateAmount(e.target.value)}
+                className="bg-background border-border"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleUpdateBalance(selectedPlayer, parseInt(updateAmount) || 0, 0)}
+                disabled={isUpdating || !updateAmount}
+                className="flex-1"
+              >
+                {isUpdating ? 'Updating...' : 'Add Gold Coins (GC)'}
+              </Button>
+              <Button
+                onClick={() => handleUpdateBalance(selectedPlayer, 0, parseInt(updateAmount) || 0)}
+                disabled={isUpdating || !updateAmount}
+                variant="secondary"
+                className="flex-1"
+              >
+                {isUpdating ? 'Updating...' : 'Add Sweeps Coins (SC)'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
