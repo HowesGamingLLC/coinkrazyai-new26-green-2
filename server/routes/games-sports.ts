@@ -344,13 +344,18 @@ export const crawlSlots: RequestHandler = async (req, res) => {
     if (name.includes('-')) name = name.split('-')[0].trim();
     if (name.includes(':')) name = name.split(':')[0].trim();
 
+    // Ensure name fits in VARCHAR(255)
+    name = name.substring(0, 250);
+
     // Extract RTP (Return to Player)
     // Common pattern in slot review sites: "RTP: 96.5%"
-    const rtpMatch = html.match(/RTP[:\s]+(\d{2}(\.\d{1,2})?)%/i) ||
-                     html.match(/(\d{2}(\.\d{1,2})?)%[\s]*RTP/i) ||
-                     html.match(/payout[\s]+percentage[:\s]+(\d{2}(\.\d{1,2})?)%/i);
+    const rtpMatch = html.match(/RTP[:\s]+(\d{2,3}(\.\d{1,2})?)%/i) ||
+                     html.match(/(\d{2,3}(\.\d{1,2})?)%[\s]*RTP/i) ||
+                     html.match(/payout[\s]+percentage[:\s]+(\d{2,3}(\.\d{1,2})?)%/i);
 
-    const rtp = rtpMatch ? parseFloat(rtpMatch[1]) : 96.0;
+    let rtp = rtpMatch ? parseFloat(rtpMatch[1]) : 96.0;
+    // Ensure RTP is within sensible bounds for DECIMAL(5,2)
+    if (isNaN(rtp) || rtp <= 0 || rtp > 100) rtp = 96.0;
 
     // Extract Volatility
     const volMatch = html.match(/(Low|Medium|High)[\s]+Volatility/i) ||
@@ -360,9 +365,10 @@ export const crawlSlots: RequestHandler = async (req, res) => {
     // Extract Description
     const metaDescMatch = html.match(/<meta name="description" content="(.*?)"/i) ||
                           html.match(/<meta property="og:description" content="(.*?)"/i);
-    const description = metaDescMatch ? metaDescMatch[1].trim().substring(0, 250) : `Automatically crawled from ${url}`;
+    const description = metaDescMatch ? metaDescMatch[1].trim().substring(0, 500) : `Automatically crawled from ${url}`;
 
     // Create game in database
+    console.log(`[Crawler] Inserting game into DB: "${name}" (RTP: ${rtp}%, Volatility: ${volatility})`);
     const dbResult = await query(
       `INSERT INTO games (name, category, provider, rtp, volatility, description, enabled)
        VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING *`,
@@ -390,6 +396,12 @@ export const crawlSlots: RequestHandler = async (req, res) => {
   } catch (error: any) {
     console.error('[Crawler] Error:', error.message);
     const message = error.code === 'ECONNABORTED' ? 'Request timed out' : error.message;
+
+    // If it's an axios error, it's usually a bad URL or target site issue, so 400 is more appropriate
+    if (error.isAxiosError || error.code?.startsWith('E')) {
+      return res.status(400).json({ error: `Crawler could not reach the site: ${message}` });
+    }
+
     res.status(500).json({ error: `Crawler failed: ${message}` });
   }
 };
