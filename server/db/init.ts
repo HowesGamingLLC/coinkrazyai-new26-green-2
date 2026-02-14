@@ -1,6 +1,7 @@
 import { query } from './connection';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as bcrypt from 'bcrypt';
 
 export const initializeDatabase = async () => {
   try {
@@ -40,34 +41,51 @@ export const initializeDatabase = async () => {
 
 const seedDatabase = async () => {
   try {
+    // Always ensure admin user exists
+    console.log('[DB] Ensuring admin user exists...');
+    const adminPassword = await bcrypt.hash('admin123', 10);
+
+    try {
+      await query(
+        `INSERT INTO admin_users (email, password_hash, name, role, status)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (email) DO UPDATE SET password_hash = $2`,
+        ['coinkrazy26@gmail.com', adminPassword, 'CoinKrazy Admin', 'admin', 'Active']
+      );
+      console.log('[DB] Admin user coinkrazy26@gmail.com ensured');
+    } catch (err: any) {
+      console.log('[DB] Admin user setup:', err.message?.substring(0, 100));
+    }
+
     // Check if players table has data
     const result = await query('SELECT COUNT(*) as count FROM players');
 
     if (result.rows[0].count === 0) {
       console.log('[DB] Seeding database with sample data...');
 
-      // Seed admin user (password: admin123)
-      await query(
-        `INSERT INTO admin_users (email, password_hash, name, role, status)
-         VALUES ($1, $2, $3, $4, $5)`,
-        ['admin@coinkrazy.ai', '$2b$10$YJrwu7c8u7c8u7c8u7c8u', 'Admin User', 'admin', 'Active']
-      );
-
-      // Seed players (passwords: password123 hashed)
+      // Seed players with proper bcrypt hashes (password: testpass123)
+      const playerPassword = await bcrypt.hash('testpass123', 10);
       const players = [
-        ['johndoe', 'John Doe', 'john@example.com', '$2b$10$YJrwu7c8u7c8u7c8u7c8u', 5250, 125, 'Active', 'Full', true],
-        ['janesmith', 'Jane Smith', 'jane@example.com', '$2b$10$YJrwu7c8u7c8u7c8u7c8u', 12000, 340, 'Active', 'Full', true],
-        ['mikejohnson', 'Mike Johnson', 'mike@example.com', '$2b$10$YJrwu7c8u7c8u7c8u7c8u', 2100, 89, 'Active', 'Intermediate', true],
-        ['sarahwilson', 'Sarah Wilson', 'sarah@example.com', '$2b$10$YJrwu7c8u7c8u7c8u7c8u', 8500, 215, 'Active', 'Full', true],
-        ['tombrown', 'Tom Brown', 'tom@example.com', '$2b$10$YJrwu7c8u7c8u7c8u7c8u', 3200, 95, 'Suspended', 'Basic', false],
+        ['johndoe', 'John Doe', 'john@example.com', playerPassword, 5250, 125, 'Active', 'Full', true],
+        ['janesmith', 'Jane Smith', 'jane@example.com', playerPassword, 12000, 340, 'Active', 'Full', true],
+        ['mikejohnson', 'Mike Johnson', 'mike@example.com', playerPassword, 2100, 89, 'Active', 'Intermediate', true],
+        ['sarahwilson', 'Sarah Wilson', 'sarah@example.com', playerPassword, 8500, 215, 'Active', 'Full', true],
+        ['tombrown', 'Tom Brown', 'tom@example.com', playerPassword, 3200, 95, 'Suspended', 'Basic', false],
       ];
 
       for (const player of players) {
-        await query(
-          `INSERT INTO players (username, name, email, password_hash, gc_balance, sc_balance, status, kyc_level, kyc_verified)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-          player
-        );
+        try {
+          await query(
+            `INSERT INTO players (username, name, email, password_hash, gc_balance, sc_balance, status, kyc_level, kyc_verified)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            player
+          );
+        } catch (err: any) {
+          // Player might already exist, that's okay
+          if (err.code !== '23505') {
+            throw err;
+          }
+        }
       }
 
       // Seed games

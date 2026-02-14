@@ -247,15 +247,20 @@ const Admin = () => {
         body: JSON.stringify({ email, password })
       });
       const data = await res.json();
-      if (data.success) {
-        localStorage.setItem('adminToken', data.data.token);
+      if (data.success && data.token) {
+        // Store both admin token and auth token for API calls
+        localStorage.setItem('adminToken', data.token);
+        localStorage.setItem('auth_token', data.token);
         setIsLoggedIn(true);
+        setEmail('');
+        setPassword('');
         fetchStats();
         toast({ title: "Welcome back, Admin", description: "Login successful." });
       } else {
-        toast({ title: "Login failed", description: data.error, variant: "destructive" });
+        toast({ title: "Login failed", description: data.error || "Invalid credentials", variant: "destructive" });
       }
     } catch (e) {
+      console.error('Admin login error:', e);
       toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
     }
   };
