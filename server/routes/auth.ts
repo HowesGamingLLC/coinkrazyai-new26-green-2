@@ -1,146 +1,101 @@
 import { RequestHandler } from 'express';
 import { AuthService } from '../services/auth-service';
+import { RegisterRequest, LoginRequest } from '@shared/api';
 
-// User registration
+// Register new player
 export const handleRegister: RequestHandler = async (req, res) => {
   try {
-    const { email, password, username } = req.body;
+    const { username, name, email, password } = req.body as RegisterRequest;
 
-    if (!email || !password || !username) {
+    // Validate inputs
+    if (!username || !name || !email || !password) {
       return res.status(400).json({
         success: false,
-        error: 'Email, password, and username required'
+        error: 'Missing required fields'
       });
     }
 
-    const user = await AuthService.registerUser(email, password, username);
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password must be at least 6 characters'
+      });
+    }
 
-    res.json({
-      success: true,
-      data: {
-        message: 'Registration successful',
-        user
-      }
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email format'
+      });
+    }
+
+    const result = await AuthService.registerPlayer(username, name, email, password);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    // Set auth cookie
+    res.cookie('auth_token', result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
-  } catch (error: any) {
-    res.status(400).json({
+
+    res.status(201).json({
+      success: true,
+      token: result.token,
+      player: result.player
+    });
+  } catch (error) {
+    console.error('[Auth] Registration error:', error);
+    res.status(500).json({
       success: false,
-      error: error.message || 'Registration failed'
+      error: 'Registration failed'
     });
   }
 };
 
-// User login
+// Login player
 export const handleLogin: RequestHandler = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body as LoginRequest;
 
-    if (!email || !password) {
+    // Validate inputs
+    if (!username || !password) {
       return res.status(400).json({
         success: false,
-        error: 'Email and password required'
+        error: 'Username and password required'
       });
     }
 
-    const result = await AuthService.loginUser(email, password);
+    const result = await AuthService.loginPlayer(username, password);
 
-    // Set secure cookie
+    if (!result.success) {
+      return res.status(401).json(result);
+    }
+
+    // Set auth cookie
     res.cookie('auth_token', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
     res.json({
       success: true,
-      data: result
+      token: result.token,
+      player: result.player
     });
-  } catch (error: any) {
-    res.status(401).json({
-      success: false,
-      error: error.message || 'Login failed'
-    });
-  }
-};
-
-// User logout
-export const handleLogout: RequestHandler = (req, res) => {
-  try {
-    const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
-
-    if (token) {
-      AuthService.logout(token);
-    }
-
-    res.clearCookie('auth_token');
-
-    res.json({
-      success: true,
-      data: { message: 'Logged out successfully' }
-    });
-  } catch (error: any) {
+  } catch (error) {
+    console.error('[Auth] Login error:', error);
     res.status(500).json({
       success: false,
-      error: 'Logout failed'
-    });
-  }
-};
-
-// Get current user profile
-export const handleGetProfile: RequestHandler = async (req: any, res) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      });
-    }
-
-    const profile = await AuthService.getUserProfile(req.user.userId);
-
-    if (!profile) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: profile
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to get profile'
-    });
-  }
-};
-
-// Update user settings
-export const handleUpdateSettings: RequestHandler = async (req: any, res) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      });
-    }
-
-    const updated = await AuthService.updateUserSettings(req.user.userId, req.body);
-
-    res.json({
-      success: true,
-      data: {
-        message: 'Settings updated',
-        user: updated
-      }
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to update settings'
+      error: 'Login failed'
     });
   }
 };
@@ -150,6 +105,7 @@ export const handleAdminLogin: RequestHandler = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Validate inputs
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -159,42 +115,122 @@ export const handleAdminLogin: RequestHandler = async (req, res) => {
 
     const result = await AuthService.loginAdmin(email, password);
 
-    // Set secure cookie
+    if (!result.success) {
+      return res.status(401).json(result);
+    }
+
+    // Set admin cookie
     res.cookie('admin_token', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000 // 1 day
     });
 
     res.json({
       success: true,
-      data: result
+      token: result.token,
+      admin: result.admin
     });
-  } catch (error: any) {
-    res.status(401).json({
+  } catch (error) {
+    console.error('[Auth] Admin login error:', error);
+    res.status(500).json({
       success: false,
-      error: error.message || 'Admin login failed'
+      error: 'Admin login failed'
     });
   }
 };
 
-// Admin logout
-export const handleAdminLogout: RequestHandler = (req, res) => {
+// Get current player profile
+export const handleGetProfile: RequestHandler = async (req, res) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.admin_token;
-
-    if (token) {
-      AuthService.logout(token);
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Not authenticated'
+      });
     }
 
-    res.clearCookie('admin_token');
+    const profile = await AuthService.getPlayerProfile(req.user.playerId);
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        error: 'Player not found'
+      });
+    }
 
     res.json({
       success: true,
-      data: { message: 'Admin logged out successfully' }
+      data: profile
     });
-  } catch (error: any) {
+  } catch (error) {
+    console.error('[Auth] Get profile error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get profile'
+    });
+  }
+};
+
+// Update player profile
+export const handleUpdateProfile: RequestHandler = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Not authenticated'
+      });
+    }
+
+    const { name, email, password } = req.body;
+
+    const updates: any = {};
+    if (name) updates.name = name;
+    if (email) updates.email = email;
+    if (password) updates.password = password;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No updates provided'
+      });
+    }
+
+    const updated = await AuthService.updatePlayerProfile(req.user.playerId, updates);
+
+    res.json({
+      success: true,
+      data: updated
+    });
+  } catch (error) {
+    console.error('[Auth] Update profile error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update profile'
+    });
+  }
+};
+
+// Logout player
+export const handleLogout: RequestHandler = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Not authenticated'
+      });
+    }
+
+    // Clear cookies
+    res.clearCookie('auth_token');
+
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  } catch (error) {
+    console.error('[Auth] Logout error:', error);
     res.status(500).json({
       success: false,
       error: 'Logout failed'

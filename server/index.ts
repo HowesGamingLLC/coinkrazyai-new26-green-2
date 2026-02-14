@@ -3,29 +3,36 @@ import express from "express";
 import cors from "cors";
 import { initializeDatabase } from "./db/init";
 import { handleDemo } from "./routes/demo";
+import {
+  handleRegister,
+  handleLogin,
+  handleGetProfile,
+  handleUpdateProfile,
+  handleLogout,
+  handleAdminLogin
+} from "./routes/auth";
+import { verifyPlayer, verifyAdmin } from "./middleware/auth";
 import { handleGetWallet, handleUpdateWallet, handleGetTransactions } from "./routes/wallet";
-import { 
-  handleGetPacks, 
-  handlePurchase, 
-  handleSquareWebhook, 
+import {
+  handleGetPacks,
+  handlePurchase,
+  handleSquareWebhook,
   handleGetPurchaseHistory,
   handleUpdatePack,
   handleAddPack,
   handleDeletePack
 } from "./routes/store";
-import { 
-  handleAdminLogin, 
-  handleGetAdminStats, 
+import {
+  handleGetAdminStats,
   handleUpdateGameConfig,
-  handleUpdateStorePack, 
+  handleUpdateStorePack,
   handleAssignAIDuty,
   handleGetGameConfig,
   handleGetAIEmployees,
   handleUpdateAIStatus,
   handleGetStorePacks,
   handleSetMaintenanceMode,
-  handleGetSystemHealth,
-  handleLogout
+  handleGetSystemHealth
 } from "./routes/admin";
 import { handleSpin, handleGetConfig as getSlotsConfig, handleUpdateConfig as updateSlotsConfig } from "./routes/slots";
 import { 
@@ -70,24 +77,32 @@ export function createServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // ===== AUTH ROUTES =====
+  app.post("/api/auth/register", handleRegister);
+  app.post("/api/auth/login", handleLogin);
+  app.post("/api/auth/admin/login", handleAdminLogin);
+  app.get("/api/auth/profile", verifyPlayer, handleGetProfile);
+  app.put("/api/auth/profile", verifyPlayer, handleUpdateProfile);
+  app.post("/api/auth/logout", verifyPlayer, handleLogout);
+
   // ===== WALLET ROUTES =====
-  app.get("/api/wallet", handleGetWallet);
-  app.post("/api/wallet/update", handleUpdateWallet);
-  app.get("/api/wallet/transactions", handleGetTransactions);
+  app.get("/api/wallet", verifyPlayer, handleGetWallet);
+  app.post("/api/wallet/update", verifyPlayer, handleUpdateWallet);
+  app.get("/api/wallet/transactions", verifyPlayer, handleGetTransactions);
 
   // ===== STORE ROUTES =====
   app.get("/api/store/packs", handleGetPacks);
-  app.post("/api/store/purchase", handlePurchase);
+  app.post("/api/store/purchase", verifyPlayer, handlePurchase);
   app.post("/api/store/webhook", handleSquareWebhook);
-  app.get("/api/store/history", handleGetPurchaseHistory);
-  app.post("/api/store/pack/update", handleUpdatePack);
-  app.post("/api/store/pack/add", handleAddPack);
-  app.post("/api/store/pack/delete", handleDeletePack);
+  app.get("/api/store/history", verifyPlayer, handleGetPurchaseHistory);
+  app.post("/api/store/pack/update", verifyAdmin, handleUpdatePack);
+  app.post("/api/store/pack/add", verifyAdmin, handleAddPack);
+  app.post("/api/store/pack/delete", verifyAdmin, handleDeletePack);
 
   // ===== SLOTS ROUTES =====
-  app.post("/api/slots/spin", handleSpin);
+  app.post("/api/slots/spin", verifyPlayer, handleSpin);
   app.get("/api/slots/config", getSlotsConfig);
-  app.post("/api/slots/config/update", updateSlotsConfig);
+  app.post("/api/slots/config/update", verifyAdmin, updateSlotsConfig);
 
   // ===== POKER ROUTES =====
   app.get("/api/poker/tables", handleGetPokerTables);

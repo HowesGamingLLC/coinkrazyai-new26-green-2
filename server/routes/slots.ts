@@ -1,7 +1,6 @@
 import { RequestHandler } from "express";
-import { WalletService } from "../services/wallet-service";
-
-const DEFAULT_USER = 'default-user';
+import * as dbQueries from "../db/queries";
+import { query } from "../db/connection";
 
 interface SlotSymbol {
   id: string;
@@ -20,157 +19,289 @@ const SYMBOLS: SlotSymbol[] = [
   { id: 'seven', name: '7️⃣', value: 100, weight: 5 },
 ];
 
-// Game configuration that can be updated by admin
+// Game configuration (in production, load from database)
 let gameConfig = {
   rtp: 95, // Return to Player percentage
   minBet: 0.01,
-  maxBet: 100,
+  maxBet: 1000,
+  maxLineWinnings: 50000,
 };
 
+// Cryptographically secure RNG using crypto module
+import * as crypto from 'crypto';
+
+const getRandomSymbol = (): SlotSymbol => {
+  const totalWeight = SYMBOLS.reduce((acc, s) => acc + s.weight, 0);
+  
+  // Use crypto for better randomness
+  const randomBytes = crypto.randomBytes(4);
+  const randomValue = randomBytes.readUInt32BE(0);
+  let random = (randomValue / 0xffffffff) * totalWeight;
+
+  for (const symbol of SYMBOLS) {
+    if (random < symbol.weight) return symbol;
+    random -= symbol.weight;
+  }
+  return SYMBOLS[0];
+};
+
+// Generate 3x3 reel grid
+const generateReels = (): string[][] => {
+  const reels: string[][] = [[], [], []];
+
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      reels[i][j] = getRandomSymbol().id;
+    }
+  }
+
+  return reels;
+};
+
+// Calculate winnings based on matched lines
+const calculateWinnings = (reels: string[][], betAmount: number): { winnings: number; winLines: string[][]; resultType: string } => {
+  let winnings = 0;
+  const winLines: string[][] = [];
+  let resultType = 'loss';
+
+  // Horizontal lines
+  for (let row = 0; row < 3; row++) {
+    const line = [reels[row][0], reels[row][1], reels[row][2]];
+    if (line[0] === line[1] && line[1] === line[2]) {
+      const symbol = SYMBOLS.find(s => s.id === line[0]);
+      if (symbol) {
+        const lineWinnings = Math.min(symbol.value * betAmount, gameConfig.maxLineWinnings);
+        winnings += lineWinnings;
+        winLines.push(line);
+      }
+    }
+  }
+
+  // Vertical lines
+  for (let col = 0; col < 3; col++) {
+    const line = [reels[0][col], reels[1][col], reels[2][col]];
+    if (line[0] === line[1] && line[1] === line[2]) {
+      const symbol = SYMBOLS.find(s => s.id === line[0]);
+      if (symbol) {
+        const lineWinnings = Math.min(symbol.value * betAmount, gameConfig.maxLineWinnings);
+        winnings += lineWinnings;
+        winLines.push(line);
+      }
+    }
+  }
+
+  // Diagonal lines
+  const diag1 = [reels[0][0], reels[1][1], reels[2][2]];
+  if (diag1[0] === diag1[1] && diag1[1] === diag1[2]) {
+    const symbol = SYMBOLS.find(s => s.id === diag1[0]);
+    if (symbol) {
+      const lineWinnings = Math.min(symbol.value * betAmount, gameConfig.maxLineWinnings);
+      winnings += lineWinnings;
+      winLines.push(diag1);
+    }
+  }
+
+  const diag2 = [reels[0][2], reels[1][1], reels[2][0]];
+  if (diag2[0] === diag2[1] && diag2[1] === diag2[2]) {
+    const symbol = SYMBOLS.find(s => s.id === diag2[0]);
+    if (symbol) {
+      const lineWinnings = Math.min(symbol.value * betAmount, gameConfig.maxLineWinnings);
+      winnings += lineWinnings;
+      winLines.push(diag2);
+    }
+  }
+
+  if (winnings > 0) {
+    resultType = winnings > betAmount * 5 ? 'big_win' : 'win';
+  }
+
+  return { winnings, winLines, resultType };
+};
+
+// Spin slots
 export const handleSpin: RequestHandler = async (req, res) => {
   try {
-    const { bet, currency } = req.body;
-
-    if (!bet || bet <= 0) {
-      return res.status(400).json({ success: false, error: "Invalid bet amount" });
-    }
-
-    if (bet < gameConfig.minBet || bet > gameConfig.maxBet) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Bet must be between ${gameConfig.minBet} and ${gameConfig.maxBet}` 
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
       });
     }
 
-    // Get current wallet
-    const wallet = WalletService.getWallet(DEFAULT_USER);
-    const balanceKey = currency === 'GC' ? 'goldCoins' : 'sweepsCoins';
-    
-    if (wallet[balanceKey] < bet) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Insufficient ${currency === 'GC' ? 'Gold Coins' : 'Sweeps Coins'}` 
+    const { bet_amount, game_id = 1 } = req.body;
+
+    // Validate bet
+    if (!bet_amount || bet_amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid bet amount'
       });
     }
 
-    // Deduct bet from wallet
-    const deductResult = await WalletService.updateBalance(DEFAULT_USER, currency as 'GC' | 'SC', -bet, 'bet');
-    if (!deductResult.success) {
-      return res.status(400).json({ success: false, error: deductResult.error });
+    if (bet_amount < gameConfig.minBet || bet_amount > gameConfig.maxBet) {
+      return res.status(400).json({
+        success: false,
+        error: `Bet must be between ${gameConfig.minBet} and ${gameConfig.maxBet}`
+      });
     }
 
-    // Generate 3x3 grid
-    const reels: string[][] = [[], [], []];
-    const totalWeight = SYMBOLS.reduce((acc, s) => acc + s.weight, 0);
-
-    const getRandomSymbol = () => {
-      let random = Math.random() * totalWeight;
-      for (const symbol of SYMBOLS) {
-        if (random < symbol.weight) return symbol;
-        random -= symbol.weight;
-      }
-      return SYMBOLS[0];
-    };
-
-    for (let i = 0; i < 3; i++) {
-      for (let j = 0; j < 3; j++) {
-        reels[i][j] = getRandomSymbol().id;
-      }
+    // Get player wallet
+    const player = await dbQueries.getPlayerById(req.user.playerId);
+    if (player.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Player not found'
+      });
     }
 
-    // Calculate winnings (check horizontal, vertical, and diagonal lines)
-    let winnings = 0;
-    const winLines: string[][] = [];
+    const currentPlayer = player.rows[0];
 
-    // Horizontal lines
-    for (let row = 0; row < 3; row++) {
-      const line = [reels[row][0], reels[row][1], reels[row][2]];
-      if (line[0] === line[1] && line[1] === line[2]) {
-        const symbol = SYMBOLS.find(s => s.id === line[0]);
-        if (symbol) {
-          const lineWinnings = symbol.value * bet;
-          winnings += lineWinnings;
-          winLines.push(line);
-        }
-      }
+    // Check sufficient balance (assume bet in GC)
+    if (currentPlayer.gc_balance < bet_amount) {
+      return res.status(400).json({
+        success: false,
+        error: 'Insufficient gold coins'
+      });
     }
 
-    // Vertical lines
-    for (let col = 0; col < 3; col++) {
-      const line = [reels[0][col], reels[1][col], reels[2][col]];
-      if (line[0] === line[1] && line[1] === line[2]) {
-        const symbol = SYMBOLS.find(s => s.id === line[0]);
-        if (symbol) {
-          const lineWinnings = symbol.value * bet;
-          winnings += lineWinnings;
-          winLines.push(line);
-        }
-      }
-    }
+    // Deduct bet from player's balance
+    await dbQueries.recordWalletTransaction(
+      req.user.playerId,
+      'slots_bet',
+      -bet_amount,
+      0,
+      `Slots spin bet: ${bet_amount} GC`
+    );
 
-    // Diagonal lines
-    const diag1 = [reels[0][0], reels[1][1], reels[2][2]];
-    if (diag1[0] === diag1[1] && diag1[1] === diag1[2]) {
-      const symbol = SYMBOLS.find(s => s.id === diag1[0]);
-      if (symbol) {
-        const lineWinnings = symbol.value * bet;
-        winnings += lineWinnings;
-        winLines.push(diag1);
-      }
-    }
+    // Generate reels
+    const reels = generateReels();
 
-    const diag2 = [reels[0][2], reels[1][1], reels[2][0]];
-    if (diag2[0] === diag2[1] && diag2[1] === diag2[2]) {
-      const symbol = SYMBOLS.find(s => s.id === diag2[0]);
-      if (symbol) {
-        const lineWinnings = symbol.value * bet;
-        winnings += lineWinnings;
-        winLines.push(diag2);
-      }
-    }
+    // Calculate winnings
+    const { winnings, winLines, resultType } = calculateWinnings(reels, bet_amount);
 
     // Add winnings to wallet if any
-    let finalWallet = deductResult.wallet;
     if (winnings > 0) {
-      const winResult = await WalletService.updateBalance(DEFAULT_USER, currency as 'GC' | 'SC', winnings, 'win');
-      if (winResult.success) {
-        finalWallet = winResult.wallet;
-      }
+      await dbQueries.recordWalletTransaction(
+        req.user.playerId,
+        'slots_win',
+        winnings,
+        0,
+        `Slots spin win: ${winnings} GC (${winLines.length} lines)`
+      );
     }
+
+    // Record game result in database
+    const reelString = JSON.stringify(reels);
+    await dbQueries.recordSlotsResult(
+      req.user.playerId,
+      game_id,
+      bet_amount,
+      winnings,
+      reelString
+    );
+
+    // Get updated wallet
+    const updatedPlayer = await dbQueries.getPlayerById(req.user.playerId);
+    const updatedWallet = updatedPlayer.rows[0];
 
     res.json({
       success: true,
       data: {
         reels,
+        bet_amount,
         winnings,
-        newBalance: finalWallet[balanceKey],
-        wallet: finalWallet,
+        result_type: resultType,
         won: winnings > 0,
-        winLines: winLines.length > 0 ? winLines : []
+        win_lines: winLines,
+        new_balance: updatedWallet.gc_balance,
+        wallet: {
+          goldCoins: updatedWallet.gc_balance,
+          sweepsCoins: updatedWallet.sc_balance
+        }
       }
     });
   } catch (error) {
-    console.error('Spin error:', error);
-    res.status(500).json({ success: false, error: 'Failed to process spin' });
+    console.error('[Slots] Spin error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process spin'
+    });
   }
 };
 
-export const handleGetConfig: RequestHandler = (req, res) => {
-  res.json({ success: true, data: gameConfig });
+// Get game configuration
+export const handleGetConfig: RequestHandler = async (req, res) => {
+  try {
+    // Get game config from database (or use defaults)
+    const gameResult = await query(
+      'SELECT * FROM games WHERE category = $1 LIMIT 1',
+      ['Slots']
+    );
+
+    const config = {
+      rtp: gameResult.rows[0]?.rtp || gameConfig.rtp,
+      minBet: gameConfig.minBet,
+      maxBet: gameConfig.maxBet,
+      maxLineWinnings: gameConfig.maxLineWinnings,
+      symbols: SYMBOLS
+    };
+
+    res.json({
+      success: true,
+      data: config
+    });
+  } catch (error) {
+    console.error('[Slots] Get config error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get configuration'
+    });
+  }
 };
 
-export const handleUpdateConfig: RequestHandler = (req, res) => {
-  const { rtp, minBet, maxBet } = req.body;
-  
-  if (rtp !== undefined && rtp > 0 && rtp <= 100) {
-    gameConfig.rtp = rtp;
-  }
-  if (minBet !== undefined && minBet > 0) {
-    gameConfig.minBet = minBet;
-  }
-  if (maxBet !== undefined && maxBet > gameConfig.minBet) {
-    gameConfig.maxBet = maxBet;
-  }
+// Update game configuration (admin only)
+export const handleUpdateConfig: RequestHandler = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Admin access required'
+      });
+    }
 
-  res.json({ success: true, data: gameConfig });
+    const { rtp, minBet, maxBet } = req.body;
+
+    if (rtp !== undefined && rtp > 0 && rtp <= 100) {
+      gameConfig.rtp = rtp;
+
+      // Update in database if game exists
+      await query(
+        'UPDATE games SET rtp = $1 WHERE category = $2',
+        [rtp, 'Slots']
+      );
+    }
+
+    if (minBet !== undefined && minBet > 0) {
+      gameConfig.minBet = minBet;
+    }
+
+    if (maxBet !== undefined && maxBet > gameConfig.minBet) {
+      gameConfig.maxBet = maxBet;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        rtp: gameConfig.rtp,
+        minBet: gameConfig.minBet,
+        maxBet: gameConfig.maxBet
+      }
+    });
+  } catch (error) {
+    console.error('[Slots] Update config error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update configuration'
+    });
+  }
 };

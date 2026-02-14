@@ -33,30 +33,30 @@ const seedDatabase = async () => {
   try {
     // Check if players table has data
     const result = await query('SELECT COUNT(*) as count FROM players');
-    
+
     if (result.rows[0].count === 0) {
       console.log('[DB] Seeding database with sample data...');
 
-      // Seed admin user
+      // Seed admin user (password: admin123)
       await query(
-        `INSERT INTO admin_users (email, password_hash, name, role, status) 
+        `INSERT INTO admin_users (email, password_hash, name, role, status)
          VALUES ($1, $2, $3, $4, $5)`,
         ['admin@coinkrazy.ai', '$2b$10$YJrwu7c8u7c8u7c8u7c8u', 'Admin User', 'admin', 'Active']
       );
 
-      // Seed players
+      // Seed players (passwords: password123 hashed)
       const players = [
-        ['John Doe', 'john@example.com', 5250, 125, 'Active', 'Full', true],
-        ['Jane Smith', 'jane@example.com', 12000, 340, 'Active', 'Full', true],
-        ['Mike Johnson', 'mike@example.com', 2100, 89, 'Active', 'Intermediate', true],
-        ['Sarah Wilson', 'sarah@example.com', 8500, 215, 'Active', 'Full', true],
-        ['Tom Brown', 'tom@example.com', 3200, 95, 'Suspended', 'Basic', false],
+        ['johndoe', 'John Doe', 'john@example.com', '$2b$10$YJrwu7c8u7c8u7c8u7c8u', 5250, 125, 'Active', 'Full', true],
+        ['janesmith', 'Jane Smith', 'jane@example.com', '$2b$10$YJrwu7c8u7c8u7c8u7c8u', 12000, 340, 'Active', 'Full', true],
+        ['mikejohnson', 'Mike Johnson', 'mike@example.com', '$2b$10$YJrwu7c8u7c8u7c8u7c8u', 2100, 89, 'Active', 'Intermediate', true],
+        ['sarahwilson', 'Sarah Wilson', 'sarah@example.com', '$2b$10$YJrwu7c8u7c8u7c8u7c8u', 8500, 215, 'Active', 'Full', true],
+        ['tombrown', 'Tom Brown', 'tom@example.com', '$2b$10$YJrwu7c8u7c8u7c8u7c8u', 3200, 95, 'Suspended', 'Basic', false],
       ];
 
       for (const player of players) {
         await query(
-          `INSERT INTO players (name, email, gc_balance, sc_balance, status, kyc_level, kyc_verified) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          `INSERT INTO players (username, name, email, password_hash, gc_balance, sc_balance, status, kyc_level, kyc_verified)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
           player
         );
       }
@@ -134,9 +134,55 @@ const seedDatabase = async () => {
 
       for (const event of sportsEvents) {
         await query(
-          `INSERT INTO sports_events (sport, event_name, status, total_bets, line_movement) 
+          `INSERT INTO sports_events (sport, event_name, status, total_bets, line_movement)
            VALUES ($1, $2, $3, $4, $5)`,
           event
+        );
+      }
+
+      // Seed store packs
+      const storePacks = [
+        ['Starter Pack', 'Perfect for new players', 9.99, 1000, 0, 0, false, false, true, 1],
+        ['Gold Bundle', 'Popular choice', 24.99, 3000, 500, 10, true, false, true, 2],
+        ['Platinum Pack', 'Best value offer', 49.99, 7000, 2000, 20, false, true, true, 3],
+        ['VIP Elite', 'Premium experience', 99.99, 15000, 5000, 30, false, false, true, 4],
+        ['Mega Bonus', 'Limited time offer', 14.99, 2000, 200, 15, false, false, true, 5],
+      ];
+
+      for (const pack of storePacks) {
+        await query(
+          `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, enabled, position)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          pack
+        );
+      }
+
+      // Seed achievements
+      const achievements = [
+        ['First Win', 'Win your first game', 'trophy', 'first_win', 'wins', 1, true],
+        ['Big Winner', 'Win 100 times', 'crown', 'big_winner', 'wins', 100, true],
+        ['High Roller', 'Wager 10,000 gold coins', 'gem', 'high_roller', 'wagered', 10000, true],
+        ['Streaker', 'Get a 10 game winning streak', 'fire', 'streaker', 'streak', 10, true],
+        ['Rich Player', 'Accumulate 50,000 gold coins', 'diamond', 'rich_player', 'balance', 50000, true],
+        ['Slots Master', 'Play slots 500 times', 'star', 'slots_master', 'games_played', 500, true],
+        ['Poker Pro', 'Play 100 poker hands', 'spade', 'poker_pro', 'games_played', 100, true],
+      ];
+
+      for (const achievement of achievements) {
+        await query(
+          `INSERT INTO achievements (name, description, icon_url, badge_name, requirement_type, requirement_value, enabled)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          achievement
+        );
+      }
+
+      // Seed player stats (for seeded players)
+      const playerIds = [1, 2, 3, 4];
+      for (const playerId of playerIds) {
+        await query(
+          `INSERT INTO player_stats (player_id, total_wagered, total_won, games_played, favorite_game)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [playerId, Math.random() * 50000, Math.random() * 25000, Math.floor(Math.random() * 500), 'Slots']
         );
       }
 

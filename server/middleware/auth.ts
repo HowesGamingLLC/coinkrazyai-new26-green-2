@@ -6,17 +6,18 @@ declare global {
   namespace Express {
     interface Request {
       user?: {
-        userId: number;
+        playerId: number;
+        username: string;
         email: string;
-        role: 'user' | 'admin';
+        role: 'player' | 'admin';
         token: string;
       };
     }
   }
 }
 
-// Middleware to verify user authentication
-export const verifyUser = (req: Request, res: Response, next: NextFunction) => {
+// Middleware to verify player authentication
+export const verifyPlayer = (req: Request, res: Response, next: NextFunction) => {
   try {
     // Get token from header or cookie
     const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
@@ -28,9 +29,9 @@ export const verifyUser = (req: Request, res: Response, next: NextFunction) => {
       });
     }
 
-    const session = AuthService.verifyToken(token);
+    const decoded = AuthService.verifyJWT(token);
 
-    if (!session || session.role !== 'user') {
+    if (!decoded || decoded.role !== 'player') {
       return res.status(401).json({
         success: false,
         error: 'Invalid or expired token'
@@ -39,10 +40,11 @@ export const verifyUser = (req: Request, res: Response, next: NextFunction) => {
 
     // Attach user to request
     req.user = {
-      userId: session.userId,
-      email: session.email,
-      role: session.role,
-      token: session.token
+      playerId: decoded.playerId,
+      username: decoded.username,
+      email: decoded.email,
+      role: decoded.role,
+      token
     };
 
     next();
@@ -67,9 +69,9 @@ export const verifyAdmin = (req: Request, res: Response, next: NextFunction) => 
       });
     }
 
-    const session = AuthService.verifyToken(token);
+    const decoded = AuthService.verifyJWT(token);
 
-    if (!session || session.role !== 'admin') {
+    if (!decoded || decoded.role !== 'admin') {
       return res.status(401).json({
         success: false,
         error: 'Invalid or expired admin token'
@@ -78,10 +80,11 @@ export const verifyAdmin = (req: Request, res: Response, next: NextFunction) => 
 
     // Attach user to request
     req.user = {
-      userId: session.userId,
-      email: session.email,
-      role: session.role,
-      token: session.token
+      playerId: decoded.playerId,
+      username: decoded.username,
+      email: decoded.email,
+      role: decoded.role,
+      token
     };
 
     next();
@@ -99,13 +102,14 @@ export const optionalAuth = (req: Request, res: Response, next: NextFunction) =>
     const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
 
     if (token) {
-      const session = AuthService.verifyToken(token);
-      if (session) {
+      const decoded = AuthService.verifyJWT(token);
+      if (decoded) {
         req.user = {
-          userId: session.userId,
-          email: session.email,
-          role: session.role,
-          token: session.token
+          playerId: decoded.playerId,
+          username: decoded.username,
+          email: decoded.email,
+          role: decoded.role,
+          token
         };
       }
     }
