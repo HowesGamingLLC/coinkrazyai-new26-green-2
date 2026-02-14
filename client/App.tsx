@@ -15,6 +15,13 @@ import Poker from "./pages/Poker";
 import Bingo from "./pages/Bingo";
 import Sportsbook from "./pages/Sportsbook";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import Profile from "./pages/Profile";
+import Account from "./pages/Account";
+import Wallet from "./pages/Wallet";
+import Leaderboards from "./pages/Leaderboards";
+import Achievements from "./pages/Achievements";
+import Support from "./pages/Support";
+import Games from "./pages/Games";
 
 const queryClient = new QueryClient();
 
@@ -27,11 +34,18 @@ const App = () => (
         <Layout>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/games" element={<Games />} />
             <Route path="/store" element={<Store />} />
             <Route path="/slots" element={<Slots />} />
             <Route path="/poker" element={<Poker />} />
             <Route path="/bingo" element={<Bingo />} />
             <Route path="/sportsbook" element={<Sportsbook />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/account" element={<Account />} />
+            <Route path="/wallet" element={<Wallet />} />
+            <Route path="/leaderboards" element={<Leaderboards />} />
+            <Route path="/achievements" element={<Achievements />} />
+            <Route path="/support" element={<Support />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

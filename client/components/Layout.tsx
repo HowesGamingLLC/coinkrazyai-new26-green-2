@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useWallet } from '@/hooks/use-wallet';
-import { Coins, User, Home, Gamepad2, ShoppingCart, BarChart3, MessageSquare } from 'lucide-react';
+import { Coins, User, Home, Gamepad2, ShoppingCart, BarChart3, MessageSquare, Trophy, Award, Headphones, Settings, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LayoutProps {
@@ -14,13 +14,20 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
 
   const navItems = [
-    { label: 'Lobby', path: '/', icon: Home },
-    { label: 'Slots', path: '/slots', icon: Gamepad2 },
+    { label: 'Home', path: '/', icon: Home },
+    { label: 'Games', path: '/games', icon: Gamepad2 },
+    { label: 'Slots', path: '/slots', icon: Zap },
     { label: 'Poker', path: '/poker', icon: Coins },
     { label: 'Bingo', path: '/bingo', icon: Gamepad2 },
-    { label: 'Sportsbook', path: '/sportsbook', icon: BarChart3 },
+    { label: 'Sports', path: '/sportsbook', icon: BarChart3 },
     { label: 'Store', path: '/store', icon: ShoppingCart },
-    { label: 'Admin', path: '/admin', icon: User },
+    { label: 'Leaderboard', path: '/leaderboards', icon: Trophy },
+    { label: 'Achievements', path: '/achievements', icon: Award },
+    { label: 'Profile', path: '/profile', icon: User },
+    { label: 'Wallet', path: '/wallet', icon: Coins },
+    { label: 'Settings', path: '/account', icon: Settings },
+    { label: 'Support', path: '/support', icon: Headphones },
+    { label: 'Admin', path: '/admin', icon: BarChart3 },
   ];
 
   return (

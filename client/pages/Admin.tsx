@@ -47,6 +47,30 @@ import { PokerManagement } from '@/components/admin/PokerManagement';
 import { BingoManagement } from '@/components/admin/BingoManagement';
 import { SportsManagement } from '@/components/admin/SportsManagement';
 import { APIManagement } from '@/components/admin/APIManagement';
+import { VIPManagement } from '@/components/admin/VIPManagement';
+import { MakeItRain } from '@/components/admin/MakeItRain';
+import { JackpotManagement } from '@/components/admin/JackpotManagement';
+import { FraudDetection } from '@/components/admin/FraudDetection';
+import { RedemptionApprovals } from '@/components/admin/RedemptionApprovals';
+import { SupportTickets } from '@/components/admin/SupportTickets';
+import {
+  BankingPayments,
+  GameIngestion,
+  AIGameBuilder,
+  ContentManagement,
+  CasinoSettings,
+  SocialManagement,
+  PlayerRetention,
+  AffiliateManagement,
+  SystemLogs,
+  DatabaseBackups,
+  PerformanceMonitoring,
+  NotificationSettings,
+  ComplianceManagement,
+  AdvancedSettings,
+  CallerManagement,
+  SportsSettings
+} from '@/components/admin/RemainingAdminSections';
 
 // --- Stats Card ---
 const StatsCard = ({ icon: Icon, label, value, color }: any) => (
@@ -357,42 +381,42 @@ const Admin = () => {
           {activeSection === 'wallet' && <WalletManagement />}
 
           {/* Financial Sections */}
-          {activeSection === 'rain' && <AdminSection title="Make it Rain" description="Distribute rewards and promotions" icon={Gift} />}
+          {activeSection === 'rain' && <MakeItRain />}
           {activeSection === 'bonuses' && <BonusManagement />}
-          {activeSection === 'jackpot' && <AdminSection title="Jackpot Management" description="Configure and monitor progressive jackpots" icon={Trophy} />}
-          {activeSection === 'banking' && <AdminSection title="Banking & Payments" description="Manage payment methods and transactions" icon={CreditCard} />}
-          {activeSection === 'redemption' && <AdminSection title="Redemption Approvals" description="Approve withdrawal requests" icon={Check} />}
+          {activeSection === 'jackpot' && <JackpotManagement />}
+          {activeSection === 'banking' && <BankingPayments />}
+          {activeSection === 'redemption' && <RedemptionApprovals />}
 
           {/* Games & Sports Sections */}
           {activeSection === 'library' && <GameManagement />}
-          {activeSection === 'ingestion' && <AdminSection title="Game Ingestion" description="Import and update games from providers" icon={Upload} />}
-          {activeSection === 'ai-builder' && <AdminSection title="AI Game Builder" description="Create new games with AI assistance" icon={Bot} />}
+          {activeSection === 'ingestion' && <GameIngestion />}
+          {activeSection === 'ai-builder' && <AIGameBuilder />}
           {activeSection === 'poker' && <PokerManagement />}
           {activeSection === 'bingo' && <BingoManagement />}
-          {activeSection === 'caller' && <AdminSection title="Caller Management" description="Configure bingo callers" icon={MessageSquare} />}
+          {activeSection === 'caller' && <CallerManagement />}
           {activeSection === 'sportsbook' && <SportsManagement />}
-          {activeSection === 'sports-settings' && <AdminSection title="Sports Settings" description="Configure sports betting rules" icon={Settings} />}
+          {activeSection === 'sports-settings' && <SportsSettings />}
 
           {/* Operations Sections */}
           {activeSection === 'security' && <SecurityManagement />}
-          {activeSection === 'content' && <AdminSection title="Content Management" description="Manage website and game content" icon={FileText} />}
-          {activeSection === 'casino-settings' && <AdminSection title="Casino Settings" description="Global casino configuration" icon={Settings} />}
-          {activeSection === 'social' && <AdminSection title="Social Management" description="Manage social features and chat" icon={MessageSquare} />}
-          {activeSection === 'retention' && <AdminSection title="Player Retention" description="Configure retention strategies and campaigns" icon={Users} />}
+          {activeSection === 'content' && <ContentManagement />}
+          {activeSection === 'casino-settings' && <CasinoSettings />}
+          {activeSection === 'social' && <SocialManagement />}
+          {activeSection === 'retention' && <PlayerRetention />}
 
           {/* Advanced Sections */}
           {activeSection === 'analytics' && <AnalyticsDashboard />}
-          {activeSection === 'vip' && <AdminSection title="VIP Management" description="Manage VIP tiers and benefits" icon={Gift} />}
-          {activeSection === 'fraud' && <AdminSection title="Fraud Detection" description="Monitor and prevent fraudulent activity" icon={ShieldAlert} />}
-          {activeSection === 'affiliate' && <AdminSection title="Affiliate Management" description="Manage affiliate programs and payouts" icon={Link2} />}
-          {activeSection === 'tickets' && <AdminSection title="Support & Tickets" description="Manage customer support tickets" icon={MessageSquare} />}
-          {activeSection === 'logs' && <AdminSection title="System Logs" description="View system activity and audit logs" icon={FileText} />}
+          {activeSection === 'vip' && <VIPManagement />}
+          {activeSection === 'fraud' && <FraudDetection />}
+          {activeSection === 'affiliate' && <AffiliateManagement />}
+          {activeSection === 'tickets' && <SupportTickets />}
+          {activeSection === 'logs' && <SystemLogs />}
           {activeSection === 'api' && <APIManagement />}
-          {activeSection === 'database' && <AdminSection title="Database & Backups" description="Manage database and create backups" icon={Database} />}
-          {activeSection === 'performance' && <AdminSection title="Performance" description="Monitor system performance metrics" icon={Zap} />}
-          {activeSection === 'notifications' && <AdminSection title="Notifications" description="Configure notification settings" icon={Bell} />}
-          {activeSection === 'compliance' && <AdminSection title="Compliance" description="Manage compliance requirements and audits" icon={Check} />}
-          {activeSection === 'advanced-settings' && <AdminSection title="Advanced Settings" description="Configure advanced system settings" icon={Settings} />}
+          {activeSection === 'database' && <DatabaseBackups />}
+          {activeSection === 'performance' && <PerformanceMonitoring />}
+          {activeSection === 'notifications' && <NotificationSettings />}
+          {activeSection === 'compliance' && <ComplianceManagement />}
+          {activeSection === 'advanced-settings' && <AdvancedSettings />}
         </div>
       </div>
     </div>
