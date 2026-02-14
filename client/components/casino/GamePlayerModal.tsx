@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { casinoGames } from '@/data/casinoGames';
+import { casinoGames, CASINO_MIN_BET, CASINO_MAX_BET } from '@/data/casinoGames';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { X, AlertCircle, Loader } from 'lucide-react';
@@ -16,15 +16,16 @@ export function GamePlayerModal({ gameId, onClose }: GamePlayerModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasStarted, setHasStarted] = useState(false);
+  const [betAmount, setBetAmount] = useState(CASINO_MIN_BET);
 
   if (!game || !user) return null;
 
   const currentScBalance = Number(user.sc_balance ?? 0);
-  const hasEnoughBalance = currentScBalance >= game.costPerPlay;
+  const hasEnoughBalance = currentScBalance >= betAmount;
 
   const handlePlayGame = async () => {
     if (!hasEnoughBalance) {
-      setError(`Insufficient SC balance. You need ${game.costPerPlay} SC to play.`);
+      setError(`Insufficient SC balance. You need ${betAmount.toFixed(2)} SC to play.`);
       return;
     }
 
@@ -33,7 +34,7 @@ export function GamePlayerModal({ gameId, onClose }: GamePlayerModalProps) {
 
     try {
       // Deduct SC from wallet
-      const response = await wallet.updateBalance(0, -game.costPerPlay);
+      const response = await wallet.updateBalance(0, -betAmount);
       
       if (response.success) {
         setHasStarted(true);
@@ -83,14 +84,61 @@ export function GamePlayerModal({ gameId, onClose }: GamePlayerModalProps) {
 
               {/* Game Info */}
               <div className="space-y-4 w-full max-w-md">
-                <div className="bg-gray-800 rounded-lg p-4 space-y-2">
-                  <p className="text-sm text-gray-400">Cost per play</p>
-                  <p className="text-2xl font-bold text-amber-400">{game.costPerPlay} SC</p>
+                {/* Bet Amount Selector */}
+                <div className="bg-gray-800 rounded-lg p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-400">Bet Amount</p>
+                    <p className="text-2xl font-bold text-amber-400">{betAmount.toFixed(2)} SC</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <input
+                      type="range"
+                      min={CASINO_MIN_BET}
+                      max={CASINO_MAX_BET}
+                      step={0.01}
+                      value={betAmount}
+                      onChange={(e) => setBetAmount(parseFloat(e.target.value))}
+                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                    />
+                    <div className="flex justify-between text-xs text-gray-400">
+                      <span>{CASINO_MIN_BET.toFixed(2)} SC</span>
+                      <span>{CASINO_MAX_BET.toFixed(2)} SC</span>
+                    </div>
+                  </div>
+
+                  {/* Quick Bet Buttons */}
+                  <div className="grid grid-cols-4 gap-2">
+                    <button
+                      onClick={() => setBetAmount(0.01)}
+                      className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs font-semibold text-gray-300 transition-colors"
+                    >
+                      0.01
+                    </button>
+                    <button
+                      onClick={() => setBetAmount(0.50)}
+                      className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs font-semibold text-gray-300 transition-colors"
+                    >
+                      0.50
+                    </button>
+                    <button
+                      onClick={() => setBetAmount(2.50)}
+                      className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs font-semibold text-gray-300 transition-colors"
+                    >
+                      2.50
+                    </button>
+                    <button
+                      onClick={() => setBetAmount(5.00)}
+                      className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs font-semibold text-gray-300 transition-colors"
+                    >
+                      MAX
+                    </button>
+                  </div>
                 </div>
 
                 <div className="bg-gray-800 rounded-lg p-4 space-y-2">
                   <p className="text-sm text-gray-400">Your balance</p>
-                  <p className="text-2xl font-bold text-white">{currentScBalance} SC</p>
+                  <p className="text-2xl font-bold text-white">{currentScBalance.toFixed(2)} SC</p>
                 </div>
 
                 {/* Error Message */}
@@ -105,7 +153,7 @@ export function GamePlayerModal({ gameId, onClose }: GamePlayerModalProps) {
                 {!hasEnoughBalance && (
                   <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4">
                     <p className="text-sm text-blue-400">
-                      You need {game.costPerPlay - currentScBalance} more SC to play this game.
+                      You need {(betAmount - currentScBalance).toFixed(2)} more SC to play with this bet.
                     </p>
                   </div>
                 )}
@@ -126,7 +174,7 @@ export function GamePlayerModal({ gameId, onClose }: GamePlayerModalProps) {
                   className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-                  {isLoading ? 'Starting...' : 'Play Now'}
+                  {isLoading ? 'Starting...' : `Play Now (${betAmount.toFixed(2)} SC)`}
                 </Button>
               </div>
             </div>
@@ -139,7 +187,7 @@ export function GamePlayerModal({ gameId, onClose }: GamePlayerModalProps) {
                 </div>
                 <p className="text-gray-400">Loading game...</p>
                 <p className="text-sm text-gray-500">
-                  SC has been deducted from your balance
+                  {betAmount.toFixed(2)} SC has been deducted from your balance
                 </p>
               </div>
             </div>

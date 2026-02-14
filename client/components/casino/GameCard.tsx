@@ -1,4 +1,4 @@
-import { CasinoGame } from '@/data/casinoGames';
+import { CasinoGame, CASINO_MIN_BET, CASINO_MAX_BET } from '@/data/casinoGames';
 import { Button } from '@/components/ui/button';
 import { Play } from 'lucide-react';
 
@@ -44,7 +44,7 @@ export function GameCard({ game, onPlay }: GameCardProps) {
         <div className="flex items-center justify-between text-xs text-gray-400">
           <span className="truncate">{game.provider}</span>
           <span className="ml-1 px-2 py-1 bg-amber-500/20 text-amber-400 rounded font-semibold">
-            {game.costPerPlay} SC
+            From {CASINO_MIN_BET.toFixed(2)} SC
           </span>
         </div>
       </div>

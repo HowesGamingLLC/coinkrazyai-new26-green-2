@@ -7,6 +7,9 @@ export interface CasinoGame {
   costPerPlay: number; // SC cost per play session
 }
 
+export const CASINO_MIN_BET = 0.01;
+export const CASINO_MAX_BET = 5.00;
+
 export const casinoGames: CasinoGame[] = [
   {
     id: 'seven-fists-martial-masters',
@@ -14,7 +17,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/urgent-games/seven-fists-martial-masters.webp',
     provider: 'Urgent Games',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'cod-of-thunder-dream-drop',
@@ -22,7 +25,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/relax/cod-of-thunder-dream-drop.webp',
     provider: 'Relax',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'golden-geese',
@@ -30,7 +33,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/massive-studios/golden-geese.webp',
     provider: 'Massive Studios',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'dragon-chi-s-quest-2',
@@ -38,7 +41,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/advantplay/dragon-chi-s-quest-2.webp',
     provider: 'Advantplay',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'fatequest-hero-shifter',
@@ -46,7 +49,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/air-dice/fatequest-hero-shifter.webp',
     provider: 'Air Dice',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'ola-diego-jumboways',
@@ -54,7 +57,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/egt-digital/ola-diego-jumboways.webp',
     provider: 'EGT Digital',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'vip-crown',
@@ -62,7 +65,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/poggiplay/vip-crown.webp',
     provider: 'PoggiPlay',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'le-bunny',
@@ -70,7 +73,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/hacksaw-gaming/le-bunny.webp',
     provider: 'Hacksaw Gaming',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: '10-joker-hit',
@@ -78,7 +81,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/egt-digital/10-joker-hit.webp',
     provider: 'EGT Digital',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: '5-super-roll',
@@ -86,7 +89,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/games/egt-digital/5-super-roll.webp',
     provider: 'EGT Digital',
     type: 'games',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'happy-buddha-riches',
@@ -94,7 +97,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/uu-slots/happy-buddha-riches.webp',
     provider: 'UU Slots',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'hyper-frames-poseidon',
@@ -102,7 +105,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/snowborn-games/hyper-frames-poseidon.webp',
     provider: 'Snowborn Games',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'locked-hearts-10',
@@ -110,7 +113,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/fazi/locked-hearts-10.webp',
     provider: 'Fazi',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'joker-carnival-4096',
@@ -118,7 +121,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/victory-ark/joker-carnival-4096.webp',
     provider: 'Victory Ark',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'golden-winner-grand-chance-super-wheel',
@@ -126,7 +129,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/inspired-gaming/golden-winner-grand-chance-super-wheel.webp',
     provider: 'Inspired Gaming',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'fireball-inferno-tiki-blast',
@@ -134,7 +137,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/netgaming/fireball-inferno-tiki-blast.webp',
     provider: 'Netgaming',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'zeus-sky',
@@ -142,7 +145,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/onlyplay/zeus-sky.webp',
     provider: 'OnlyPlay',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'goldliner',
@@ -150,7 +153,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/yellow-bat/goldliner.webp',
     provider: 'Yellow Bat',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'cash-god-x4096',
@@ -158,7 +161,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/victory-ark/cash-god-x4096.webp',
     provider: 'Victory Ark',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'dr-cranko-s-lab',
@@ -166,7 +169,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/spinon/dr-cranko-s-lab.webp',
     provider: 'Spinon',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'bottle-mania',
@@ -174,7 +177,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/games/smartsoft/bottle-mania.webp',
     provider: 'SmartSoft',
     type: 'games',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'guardians-of-luxor-4',
@@ -182,7 +185,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/red-rake/guardians-of-luxor-4.webp',
     provider: 'Red Rake',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'retro-returns',
@@ -190,7 +193,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/realistic-games/retro-returns.webp',
     provider: 'Realistic Games',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'clover-strike-hold-and-win',
@@ -198,7 +201,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/playson/clover-strike-hold-and-win.webp',
     provider: 'Playson',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'joker-s-fortune',
@@ -206,7 +209,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/nsoft/joker-s-fortune.webp',
     provider: 'Nsoft',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'bankin-banker-2',
@@ -214,7 +217,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/epicwin/bankin-banker-2.webp',
     provider: 'EpicWin',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'egyptian-magic-dollars-dreams',
@@ -222,7 +225,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/atomic-slot-lab/egyptian-magic-dollars-dreams.webp',
     provider: 'Atomic Slot Lab',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'club-mr-prize',
@@ -230,7 +233,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/7777-gaming/club-mr-prize.webp',
     provider: '7777 Gaming',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'sticky-wild-farm-51',
@@ -238,7 +241,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/gamebeat/sticky-wild-farm-51.webp',
     provider: 'GameBeat',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: '3x3-royal-piggy-hold-the-spin',
@@ -246,7 +249,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/gamzix/3x3-royal-piggy-hold-the-spin.webp',
     provider: 'Gamzix',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'multi-hot-5-burn-wilds',
@@ -254,7 +257,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/smartsoft/multi-hot-5-burn-wilds.webp',
     provider: 'SmartSoft',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'dragon-s-treasure',
@@ -262,7 +265,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/victory-ark/dragon-s-treasure.webp',
     provider: 'Victory Ark',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'fortune-elixir',
@@ -270,7 +273,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/worldmatch/fortune-elixir.webp',
     provider: 'Worldmatch',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'fortune-elixir-dice',
@@ -278,7 +281,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/games/worldmatch/fortune-elixir-dice.webp',
     provider: 'Worldmatch',
     type: 'games',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'rockin-rooster',
@@ -286,7 +289,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/the-better-platform/rockin-rooster.webp',
     provider: 'The Better Platform',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'hot-prize-paradise',
@@ -294,7 +297,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/slotopia/hot-prize-paradise.webp',
     provider: 'Slotopia',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'ember-inferno',
@@ -302,7 +305,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/nsoft/ember-inferno.webp',
     provider: 'Nsoft',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'super-card-rush',
@@ -310,7 +313,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/table-games/blitzcrown/super-card-rush.webp',
     provider: 'BlitzCrown',
     type: 'table',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'double-honey-money',
@@ -318,7 +321,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/2-by-2-gaming/double-honey-money.webp',
     provider: '2 By 2 Gaming',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'medusa-vs-perseus-stone-duel',
@@ -326,7 +329,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/iconic21/medusa-vs-perseus-stone-duel.webp',
     provider: 'Iconic21',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'grand-totem',
@@ -334,7 +337,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/champion/grand-totem.webp',
     provider: 'Champion',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'masquerade-fortune',
@@ -342,7 +345,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/triple-cherry/masquerade-fortune.webp',
     provider: 'Triple Cherry',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'jungle-master',
@@ -350,7 +353,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/slotoland/jungle-master.webp',
     provider: 'SlotoLand',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'lucky-s-wild-pub-2',
@@ -358,7 +361,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/pragmatic/lucky-s-wild-pub-2.webp',
     provider: 'Pragmatic',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'ultra-ace',
@@ -366,7 +369,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/playtech/ultra-ace.webp',
     provider: 'Playtech',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'nugget-n-nonsense',
@@ -374,7 +377,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/play-n-go/nugget-n-nonsense.webp',
     provider: 'Play N Go',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'willy-wonka-i-want-it-now',
@@ -382,7 +385,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/light-wonder/willy-wonka-i-want-it-now.webp',
     provider: 'Light Wonder',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: '5-wild-buffalo-3',
@@ -390,7 +393,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/4theplayer/5-wild-buffalo-3.webp',
     provider: '4 The Player',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'love-show',
@@ -398,7 +401,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/endorphina/love-show.webp',
     provider: 'Endorphina',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'red-hot-multipliers',
@@ -406,7 +409,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/push-gaming/red-hot-multipliers.webp',
     provider: 'Push Gaming',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'hamsterpunk-wheel-of-love',
@@ -414,7 +417,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/riddec-games/hamsterpunk-wheel-of-love.webp',
     provider: 'Riddec Games',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'fish-trio',
@@ -422,7 +425,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/playtech/fish-trio.webp',
     provider: 'Playtech',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'full-moon-white-thunder',
@@ -430,7 +433,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/playtech/full-moon-white-thunder.webp',
     provider: 'Playtech',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'fortune-3-lions',
@@ -438,7 +441,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/gameplay-interactive/fortune-3-lions.webp',
     provider: 'Gameplay Interactive',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'chick-or-crack',
@@ -446,7 +449,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/games/astriona/chick-or-crack.webp',
     provider: 'Astriona',
     type: 'games',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'tomb-scrolls',
@@ -454,7 +457,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/triple-cherry/tomb-scrolls.webp',
     provider: 'Triple Cherry',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'jack-s-beanstalk-bonanza',
@@ -462,7 +465,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/reflex-gaming/jack-s-beanstalk-bonanza.webp',
     provider: 'Reflex Gaming',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'fisherman-s-luck',
@@ -470,7 +473,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/wazdan/fisherman-s-luck.webp',
     provider: 'Wazdan',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'kurka-zlotopiorka',
@@ -478,7 +481,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/rubyplay/kurka-zlotopiorka.webp',
     provider: 'RubyPlay',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'mahjong-magic',
@@ -486,7 +489,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/playtech/mahjong-magic.webp',
     provider: 'Playtech',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'pyramid-piggies',
@@ -494,7 +497,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/kalamba/pyramid-piggies.webp',
     provider: 'Kalamba',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'frooty-troupe-gold-club',
@@ -502,7 +505,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/gamomat/frooty-troupe-gold-club.webp',
     provider: 'Gamomat',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'ultra-buffalo-hold-and-win',
@@ -510,7 +513,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/booming/ultra-buffalo-hold-and-win.webp',
     provider: 'Booming',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'natal-cats',
@@ -518,7 +521,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/riddec-games/natal-cats.webp',
     provider: 'Riddec Games',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'redbeard-s-ruby-fortune-map',
@@ -526,7 +529,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/reflex-gaming/redbeard-s-ruby-fortune-map.webp',
     provider: 'Reflex Gaming',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'money-mania-fortune-coin',
@@ -534,7 +537,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/igt/money-mania-fortune-coin.webp',
     provider: 'IGT',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'money-mania-triple-fortune-dragon-unleashed',
@@ -542,7 +545,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/igt/money-mania-triple-fortune-dragon-unleashed.webp',
     provider: 'IGT',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'k-pup-stars-daebak-reels',
@@ -550,7 +553,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/gameplay-interactive/k-pup-stars-daebak-reels.webp',
     provider: 'Gameplay Interactive',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'devil-s-lock-luckytap',
@@ -558,7 +561,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/games/design-works-gaming/devil-s-lock-luckytap.webp',
     provider: 'Design Works Gaming',
     type: 'games',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'magic-fruits-oranges',
@@ -566,7 +569,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/wazdan/magic-fruits-oranges.webp',
     provider: 'Wazdan',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'topx-thimbles',
@@ -574,7 +577,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/games/pixmove-games/topx-thimbles.webp',
     provider: 'Pixmove Games',
     type: 'games',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'magnificent-power-leprechaun',
@@ -582,7 +585,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/oros-gaming/magnificent-power-leprechaun.webp',
     provider: 'Oros Gaming',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'mahjong-gold-dragon',
@@ -590,7 +593,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/live22/mahjong-gold-dragon.webp',
     provider: 'Live22',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: '3-pot-mystery-hold-and-win',
@@ -598,7 +601,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/kalamba/3-pot-mystery-hold-and-win.webp',
     provider: 'Kalamba',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'ancient-tiger-s-legacy',
@@ -606,7 +609,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/igt/ancient-tiger-s-legacy.webp',
     provider: 'IGT',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'neon-royale',
@@ -614,7 +617,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/heronbyte/neon-royale.webp',
     provider: 'Heronbyte',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'dusk-princess',
@@ -622,7 +625,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/hacksaw-gaming/dusk-princess.webp',
     provider: 'Hacksaw Gaming',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'sands-of-eternity',
@@ -630,7 +633,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/fbm/sands-of-eternity.webp',
     provider: 'FBM',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'banana-x',
@@ -638,7 +641,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/fantasma-games/banana-x.webp',
     provider: 'Fantasma Games',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'tiger-king-fortune',
@@ -646,7 +649,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/dragongaming/tiger-king-fortune.webp',
     provider: 'Dragon Gaming',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'the-jealous-ex',
@@ -654,7 +657,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/betsoft/the-jealous-ex.webp',
     provider: 'BetSoft',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'billionaire-rush-express',
@@ -662,7 +665,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/areavegas/billionaire-rush-express.webp',
     provider: 'AreaVegas',
     type: 'slots',
-    costPerPlay: 50,
+    costPerPlay: 0.01,
   },
   {
     id: 'burning-slots-cash-mesh-link',
@@ -678,7 +681,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/games/bf-games/dopamine-rush-dice.webp',
     provider: 'BF Games',
     type: 'games',
-    costPerPlay: 0.05,
+    costPerPlay: 0.01,
   },
   {
     id: 'fiery-slots-cash-mesh-link',
@@ -686,7 +689,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/bf-games/fiery-slots-cash-mesh-link.webp',
     provider: 'BF Games',
     type: 'slots',
-    costPerPlay: 0.10,
+    costPerPlay: 0.01,
   },
   {
     id: 'fortune-love',
@@ -694,7 +697,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/amigo-gaming/fortune-love.webp',
     provider: 'Amigo Gaming',
     type: 'slots',
-    costPerPlay: 0.25,
+    costPerPlay: 0.01,
   },
   {
     id: 'fortune-red-packets',
@@ -702,7 +705,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/games/bgaming/fortune-red-packets.webp',
     provider: 'BGaming',
     type: 'games',
-    costPerPlay: 0.50,
+    costPerPlay: 0.01,
   },
   {
     id: 'heart-of-tiki',
@@ -710,7 +713,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/bgaming/heart-of-tiki.webp',
     provider: 'BGaming',
     type: 'slots',
-    costPerPlay: 0.75,
+    costPerPlay: 0.01,
   },
   {
     id: 'diamond-hits-trio-instastrike',
@@ -718,7 +721,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/booming/diamond-hits-trio-instastrike.webp',
     provider: 'Booming',
     type: 'slots',
-    costPerPlay: 1.00,
+    costPerPlay: 0.01,
   },
   {
     id: 'blackjack-prime',
@@ -726,7 +729,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/table-games/caleta/blackjack-prime.webp',
     provider: 'Caleta',
     type: 'table',
-    costPerPlay: 1.50,
+    costPerPlay: 0.01,
   },
   {
     id: '40-vampire-beast',
@@ -734,7 +737,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/amusnet/40-vampire-beast.webp',
     provider: 'Amusnet',
     type: 'slots',
-    costPerPlay: 2.00,
+    costPerPlay: 0.01,
   },
   {
     id: 'cairo-dice',
@@ -742,7 +745,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/games/amusnet/cairo-dice.webp',
     provider: 'Amusnet',
     type: 'games',
-    costPerPlay: 2.50,
+    costPerPlay: 0.01,
   },
   {
     id: '3-coin-towers',
@@ -750,7 +753,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/endorphina/3-coin-towers.webp',
     provider: 'Endorphina',
     type: 'slots',
-    costPerPlay: 3.00,
+    costPerPlay: 0.01,
   },
   {
     id: 'fun-fair-fruits-100',
@@ -758,7 +761,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/slotopia/fun-fair-fruits-100.webp',
     provider: 'Slotopia',
     type: 'slots',
-    costPerPlay: 3.50,
+    costPerPlay: 0.01,
   },
   {
     id: 'lion-sevens-extreme',
@@ -766,7 +769,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/tiptop/lion-sevens-extreme.webp',
     provider: 'TipTop',
     type: 'slots',
-    costPerPlay: 4.00,
+    costPerPlay: 0.01,
   },
   {
     id: 'respin-fortune',
@@ -774,7 +777,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/redstone/respin-fortune.webp',
     provider: 'Redstone',
     type: 'slots',
-    costPerPlay: 4.25,
+    costPerPlay: 0.01,
   },
   {
     id: 'sizzling-love',
@@ -782,7 +785,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/formula-spin/sizzling-love.webp',
     provider: 'Formula Spin',
     type: 'slots',
-    costPerPlay: 4.50,
+    costPerPlay: 0.01,
   },
   {
     id: 'only-diamonds',
@@ -790,7 +793,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/gamzix/only-diamonds.webp',
     provider: 'Gamzix',
     type: 'slots',
-    costPerPlay: 4.75,
+    costPerPlay: 0.01,
   },
   {
     id: 'fire-horse-riches',
@@ -798,7 +801,7 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/slots/holle-games/fire-horse-riches.webp',
     provider: 'Holle Games',
     type: 'slots',
-    costPerPlay: 5.00,
+    costPerPlay: 0.01,
   },
   {
     id: 'megablock',
@@ -806,6 +809,6 @@ export const casinoGames: CasinoGame[] = [
     thumbnail: 'https://www.livebet.com/images/casino/games/inout/megablock.webp',
     provider: 'InOut',
     type: 'games',
-    costPerPlay: 3.25,
+    costPerPlay: 0.01,
   },
 ];
