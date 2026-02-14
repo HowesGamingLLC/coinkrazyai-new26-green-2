@@ -112,7 +112,10 @@ const Admin = () => {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('/api/admin/stats');
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch('/api/admin/stats', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
       if (!res.ok) throw new Error('Failed to fetch admin stats');
       const data = await res.json();
       if (data.success) setStats(data.data);
@@ -151,17 +154,24 @@ const Admin = () => {
   const handleUpdateGame = async (gameId: string, rtp: string) => {
     setIsSaving(true);
     try {
+      const token = localStorage.getItem('adminToken');
       const res = await fetch('/api/admin/game-config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId, config: { rtp } })
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ gameId: gameId.toLowerCase(), config: { rtp: parseFloat(rtp) } })
       });
       const data = await res.json();
       if (data.success) {
-        toast({ title: "Config Updated", description: data.message });
+        toast({ title: "Config Updated", description: data.message || "Game configuration updated" });
+        fetchStats();
+      } else {
+        toast({ title: "Update Failed", description: data.error, variant: "destructive" });
       }
     } catch (e) {
-      toast({ title: "Update Failed", variant: "destructive" });
+      toast({ title: "Update Failed", description: "Something went wrong", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -188,18 +198,34 @@ const Admin = () => {
 
   const handleAssignDuty = async (aiName: string, duty: string) => {
     try {
-      const res = await fetch('/api/admin/assign-duty', {
+      const token = localStorage.getItem('adminToken');
+      // Map AI name to ID
+      const aiIdMap: Record<string, string> = {
+        'LuckyAI': 'ai-1',
+        'SecurityAI': 'ai-2',
+        'SlotsAI': 'ai-3',
+        'JoseyAI': 'ai-4',
+        'SocialAI': 'ai-5',
+        'PromotionsAI': 'ai-6'
+      };
+
+      const res = await fetch('/api/admin/ai-duty', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ aiName, duty })
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ aiId: aiIdMap[aiName], duty })
       });
       const data = await res.json();
       if (data.success) {
-        toast({ title: "Duty Assigned", description: data.message });
-        fetchStats(); // Refresh to see potential changes
+        toast({ title: "Duty Assigned", description: data.message || "AI duty assigned successfully" });
+        fetchStats();
+      } else {
+        toast({ title: "Assignment Failed", description: data.error, variant: "destructive" });
       }
     } catch (e) {
-      toast({ title: "Assignment Failed", variant: "destructive" });
+      toast({ title: "Assignment Failed", description: "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -258,10 +284,10 @@ const Admin = () => {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard icon={Users} label="Total Players" value={stats?.totalPlayers || '...'} color="text-blue-400" />
-        <StatsCard icon={Gamepad2} label="Active Tables" value={stats?.activeTables || '...'} color="text-green-400" />
-        <StatsCard icon={Coins} label="SC Volume" value={`${stats?.totalSCVolume || '0'} SC`} color="text-yellow-400" />
-        <StatsCard icon={ShieldAlert} label="System Health" value={stats?.systemHealth || '...'} color="text-primary" />
+        <StatsCard icon={Users} label="Total Players" value={stats?.overview?.totalPlayers || '...'} color="text-blue-400" />
+        <StatsCard icon={Gamepad2} label="Active Tables" value={stats?.overview?.activeTables || '...'} color="text-green-400" />
+        <StatsCard icon={Coins} label="GC Volume" value={`${Math.floor(stats?.overview?.totalGCVolume || 0)} GC`} color="text-yellow-400" />
+        <StatsCard icon={ShieldAlert} label="System Health" value={stats?.overview?.systemHealth || 'Optimal'} color="text-primary" />
       </div>
 
       <Tabs defaultValue="ai" className="space-y-6">
@@ -282,36 +308,25 @@ const Admin = () => {
 
         <TabsContent value="ai" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AICard 
-              name="LuckyAI" role="Manager" status="Active" 
-              tasks={['Managing Employees', 'Daily Reporting']} 
-              onAssign={handleAssignDuty}
-            />
-            <AICard 
-              name="SecurityAI" role="Fraud/KYC" status="Monitoring" 
-              tasks={['Analyzing Transactions', 'Verifying IDs']} 
-              onAssign={handleAssignDuty}
-            />
-            <AICard 
-              name="SlotsAI" role="RTP Monitor" status="Active" 
-              tasks={['Adjusting Odds', 'Player Tracking']} 
-              onAssign={handleAssignDuty}
-            />
-            <AICard 
-              name="JoseyAI" role="Poker Watch" status="Idle" 
-              tasks={['Anti-Collusion', 'Pot Monitoring']} 
-              onAssign={handleAssignDuty}
-            />
-            <AICard 
-              name="SocialAI" role="Chat Mod" status="Active" 
-              tasks={['Moderating Chat', 'Banning Bots']} 
-              onAssign={handleAssignDuty}
-            />
-            <AICard 
-              name="PromotionsAI" role="Bonus Desk" status="Active" 
-              tasks={['Assigning SC Bonuses', 'Event Planning']} 
-              onAssign={handleAssignDuty}
-            />
+            {stats?.aiStatus?.map((ai: any) => (
+              <AICard
+                key={ai.id}
+                name={ai.name}
+                role={ai.role}
+                status={ai.status.charAt(0).toUpperCase() + ai.status.slice(1)}
+                tasks={ai.duties || []}
+                onAssign={handleAssignDuty}
+              />
+            )) || (
+              <>
+                <AICard name="LuckyAI" role="Manager" status="Active" tasks={['Managing Employees']} onAssign={handleAssignDuty} />
+                <AICard name="SecurityAI" role="Fraud/KYC" status="Monitoring" tasks={['Analyzing Transactions']} onAssign={handleAssignDuty} />
+                <AICard name="SlotsAI" role="RTP Monitor" status="Active" tasks={['Adjusting Odds']} onAssign={handleAssignDuty} />
+                <AICard name="JoseyAI" role="Poker Watch" status="Idle" tasks={['Anti-Collusion']} onAssign={handleAssignDuty} />
+                <AICard name="SocialAI" role="Chat Mod" status="Active" tasks={['Moderating Chat']} onAssign={handleAssignDuty} />
+                <AICard name="PromotionsAI" role="Bonus Desk" status="Active" tasks={['Assigning SC Bonuses']} onAssign={handleAssignDuty} />
+              </>
+            )}
           </div>
         </TabsContent>
 

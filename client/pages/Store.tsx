@@ -26,24 +26,36 @@ const Store = () => {
   const handlePurchase = async (packId: string) => {
     try {
       setShowAnimation(true);
-      setTimeout(() => setShowAnimation(false), 2000);
 
       const response = await fetch('/api/store/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packId })
+        body: JSON.stringify({ packId, method: 'demo' })
       });
       const data = await response.json();
 
       if (data.success) {
+        const pack = data.data.pack;
         toast({
-          title: "Redirecting to Square",
-          description: "You are being redirected to our secure payment gateway.",
+          title: "Purchase Successful!",
+          description: `You received ${pack.goldCoins.toLocaleString()} Gold Coins + ${pack.sweepsCoinsBonus} Sweeps Coin bonus!`,
+          className: "bg-primary text-primary-foreground font-bold"
         });
-        // Simulate redirect
-        setTimeout(() => {
-          window.open(data.data.checkoutUrl, '_blank');
-        }, 1000);
+
+        // If there's a checkout URL (real payment), redirect
+        if (data.data.checkoutUrl) {
+          setTimeout(() => {
+            window.open(data.data.checkoutUrl, '_blank');
+          }, 1500);
+        }
+
+        setTimeout(() => setShowAnimation(false), 2000);
+      } else {
+        toast({
+          title: "Purchase Failed",
+          description: data.error || "Something went wrong. Please try again.",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       toast({
