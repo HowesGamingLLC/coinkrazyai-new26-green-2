@@ -299,9 +299,9 @@ export function createServer() {
   app.post("/api/scratch-tickets/purchase", verifyPlayer, purchaseTicket);
   app.post("/api/scratch-tickets/reveal", verifyPlayer, revealSlot);
   app.post("/api/scratch-tickets/claim", verifyPlayer, claimPrize);
-  app.get("/api/scratch-tickets/:ticketId", verifyPlayer, getTicket);
-  app.get("/api/scratch-tickets", verifyPlayer, getMyTickets);
   app.get("/api/scratch-tickets/history/transactions", verifyPlayer, getScratchTransactionHistory);
+  app.get("/api/scratch-tickets", verifyPlayer, getMyTickets);
+  app.get("/api/scratch-tickets/:ticketId", verifyPlayer, getTicket);
 
   // ===== GAMES ROUTES =====
   app.get("/api/games", handleGetGames);
