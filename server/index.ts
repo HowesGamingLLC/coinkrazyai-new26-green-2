@@ -9,6 +9,11 @@ if (result.error) {
   console.log('[DB] dotenv error:', result.error.message);
 } else {
   console.log('[DB] dotenv loaded', Object.keys(result.parsed || {}).length, 'variables');
+  // Explicitly set all variables from .env into process.env
+  if (result.parsed) {
+    Object.assign(process.env, result.parsed);
+    console.log('[DB] DATABASE_URL now:', process.env.DATABASE_URL ? 'set' : 'NOT SET');
+  }
 }
 
 import express from "express";
