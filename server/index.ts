@@ -194,6 +194,18 @@ import {
   listAMLChecks,
   verifyAMLCheck
 } from "./routes/advanced";
+import {
+  getStorePackages,
+  createStorePackage,
+  updateStorePackage,
+  deleteStorePackage,
+  getPaymentMethods,
+  createPaymentMethod,
+  updatePaymentMethod,
+  deletePaymentMethod,
+  getStoreSettings,
+  updateStoreSettings
+} from "./routes/store-management";
 
 export function createServer() {
   const app = express();
@@ -227,6 +239,7 @@ export function createServer() {
 
   // ===== STORE ROUTES =====
   app.get("/api/store/packs", handleGetPacks);
+  app.get("/api/store/payment-methods", getPaymentMethods);
   app.post("/api/store/purchase", verifyPlayer, handlePurchase);
   app.post("/api/store/webhook", handleSquareWebhook);
   app.get("/api/store/history", verifyPlayer, handleGetPurchaseHistory);
@@ -470,6 +483,23 @@ export function createServer() {
   app.get("/api/admin/v2/compliance/logs", verifyAdmin, listComplianceLogs);
   app.get("/api/admin/v2/compliance/aml-checks", verifyAdmin, listAMLChecks);
   app.post("/api/admin/v2/compliance/aml-checks/:checkId/verify", verifyAdmin, verifyAMLCheck);
+
+  // ===== STORE MANAGEMENT ROUTES =====
+  // Gold Coin Packages
+  app.get("/api/admin/v2/store/packages", verifyAdmin, getStorePackages);
+  app.post("/api/admin/v2/store/packages", verifyAdmin, createStorePackage);
+  app.put("/api/admin/v2/store/packages/:id", verifyAdmin, updateStorePackage);
+  app.delete("/api/admin/v2/store/packages/:id", verifyAdmin, deleteStorePackage);
+
+  // Payment Methods
+  app.get("/api/admin/v2/store/payment-methods", verifyAdmin, getPaymentMethods);
+  app.post("/api/admin/v2/store/payment-methods", verifyAdmin, createPaymentMethod);
+  app.put("/api/admin/v2/store/payment-methods/:id", verifyAdmin, updatePaymentMethod);
+  app.delete("/api/admin/v2/store/payment-methods/:id", verifyAdmin, deletePaymentMethod);
+
+  // Store Settings
+  app.get("/api/admin/v2/store/settings", verifyAdmin, getStoreSettings);
+  app.put("/api/admin/v2/store/settings", verifyAdmin, updateStoreSettings);
 
   // ===== EXAMPLE ROUTES =====
   app.get("/api/ping", (_req, res) => {
