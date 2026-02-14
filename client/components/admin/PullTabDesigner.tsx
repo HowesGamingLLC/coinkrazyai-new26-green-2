@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Plus, Edit2, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiCall } from '@/lib/api';
+import { adminV2 } from '@/lib/api';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface PullTabDesign {
@@ -70,9 +70,7 @@ export function PullTabDesigner() {
   const loadDesigns = async () => {
     try {
       setIsLoading(true);
-      const response = await apiCall('/admin/v2/pull-tabs/designs', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-      });
+      const response = await adminV2.pullTabs.getDesigns();
       if (response.success) {
         setDesigns(response.data);
       } else {
@@ -126,11 +124,7 @@ export function PullTabDesigner() {
       setIsSaving(true);
       if (editingId) {
         // Update existing design
-        const response = await apiCall(`/admin/v2/pull-tabs/designs/${editingId}`, {
-          method: 'PUT',
-          headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-          body: JSON.stringify(formData),
-        });
+        const response = await adminV2.pullTabs.updateDesign(editingId, formData);
 
         if (response.success) {
           toast.success('Design updated successfully');
@@ -141,11 +135,7 @@ export function PullTabDesigner() {
         }
       } else {
         // Create new design
-        const response = await apiCall('/admin/v2/pull-tabs/designs', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-          body: JSON.stringify(formData),
-        });
+        const response = await adminV2.pullTabs.createDesign(formData);
 
         if (response.success) {
           toast.success('Design created successfully');
@@ -167,10 +157,7 @@ export function PullTabDesigner() {
     if (!confirm('Are you sure you want to delete this design?')) return;
 
     try {
-      const response = await apiCall(`/admin/v2/pull-tabs/designs/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-      });
+      const response = await adminV2.pullTabs.deleteDesign(id);
 
       if (response.success) {
         toast.success('Design deleted successfully');

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, TrendingUp, Users, Award, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiCall } from '@/lib/api';
+import { adminV2 } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface PullTabStats {
@@ -59,9 +59,7 @@ export function PullTabAnalytics() {
   const loadStats = async () => {
     try {
       setIsLoadingStats(true);
-      const response = await apiCall('/admin/v2/pull-tabs/stats', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-      });
+      const response = await adminV2.pullTabs.getStats();
       if (response.success) {
         setStats(response.data);
       } else {
@@ -78,9 +76,7 @@ export function PullTabAnalytics() {
   const loadTransactions = async () => {
     try {
       setIsLoadingTransactions(true);
-      const response = await apiCall('/admin/v2/pull-tabs/transactions?limit=100', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-      });
+      const response = await adminV2.pullTabs.getTransactions(100);
       if (response.success) {
         setTransactions(response.data);
       }
@@ -94,9 +90,7 @@ export function PullTabAnalytics() {
   const loadResults = async () => {
     try {
       setIsLoadingResults(true);
-      const response = await apiCall('/admin/v2/pull-tabs/results?limit=100', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-      });
+      const response = await adminV2.pullTabs.getResults(100);
       if (response.success) {
         setResults(response.data);
       }
