@@ -45,23 +45,48 @@ const Games = () => {
     { id: 'slots', label: 'Slots' },
     { id: 'poker', label: 'Poker' },
     { id: 'bingo', label: 'Bingo' },
-    { id: 'sportsbook', label: 'Sports' }
+    { id: 'sportsbook', label: 'Sports' },
+    { id: 'scratch-tickets', label: 'Scratch Tickets' },
+    { id: 'pull-tabs', label: 'Pull Tabs' }
   ];
 
-  const filtered = gamesList.filter(g => {
+  // Lottery games (Scratch Tickets and Pull Tabs)
+  const lotteryGames = [
+    {
+      id: 'scratch-tickets',
+      name: 'Scratch Tickets',
+      type: 'scratch-tickets',
+      description: 'Scratch off to reveal instant prizes!',
+      icon: '🎫'
+    },
+    {
+      id: 'pull-tabs',
+      name: 'Pull Tab Lottery',
+      type: 'pull-tabs',
+      description: 'Pull tabs and win big SC prizes!',
+      icon: '🎟️'
+    }
+  ];
+
+  // Combine regular games with lottery games
+  const allGames = [...gamesList, ...lotteryGames];
+
+  const filtered = allGames.filter(g => {
     const categoryMatch = selectedCategory === 'all' || (g.type && g.type.toLowerCase() === selectedCategory);
     const searchMatch = g.name && g.name.toLowerCase().includes(searchTerm.toLowerCase());
     return categoryMatch && searchMatch;
   });
 
-  const featured = gamesList.slice(0, 4);
+  const featured = allGames.slice(0, 4);
 
-  const handlePlayGame = (game: GameInfo) => {
+  const handlePlayGame = (game: any) => {
     const gameTypeMap: { [key: string]: string } = {
       'slots': '/slots',
       'poker': '/poker',
       'bingo': '/bingo',
-      'sportsbook': '/sportsbook'
+      'sportsbook': '/sportsbook',
+      'scratch-tickets': '/scratch-tickets',
+      'pull-tabs': '/pull-tabs'
     };
 
     const route = gameTypeMap[game.type?.toLowerCase() || ''];
@@ -89,7 +114,7 @@ const Games = () => {
         <div>
           <h1 className="text-4xl font-black">Game Library</h1>
           <p className="text-muted-foreground mt-2">
-            {gamesList.length} games available • Play now and win big!
+            {allGames.length} games available • Play now and win big!
           </p>
         </div>
 
@@ -112,6 +137,9 @@ const Games = () => {
                     {game.type === 'poker' && '♠️'}
                     {game.type === 'bingo' && '🎲'}
                     {game.type === 'sportsbook' && '⚽'}
+                    {game.type === 'scratch-tickets' && '🎫'}
+                    {game.type === 'pull-tabs' && '🎟️'}
+                    {game.icon && !['slots', 'poker', 'bingo', 'sportsbook', 'scratch-tickets', 'pull-tabs'].includes(game.type) && game.icon}
                   </div>
                   <h3 className="font-bold mb-1 text-sm">{game.name}</h3>
                   <div className="flex items-center justify-between mb-3">
@@ -194,6 +222,9 @@ const Games = () => {
                     {game.type === 'poker' && '♠️'}
                     {game.type === 'bingo' && '🎲'}
                     {game.type === 'sportsbook' && '⚽'}
+                    {game.type === 'scratch-tickets' && '🎫'}
+                    {game.type === 'pull-tabs' && '🎟️'}
+                    {game.icon && !['slots', 'poker', 'bingo', 'sportsbook', 'scratch-tickets', 'pull-tabs'].includes(game.type) && game.icon}
                   </div>
                   <h3 className="font-bold text-sm mb-1">{game.name}</h3>
                   <div className="flex items-center justify-between mb-3">
