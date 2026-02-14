@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { casinoGames } from '@/data/casinoGames';
 import { PRAGMATIC_GAMES } from '@/data/pragmaticGames';
 import { GameCard } from '@/components/casino/GameCard';
@@ -10,6 +10,12 @@ export default function Casino() {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/login');
+    }
+  }, [user, isLoading, navigate]);
 
   // Combine all games (Pragmatic + Other casino games) and deduplicate by ID
   const allGames = useMemo(() => {
@@ -53,7 +59,6 @@ export default function Casino() {
   }
 
   if (!user) {
-    navigate('/login');
     return null;
   }
 
