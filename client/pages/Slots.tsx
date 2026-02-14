@@ -273,7 +273,7 @@ const Slots = () => {
                         />
                         <div className="flex justify-between text-xs text-muted-foreground mt-2">
                           <span>${betAmount}</span>
-                          <span>Balance: {(user?.gc_balance || 0).toLocaleString()} GC</span>
+                          <span>Balance: {Number(user?.gc_balance ?? 0).toLocaleString()} GC</span>
                         </div>
                       </div>
 

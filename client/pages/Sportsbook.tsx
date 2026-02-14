@@ -96,7 +96,7 @@ const Sportsbook = () => {
                 {event.total_bets && (
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Total Bets</span>
-                    <span className="font-bold">${event.total_bets.toLocaleString()}</span>
+                    <span className="font-bold">${Number(event.total_bets ?? 0).toLocaleString()}</span>
                   </div>
                 )}
                 {event.line_movement && (

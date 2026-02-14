@@ -129,11 +129,11 @@ const Profile = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-secondary/20 p-4 rounded-lg border border-secondary/20">
                   <p className="text-sm text-muted-foreground mb-1">Gold Coins</p>
-                  <p className="text-2xl font-bold text-secondary">{user.gc_balance.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-secondary">{Number(user.gc_balance ?? 0).toLocaleString()}</p>
                 </div>
                 <div className="bg-primary/20 p-4 rounded-lg border border-primary/20">
                   <p className="text-sm text-muted-foreground mb-1">Sweeps Coins</p>
-                  <p className="text-2xl font-bold text-primary">{user.sc_balance.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-primary">{Number(user.sc_balance ?? 0).toFixed(2)}</p>
                 </div>
               </div>
             </div>

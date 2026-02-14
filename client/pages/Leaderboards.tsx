@@ -87,7 +87,7 @@ const Leaderboards = () => {
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Score</p>
-                <p className="text-4xl font-black">{myRank.score.toLocaleString()}</p>
+                <p className="text-4xl font-black">{Number(myRank.score ?? 0).toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -136,7 +136,7 @@ const Leaderboards = () => {
                 {/* Score */}
                 <div className="text-right">
                   <p className="text-sm text-muted-foreground">Score</p>
-                  <p className="font-bold text-lg">{entry.score.toLocaleString()}</p>
+                  <p className="font-bold text-lg">{Number(entry.score ?? 0).toLocaleString()}</p>
                 </div>
               </div>
             ))}

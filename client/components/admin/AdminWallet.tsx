@@ -114,9 +114,9 @@ const AdminWallet = () => {
                   {transactions.map(tx => (
                     <tr key={tx.id} className="border-b hover:bg-muted/50">
                       <td className="py-3 px-2 font-mono text-xs">{tx.type}</td>
-                      <td className="py-3 px-2 font-mono">{tx.amount.toFixed(2)}</td>
-                      <td className="py-3 px-2 font-mono text-xs">{tx.balance_before?.toFixed(2) || '-'}</td>
-                      <td className="py-3 px-2 font-mono text-xs">{tx.balance_after?.toFixed(2) || '-'}</td>
+                      <td className="py-3 px-2 font-mono">{Number(tx.amount ?? 0).toFixed(2)}</td>
+                      <td className="py-3 px-2 font-mono text-xs">{Number(tx.balance_before ?? 0).toFixed(2)}</td>
+                      <td className="py-3 px-2 font-mono text-xs">{Number(tx.balance_after ?? 0).toFixed(2)}</td>
                       <td className="py-3 px-2 text-xs">{tx.description}</td>
                       <td className="py-3 px-2 text-xs">{new Date(tx.created_at).toLocaleDateString()}</td>
                     </tr>

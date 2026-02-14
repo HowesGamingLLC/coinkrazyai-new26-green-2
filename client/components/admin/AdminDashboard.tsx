@@ -90,9 +90,9 @@ const AdminDashboard = () => {
             <Users className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black">{(stats.totalPlayers || 0).toLocaleString()}</div>
+            <div className="text-3xl font-black">{Number(stats.totalPlayers ?? 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              {(stats.activePlayers || 0).toLocaleString()} active today
+              {Number(stats.activePlayers ?? 0).toLocaleString()} active today
             </p>
           </CardContent>
         </Card>
@@ -105,7 +105,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-green-600">
-              ${(stats.totalRevenue || 0).toFixed(2)}
+              ${Number(stats.totalRevenue ?? 0).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
@@ -119,7 +119,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-blue-600">
-              ${(stats.totalWagered || 0).toFixed(2)}
+              ${Number(stats.totalWagered ?? 0).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">Lifetime</p>
           </CardContent>
@@ -133,7 +133,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-purple-600">
-              ${(stats.averagePlayerValue || 0).toFixed(2)}
+              ${Number(stats.averagePlayerValue ?? 0).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">Per player</p>
           </CardContent>

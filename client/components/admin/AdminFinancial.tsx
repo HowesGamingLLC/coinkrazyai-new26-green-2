@@ -251,7 +251,7 @@ const AdminFinancial = () => {
                     <div key={jackpot.id} className="p-4 border rounded-lg">
                       <p className="font-semibold">{jackpot.name}</p>
                       <p className="text-2xl font-black text-green-600 my-2">
-                        ${(jackpot.current_amount || 0).toFixed(2)}
+                        ${Number(jackpot.current_amount ?? 0).toFixed(2)}
                       </p>
                       <div className="space-y-2 text-sm">
                         <p><span className="text-muted-foreground">Type:</span> {jackpot.type}</p>

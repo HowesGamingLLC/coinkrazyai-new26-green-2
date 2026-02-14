@@ -85,14 +85,14 @@ const Bingo = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Ticket Price</span>
-                  <span className="font-bold">${game.ticket_price.toFixed(2)}</span>
+                  <span className="font-bold">${Number(game.ticket_price ?? 0).toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground flex items-center gap-1">
                     <Trophy className="w-4 h-4 text-yellow-500" />
                     Jackpot
                   </span>
-                  <span className="font-bold text-yellow-600">${game.jackpot.toFixed(2)}</span>
+                  <span className="font-bold text-yellow-600">${Number(game.jackpot ?? 0).toFixed(2)}</span>
                 </div>
               </div>
 

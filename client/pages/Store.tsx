@@ -110,7 +110,7 @@ const Store = () => {
                 )}
 
                 <CardHeader>
-                  <CardTitle className="text-2xl">${pack.price_usd.toFixed(2)}</CardTitle>
+                  <CardTitle className="text-2xl">${Number(pack.price_usd ?? 0).toFixed(2)}</CardTitle>
                   <CardDescription>{pack.title}</CardDescription>
                 </CardHeader>
 
@@ -123,7 +123,7 @@ const Store = () => {
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Gold Coins</span>
                         <span className="text-xl font-bold text-secondary">
-                          {pack.gold_coins.toLocaleString()}
+                          {Number(pack.gold_coins ?? 0).toLocaleString()}
                         </span>
                       </div>
                     )}
@@ -131,7 +131,7 @@ const Store = () => {
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Sweeps Coins</span>
                         <span className="text-xl font-bold text-primary">
-                          {pack.sweeps_coins.toLocaleString()}
+                          {Number(pack.sweeps_coins ?? 0).toLocaleString()}
                         </span>
                       </div>
                     )}
@@ -169,7 +169,7 @@ const Store = () => {
 
                   {pack.is_best_value && (
                     <p className="text-xs text-center text-primary font-semibold">
-                      Save ${(pack.price_usd * 0.15).toFixed(2)} vs Starter
+                      Save ${(Number(pack.price_usd ?? 0) * 0.15).toFixed(2)} vs Starter
                     </p>
                   )}
                 </CardContent>

@@ -95,7 +95,7 @@ const Wallet = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-primary">
-              {((user?.gc_balance || 0) + (user?.sc_balance || 0)).toLocaleString()}
+              {(Number(user?.gc_balance ?? 0) + Number(user?.sc_balance ?? 0)).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-2">GC + SC Combined</p>
           </CardContent>
@@ -108,7 +108,7 @@ const Wallet = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-secondary">
-              {(user?.gc_balance || 0).toLocaleString()}
+              {Number(user?.gc_balance ?? 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-2">For Fun Play</p>
           </CardContent>
@@ -121,7 +121,7 @@ const Wallet = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-primary">
-              {(user?.sc_balance || 0).toFixed(2)}
+              {Number(user?.sc_balance ?? 0).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-2">Redeemable Value</p>
           </CardContent>
@@ -181,10 +181,10 @@ const Wallet = () => {
                         : 'text-red-600'
                     }`}>
                       {tx.type === 'Deposit' || tx.type === 'Win' || tx.type === 'Bonus' ? '+' : '-'}
-                      ${tx.gc_amount ? tx.gc_amount.toFixed(2) : tx.sc_amount?.toFixed(2) || '0.00'}
+                      ${tx.gc_amount ? Number(tx.gc_amount).toFixed(2) : Number(tx.sc_amount ?? 0).toFixed(2)}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Balance: ${tx.gc_balance_after?.toFixed(2) || '0.00'}
+                      Balance: ${Number(tx.gc_balance_after ?? 0).toFixed(2)}
                     </p>
                   </div>
                 </div>
