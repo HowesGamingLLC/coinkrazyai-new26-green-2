@@ -27,10 +27,10 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
 
     // Attempt to construct LiveBet URL from thumbnail
     // Example thumb: https://www.livebet.com/images/casino/slots/pragmatic/zeus-vs-hades-gods-of-war-250.webp
-    // Target URL: https://www.livebet.com/en/casino/slots/pragmatic/zeus-vs-hades-gods-of-war-250
+    // Target URL: https://www.livebet.com/casino/slots/pragmatic/zeus-vs-hades-gods-of-war-250
     if (game.thumbnail.includes('livebet.com/images/')) {
       return game.thumbnail
-        .replace('/images/', '/en/')
+        .replace('/images/', '/')
         .replace('.webp', '')
         .replace('.svg', '');
     }
