@@ -844,6 +844,39 @@ export const adminV2 = {
     },
   },
 
+  // Pull Tabs
+  pullTabs: {
+    getStats: async () => {
+      return adminApiCall<any>('/admin/v2/pull-tabs/stats');
+    },
+    getTransactions: async (limit = 100) => {
+      return adminApiCall<any>(`/admin/v2/pull-tabs/transactions?limit=${limit}`);
+    },
+    getResults: async (limit = 100) => {
+      return adminApiCall<any>(`/admin/v2/pull-tabs/results?limit=${limit}`);
+    },
+    getDesigns: async () => {
+      return adminApiCall<any>('/admin/v2/pull-tabs/designs');
+    },
+    createDesign: async (design: any) => {
+      return adminApiCall<any>('/admin/v2/pull-tabs/designs', {
+        method: 'POST',
+        body: JSON.stringify(design),
+      });
+    },
+    updateDesign: async (id: number, design: any) => {
+      return adminApiCall<any>(`/admin/v2/pull-tabs/designs/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(design),
+      });
+    },
+    deleteDesign: async (id: number) => {
+      return adminApiCall<any>(`/admin/v2/pull-tabs/designs/${id}`, {
+        method: 'DELETE',
+      });
+    },
+  },
+
   // Store Management
   store: {
     getPackages: async () => {
