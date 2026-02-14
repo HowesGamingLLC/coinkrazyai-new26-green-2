@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Coins, Zap, ShieldCheck, Sparkles, Loader } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { CoinAnimation } from '@/components/CoinAnimation';
-import ApiClient from '@/lib/api';
+import { ApiClient } from '@/lib/api';
 
 const Store = () => {
   const [packs, setPacks] = useState<StorePack[]>([]);

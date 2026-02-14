@@ -6,7 +6,7 @@ import { Users, Coins, ArrowRight, ShieldCheck, Loader } from 'lucide-react';
 import { useWallet } from '@/hooks/use-wallet';
 import { toast } from '@/hooks/use-toast';
 import { PokerTable } from '@shared/api';
-import ApiClient from '@/lib/api';
+import { ApiClient } from '@/lib/api';
 import { io } from 'socket.io-client';
 
 const Poker = () => {

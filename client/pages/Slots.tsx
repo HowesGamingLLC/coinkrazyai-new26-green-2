@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Coins, Trophy, Info, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CoinAnimation } from '@/components/CoinAnimation';
-import ApiClient from '@/lib/api';
+import { ApiClient } from '@/lib/api';
 
 const SYMBOL_MAP: Record<string, string> = {
   cherry: '🍒',

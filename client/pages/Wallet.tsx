@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowUp, ArrowDown, DollarSign, Coins, Loader } from 'lucide-react';
 import { useWallet } from '@/hooks/use-wallet';
 import { Transaction } from '@shared/api';
-import ApiClient from '@/lib/api';
+import { ApiClient } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 
 export default function Wallet() {

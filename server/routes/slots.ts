@@ -232,14 +232,24 @@ export const handleSpin: RequestHandler = async (req, res) => {
 // Get game configuration
 export const handleGetConfig: RequestHandler = async (req, res) => {
   try {
-    // Get game config from database (or use defaults)
-    const gameResult = await query(
-      'SELECT * FROM games WHERE category = $1 LIMIT 1',
-      ['Slots']
-    );
+    let rtp = gameConfig.rtp;
+
+    // Try to get RTP from database, but fall back to defaults if it fails
+    try {
+      const gameResult = await query(
+        'SELECT * FROM games WHERE category = $1 LIMIT 1',
+        ['Slots']
+      );
+      if (gameResult.rows && gameResult.rows[0] && gameResult.rows[0].rtp) {
+        rtp = gameResult.rows[0].rtp;
+      }
+    } catch (dbError) {
+      console.warn('[Slots] Database error, using default config:', dbError);
+      // Continue with default config
+    }
 
     const config = {
-      rtp: gameResult.rows[0]?.rtp || gameConfig.rtp,
+      rtp,
       minBet: gameConfig.minBet,
       maxBet: gameConfig.maxBet,
       maxLineWinnings: gameConfig.maxLineWinnings,
@@ -252,9 +262,16 @@ export const handleGetConfig: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     console.error('[Slots] Get config error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get configuration'
+    // Return default config even on error
+    res.json({
+      success: true,
+      data: {
+        rtp: gameConfig.rtp,
+        minBet: gameConfig.minBet,
+        maxBet: gameConfig.maxBet,
+        maxLineWinnings: gameConfig.maxLineWinnings,
+        symbols: SYMBOLS
+      }
     });
   }
 };
