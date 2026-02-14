@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, Coins, ArrowRight, ShieldCheck, Loader } from 'lucide-react';
+import { Users, Coins, ArrowRight, ShieldCheck, Loader, Zap } from 'lucide-react';
 import { useWallet } from '@/hooks/use-wallet';
 import { toast } from '@/hooks/use-toast';
 import { PokerTable } from '@shared/api';
