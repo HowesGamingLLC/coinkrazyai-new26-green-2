@@ -8,6 +8,7 @@ export const initializeDatabase = async () => {
     console.log('[DB] Initializing database...');
 
     // Read and execute schema
+    const __dirname = import.meta.dirname;
     const schemaPath = path.join(__dirname, 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf-8');
 
