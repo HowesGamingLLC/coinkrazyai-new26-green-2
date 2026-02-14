@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
 import { useWallet } from '@/hooks/use-wallet';
-import { Coins, User, Home, Gamepad2, ShoppingCart, BarChart3, MessageSquare, Trophy, Award, Headphones, Settings, Zap, LogOut } from 'lucide-react';
+import { Coins, User, Home, Gamepad2, ShoppingCart, BarChart3, MessageSquare, Trophy, Award, Headphones, Settings, Zap, LogOut, Ticket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LayoutProps {
@@ -22,6 +22,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { label: 'Poker', path: '/poker', icon: Coins },
     { label: 'Bingo', path: '/bingo', icon: Gamepad2 },
     { label: 'Sports', path: '/sportsbook', icon: BarChart3 },
+    { label: 'Scratch Tickets', path: '/scratch-tickets', icon: Ticket },
     { label: 'Store', path: '/store', icon: ShoppingCart },
     { label: 'Leaderboard', path: '/leaderboards', icon: Trophy },
     { label: 'Achievements', path: '/achievements', icon: Award },
