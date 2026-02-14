@@ -1,39 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/auth-context';
+import { games as gamesAPI } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, Users, TrendingUp, Search, Loader } from 'lucide-react';
+import { Star, Users, TrendingUp, Search, Loader2 } from 'lucide-react';
 import { GameInfo } from '@shared/api';
-import { ApiClient } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
-export default function Games() {
+const Games = () => {
   const navigate = useNavigate();
-  const [games, setGames] = useState<GameInfo[]>([]);
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const [gamesList, setGamesList] = useState<GameInfo[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
     const fetchGames = async () => {
       try {
-        const res = await ApiClient.getGames();
-        if (res.success && res.data) {
-          setGames(res.data);
-        } else {
-          toast({ title: 'Error', description: 'Failed to load games', variant: 'destructive' });
-        }
+        const res = await gamesAPI.getGames();
+        setGamesList(res.data || []);
       } catch (error) {
         console.error('Failed to fetch games:', error);
-        toast({ title: 'Error', description: 'Failed to load games', variant: 'destructive' });
+        toast.error('Failed to load games');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchGames();
-  }, []);
+    if (isAuthenticated) {
+      fetchGames();
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
   const categories = [
     { id: 'all', label: 'All Games' },
@@ -43,13 +48,13 @@ export default function Games() {
     { id: 'sportsbook', label: 'Sports' }
   ];
 
-  const filtered = games.filter(g => {
+  const filtered = gamesList.filter(g => {
     const categoryMatch = selectedCategory === 'all' || (g.type && g.type.toLowerCase() === selectedCategory);
     const searchMatch = g.name && g.name.toLowerCase().includes(searchTerm.toLowerCase());
     return categoryMatch && searchMatch;
   });
 
-  const featured = games.slice(0, 4); // Display first 4 as featured
+  const featured = gamesList.slice(0, 4);
 
   const handlePlayGame = (game: GameInfo) => {
     const gameTypeMap: { [key: string]: string } = {
@@ -63,7 +68,7 @@ export default function Games() {
     if (route) {
       navigate(route);
     } else {
-      toast({ title: 'Info', description: 'Game not available yet', variant: 'default' });
+      toast.info('Game not available yet');
     }
   };
 
@@ -71,7 +76,7 @@ export default function Games() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/30">
         <div className="flex flex-col items-center gap-4">
-          <Loader className="w-12 h-12 text-primary animate-spin" />
+          <Loader2 className="w-12 h-12 text-primary animate-spin" />
           <p className="text-muted-foreground">Loading games...</p>
         </div>
       </div>
@@ -84,7 +89,7 @@ export default function Games() {
         <div>
           <h1 className="text-4xl font-black">Game Library</h1>
           <p className="text-muted-foreground mt-2">
-            {games.length} games available • Play now and win big!
+            {gamesList.length} games available • Play now and win big!
           </p>
         </div>
 
@@ -121,10 +126,10 @@ export default function Games() {
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground mb-3">
-                    {game.active_users && (
+                    {game.activePlayers && (
                       <div className="flex items-center gap-1">
                         <Users className="w-3 h-3" />
-                        {game.active_users} playing now
+                        {game.activePlayers} playing now
                       </div>
                     )}
                   </div>
@@ -206,10 +211,10 @@ export default function Games() {
                     {game.description && (
                       <p className="line-clamp-2">{game.description}</p>
                     )}
-                    {game.active_users && (
+                    {game.activePlayers && (
                       <div className="flex items-center gap-1">
                         <Users className="w-3 h-3" />
-                        {game.active_users} playing now
+                        {game.activePlayers} playing now
                       </div>
                     )}
                   </div>
@@ -240,4 +245,6 @@ export default function Games() {
       </div>
     </div>
   );
-}
+};
+
+export default Games;

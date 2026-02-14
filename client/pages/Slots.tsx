@@ -91,7 +91,7 @@ const Slots = () => {
     // Simulate spinning
     const spinDuration = 1500;
     let spinCount = 0;
-    const spinInterval = setInterval(() => {
+    const spinInterval = setInterval(async () => {
       const newReels: [string, string, string] = [
         SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
         SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
