@@ -13,6 +13,7 @@ import { PullTabAnalytics } from './PullTabAnalytics';
 
 const AdminGamesSports = () => {
   const [games, setGames] = useState<any[]>([]);
+  const [slotGames, setSlotGames] = useState<any[]>([]);
   const [pokerTables, setPokerTables] = useState<any[]>([]);
   const [bingoGames, setBingoGames] = useState<any[]>([]);
   const [sportsEvents, setSportsEvents] = useState<any[]>([]);
@@ -27,7 +28,10 @@ const AdminGamesSports = () => {
         adminV2.bingo.listGames().catch(() => ({ data: [] })),
         adminV2.sportsbook.listEvents().catch(() => ({ data: [] }))
       ]);
-      setGames(Array.isArray(gamesRes) ? gamesRes : (gamesRes?.data || []));
+      const allGames = Array.isArray(gamesRes) ? gamesRes : (gamesRes?.data || []);
+      setGames(allGames);
+      // Filter Slots specifically
+      setSlotGames(allGames.filter((g: any) => g.category === 'Slots'));
       setPokerTables(Array.isArray(pokerRes) ? pokerRes : (pokerRes?.data || []));
       setBingoGames(Array.isArray(bingoRes) ? bingoRes : (bingoRes?.data || []));
       setSportsEvents(Array.isArray(sportsRes) ? sportsRes : (sportsRes?.data || []));
@@ -45,8 +49,9 @@ const AdminGamesSports = () => {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="games" className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
+      <Tabs defaultValue="slots" className="w-full">
+        <TabsList className="grid w-full grid-cols-8">
+          <TabsTrigger value="slots">Slots</TabsTrigger>
           <TabsTrigger value="games">Games</TabsTrigger>
           <TabsTrigger value="poker">Poker</TabsTrigger>
           <TabsTrigger value="bingo">Bingo</TabsTrigger>
@@ -55,6 +60,83 @@ const AdminGamesSports = () => {
           <TabsTrigger value="scratch">Scratch</TabsTrigger>
           <TabsTrigger value="ingestion">Ingestion</TabsTrigger>
         </TabsList>
+
+        {/* Slots Management */}
+        <TabsContent value="slots" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Pragmatic Play Slots</CardTitle>
+                <CardDescription>Manage slot games, RTP and currency settings</CardDescription>
+              </div>
+              <Button size="sm" variant="outline" onClick={fetchData}>Refresh</Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4 mb-4">
+                <p className="text-sm text-blue-300">
+                  Slot games use SC (Sweeps Coins) currency with bet range 0.01 - 5.00 SC
+                </p>
+              </div>
+
+              {isLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              ) : slotGames.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="border-b">
+                      <tr>
+                        <th className="text-left py-2 px-2">Game Name</th>
+                        <th className="text-left py-2 px-2">Provider</th>
+                        <th className="text-left py-2 px-2">RTP</th>
+                        <th className="text-left py-2 px-2">Volatility</th>
+                        <th className="text-left py-2 px-2">Status</th>
+                        <th className="text-left py-2 px-2">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {slotGames.map((game: any) => (
+                        <tr key={game.id} className="border-b hover:bg-muted/50">
+                          <td className="py-3 px-2 font-semibold">{game.name}</td>
+                          <td className="py-3 px-2 text-sm">{game.provider || 'Internal'}</td>
+                          <td className="py-3 px-2 font-mono">{game.rtp}%</td>
+                          <td className="py-3 px-2 text-xs">{game.volatility || 'Medium'}</td>
+                          <td className="py-3 px-2">
+                            <Badge variant={game.enabled ? 'default' : 'secondary'}>
+                              {game.enabled ? 'Active' : 'Disabled'}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-2">
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={() => {
+                                const newRtp = prompt('Enter new RTP:', String(game.rtp));
+                                if (newRtp) {
+                                  adminV2.games.update(game.id, { rtp: parseFloat(newRtp) })
+                                    .then(() => { toast.success('RTP updated'); fetchData(); })
+                                    .catch(() => toast.error('Failed to update'));
+                                }
+                              }}>RTP</Button>
+                              <Button size="sm" variant="outline" onClick={() => {
+                                adminV2.games.update(game.id, { enabled: !game.enabled })
+                                  .then(() => { toast.success(game.enabled ? 'Disabled' : 'Enabled'); fetchData(); })
+                                  .catch(() => toast.error('Failed to toggle'));
+                              }}>
+                                {game.enabled ? 'Disable' : 'Enable'}
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-center py-8 text-muted-foreground">No slot games found</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Games Management */}
         <TabsContent value="games" className="space-y-4">
