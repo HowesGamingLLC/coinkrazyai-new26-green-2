@@ -52,6 +52,7 @@ export const handlePlayCasinoGame: RequestHandler = async (req, res) => {
     // Deduct bet from balance
     await dbQueries.recordWalletTransaction(
       playerId,
+      'Loss',
       0,
       -bet_amount,
       `Casino game spin (${game_id}): ${wins ? 'Win' : 'Loss'}`
@@ -61,6 +62,7 @@ export const handlePlayCasinoGame: RequestHandler = async (req, res) => {
     if (winnings > 0) {
       await dbQueries.recordWalletTransaction(
         playerId,
+        'Win',
         0,
         winnings,
         `Casino game winnings (${game_id})`
