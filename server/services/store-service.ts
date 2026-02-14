@@ -101,6 +101,34 @@ class StoreService {
   async getPaymentMethodById(id: number): Promise<PaymentMethod | undefined> {
     return this.mockPaymentMethods.find(m => m.id === id);
   }
+
+  async createPaymentMethod(data: Omit<PaymentMethod, 'id'>): Promise<PaymentMethod> {
+    const newMethod = {
+      id: this.mockPaymentMethods.length + 1,
+      ...data,
+    };
+    this.mockPaymentMethods.push(newMethod);
+    return newMethod;
+  }
+
+  async updatePaymentMethod(id: number, data: Partial<PaymentMethod>): Promise<PaymentMethod | undefined> {
+    const index = this.mockPaymentMethods.findIndex(m => m.id === id);
+    if (index === -1) return undefined;
+
+    this.mockPaymentMethods[index] = {
+      ...this.mockPaymentMethods[index],
+      ...data,
+    };
+    return this.mockPaymentMethods[index];
+  }
+
+  async deletePaymentMethod(id: number): Promise<boolean> {
+    const index = this.mockPaymentMethods.findIndex(m => m.id === id);
+    if (index === -1) return false;
+
+    this.mockPaymentMethods.splice(index, 1);
+    return true;
+  }
 }
 
 // Export singleton instance

@@ -68,7 +68,8 @@ const Store = () => {
           store.getPaymentMethods()
         ]);
         setPacks(packsRes.data || []);
-        const activeMethods = (methodsRes.data || []).filter((m: any) => m.is_active);
+        const methodsData = methodsRes.data || [];
+        const activeMethods = Array.isArray(methodsData) ? methodsData.filter((m: any) => m.is_active) : [];
         setPaymentMethods(activeMethods);
       } catch (error: any) {
         console.error('Failed to fetch store data:', error);
