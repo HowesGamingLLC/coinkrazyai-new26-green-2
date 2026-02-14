@@ -1,4 +1,33 @@
--- Players table
+-- Create ENUM types
+CREATE TYPE user_status AS ENUM ('Active', 'Suspended', 'Banned', 'Inactive');
+CREATE TYPE admin_role AS ENUM ('admin', 'moderator', 'support');
+CREATE TYPE kyc_level AS ENUM ('None', 'Basic', 'Intermediate', 'Full');
+CREATE TYPE transaction_type AS ENUM ('Deposit', 'Withdrawal', 'Win', 'Loss', 'Bonus', 'Transfer', 'Refund');
+CREATE TYPE game_category AS ENUM ('Slots', 'Poker', 'Bingo', 'Sportsbook', 'Other');
+CREATE TYPE game_provider AS ENUM ('Internal', 'External');
+CREATE TYPE bonus_type AS ENUM ('Deposit', 'Reload', 'Free Spins', 'Free Bet', 'Cashback');
+CREATE TYPE bingo_pattern AS ENUM ('5-line', 'Full Card', 'Corner', 'Other');
+CREATE TYPE sport_type AS ENUM ('NFL', 'NBA', 'Soccer', 'Tennis', 'Other');
+CREATE TYPE event_status AS ENUM ('Upcoming', 'Live', 'Closed', 'Settled');
+CREATE TYPE achievement_requirement_type AS ENUM ('wins', 'wagered', 'streak', 'games_played', 'balance', 'referrals', 'level');
+CREATE TYPE security_alert_type AS ENUM ('Login', 'Withdrawal', 'Unusual Activity', 'Chargeback', 'Fraud', 'Other');
+
+-- ===== ADMIN USERS TABLE =====
+CREATE TABLE IF NOT EXISTS admin_users (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  role admin_role DEFAULT 'moderator',
+  status user_status DEFAULT 'Active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_login TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email);
+
+-- ===== PLAYERS TABLE =====
 CREATE TABLE IF NOT EXISTS players (
   id SERIAL PRIMARY KEY,
   username VARCHAR(255) UNIQUE NOT NULL,
@@ -7,327 +36,297 @@ CREATE TABLE IF NOT EXISTS players (
   password_hash VARCHAR(255) NOT NULL,
   gc_balance DECIMAL(15, 2) DEFAULT 0,
   sc_balance DECIMAL(15, 2) DEFAULT 0,
-  status VARCHAR(50) DEFAULT 'Active',
-  kyc_level VARCHAR(50) DEFAULT 'None',
+  status user_status DEFAULT 'Active',
+  kyc_level kyc_level DEFAULT 'None',
   kyc_verified BOOLEAN DEFAULT FALSE,
-  kyc_verified_date TIMESTAMP,
-  join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  last_login TIMESTAMP,
+  phone VARCHAR(20),
+  country VARCHAR(100),
+  date_of_birth DATE,
+  preferred_language VARCHAR(10) DEFAULT 'en',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_login TIMESTAMP,
+  total_deposits DECIMAL(15, 2) DEFAULT 0,
+  total_withdrawals DECIMAL(15, 2) DEFAULT 0
 );
 
--- Admin accounts
-CREATE TABLE IF NOT EXISTS admin_users (
+CREATE INDEX IF NOT EXISTS idx_players_email ON players(email);
+CREATE INDEX IF NOT EXISTS idx_players_username ON players(username);
+CREATE INDEX IF NOT EXISTS idx_players_status ON players(status);
+
+-- ===== WALLET TRANSACTIONS TABLE =====
+CREATE TABLE IF NOT EXISTS wallet_transactions (
   id SERIAL PRIMARY KEY,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  name VARCHAR(255),
-  role VARCHAR(50) DEFAULT 'admin',
-  status VARCHAR(50) DEFAULT 'Active',
-  last_login TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  type transaction_type NOT NULL,
+  amount DECIMAL(15, 2) NOT NULL,
+  balance_before DECIMAL(15, 2),
+  balance_after DECIMAL(15, 2),
+  game_session_id VARCHAR(255),
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Games table
+CREATE INDEX IF NOT EXISTS idx_wallet_transactions_player_id ON wallet_transactions(player_id);
+CREATE INDEX IF NOT EXISTS idx_wallet_transactions_created_at ON wallet_transactions(created_at);
+
+-- ===== GAMES TABLE =====
 CREATE TABLE IF NOT EXISTS games (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
-  category VARCHAR(50) NOT NULL,
-  provider VARCHAR(255),
-  rtp DECIMAL(5, 2),
+  category game_category NOT NULL,
+  provider game_provider NOT NULL,
+  rtp DECIMAL(5, 2) DEFAULT 95.0,
   volatility VARCHAR(50),
   enabled BOOLEAN DEFAULT TRUE,
-  active_users INT DEFAULT 0,
-  daily_revenue DECIMAL(15, 2) DEFAULT 0,
-  last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  description TEXT,
+  image_url VARCHAR(500),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Bonus campaigns
+CREATE INDEX IF NOT EXISTS idx_games_category ON games(category);
+CREATE INDEX IF NOT EXISTS idx_games_enabled ON games(enabled);
+
+-- ===== PLAYER STATS TABLE =====
+CREATE TABLE IF NOT EXISTS player_stats (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL UNIQUE REFERENCES players(id) ON DELETE CASCADE,
+  total_wagered DECIMAL(15, 2) DEFAULT 0,
+  total_won DECIMAL(15, 2) DEFAULT 0,
+  total_lost DECIMAL(15, 2) DEFAULT 0,
+  games_played INTEGER DEFAULT 0,
+  favorite_game VARCHAR(255),
+  last_game_played TIMESTAMP,
+  weekly_wagered DECIMAL(15, 2) DEFAULT 0,
+  monthly_wagered DECIMAL(15, 2) DEFAULT 0,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===== BONUSES TABLE =====
 CREATE TABLE IF NOT EXISTS bonuses (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
-  type VARCHAR(50) NOT NULL,
+  type bonus_type NOT NULL,
   amount VARCHAR(100),
   percentage DECIMAL(5, 2),
-  min_deposit DECIMAL(10, 2),
-  max_claims INT,
-  claims_count INT DEFAULT 0,
-  status VARCHAR(50) DEFAULT 'Active',
-  start_date TIMESTAMP,
-  end_date TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Transactions
-CREATE TABLE IF NOT EXISTS transactions (
-  id SERIAL PRIMARY KEY,
-  player_id INT REFERENCES players(id),
-  type VARCHAR(50) NOT NULL,
-  amount DECIMAL(15, 2) NOT NULL,
-  currency VARCHAR(10),
-  status VARCHAR(50) DEFAULT 'Completed',
-  description TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Poker tables
-CREATE TABLE IF NOT EXISTS poker_tables (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  stakes VARCHAR(50),
-  max_players INT DEFAULT 8,
-  current_players INT DEFAULT 0,
-  buy_in_min DECIMAL(10, 2),
-  buy_in_max DECIMAL(10, 2),
-  status VARCHAR(50) DEFAULT 'Active',
-  total_revenue DECIMAL(15, 2) DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Bingo games
-CREATE TABLE IF NOT EXISTS bingo_games (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  pattern VARCHAR(50) NOT NULL,
-  players INT DEFAULT 0,
-  ticket_price DECIMAL(10, 2),
-  jackpot DECIMAL(15, 2),
-  status VARCHAR(50) DEFAULT 'Scheduled',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Sports events
-CREATE TABLE IF NOT EXISTS sports_events (
-  id SERIAL PRIMARY KEY,
-  sport VARCHAR(50),
-  event_name VARCHAR(255) NOT NULL,
-  event_date TIMESTAMP,
-  status VARCHAR(50) DEFAULT 'Upcoming',
-  total_bets DECIMAL(15, 2) DEFAULT 0,
-  line_movement VARCHAR(50),
-  locked BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Security alerts
-CREATE TABLE IF NOT EXISTS security_alerts (
-  id SERIAL PRIMARY KEY,
-  alert_type VARCHAR(100),
-  severity VARCHAR(50),
-  title VARCHAR(255),
-  description TEXT,
+  min_deposit DECIMAL(15, 2) DEFAULT 0,
+  max_claims INTEGER DEFAULT 1,
+  wagering_multiplier DECIMAL(5, 2) DEFAULT 35.0,
   status VARCHAR(50) DEFAULT 'active',
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- API keys
-CREATE TABLE IF NOT EXISTS api_keys (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  key_hash VARCHAR(255) UNIQUE NOT NULL,
-  environment VARCHAR(50),
-  permissions TEXT,
-  status VARCHAR(50) DEFAULT 'Active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  last_used TIMESTAMP,
-  request_count INT DEFAULT 0
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- KYC documents
-CREATE TABLE IF NOT EXISTS kyc_documents (
-  id SERIAL PRIMARY KEY,
-  player_id INT REFERENCES players(id),
-  doc_type VARCHAR(50),
-  status VARCHAR(50) DEFAULT 'Pending',
-  file_path VARCHAR(255),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  verified_at TIMESTAMP
-);
-
--- Player sessions
-CREATE TABLE IF NOT EXISTS player_sessions (
-  id SERIAL PRIMARY KEY,
-  player_id INT REFERENCES players(id) ON DELETE CASCADE,
-  token VARCHAR(500) UNIQUE NOT NULL,
-  expires_at TIMESTAMP NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Slots game results
-CREATE TABLE IF NOT EXISTS slots_results (
-  id SERIAL PRIMARY KEY,
-  player_id INT REFERENCES players(id) ON DELETE CASCADE,
-  game_id INT REFERENCES games(id),
-  bet_amount DECIMAL(10, 2) NOT NULL,
-  winnings DECIMAL(10, 2) NOT NULL,
-  rtp_contribution DECIMAL(5, 2),
-  symbols VARCHAR(100),
-  result_type VARCHAR(50), -- 'win', 'loss', 'bonus'
-  multiplier DECIMAL(5, 2) DEFAULT 1,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Poker game results
-CREATE TABLE IF NOT EXISTS poker_results (
-  id SERIAL PRIMARY KEY,
-  player_id INT REFERENCES players(id) ON DELETE CASCADE,
-  table_id INT REFERENCES poker_tables(id),
-  buy_in DECIMAL(10, 2) NOT NULL,
-  cash_out DECIMAL(10, 2) NOT NULL,
-  hands_played INT DEFAULT 0,
-  duration_minutes INT,
-  profit DECIMAL(10, 2),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Bingo game results
-CREATE TABLE IF NOT EXISTS bingo_results (
-  id SERIAL PRIMARY KEY,
-  player_id INT REFERENCES players(id) ON DELETE CASCADE,
-  game_id INT REFERENCES bingo_games(id),
-  ticket_price DECIMAL(10, 2) NOT NULL,
-  winnings DECIMAL(10, 2) DEFAULT 0,
-  pattern_matched VARCHAR(50),
-  position INT, -- 1st, 2nd, 3rd etc
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Sports bets/parlays
-CREATE TABLE IF NOT EXISTS sports_bets (
-  id SERIAL PRIMARY KEY,
-  player_id INT REFERENCES players(id) ON DELETE CASCADE,
-  event_id INT REFERENCES sports_events(id),
-  bet_type VARCHAR(50), -- 'single', 'parlay'
-  amount DECIMAL(10, 2) NOT NULL,
-  odds DECIMAL(5, 3) NOT NULL,
-  status VARCHAR(50) DEFAULT 'Pending', -- 'Pending', 'Won', 'Lost', 'Voided'
-  potential_winnings DECIMAL(10, 2),
-  actual_winnings DECIMAL(10, 2),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  settled_at TIMESTAMP
-);
-
--- Store packs (coin packs available for purchase)
+-- ===== STORE PACKS TABLE =====
 CREATE TABLE IF NOT EXISTS store_packs (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   description TEXT,
-  price_usd DECIMAL(10, 2) NOT NULL,
-  gold_coins INT NOT NULL,
-  sweeps_coins INT,
-  bonus_percentage DECIMAL(5, 2),
+  price_usd DECIMAL(8, 2) NOT NULL,
+  gold_coins INTEGER NOT NULL,
+  sweeps_coins INTEGER DEFAULT 0,
+  bonus_percentage DECIMAL(5, 2) DEFAULT 0,
   is_popular BOOLEAN DEFAULT FALSE,
   is_best_value BOOLEAN DEFAULT FALSE,
   enabled BOOLEAN DEFAULT TRUE,
-  position INT DEFAULT 0,
+  position INTEGER,
+  image_url VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Purchase history
-CREATE TABLE IF NOT EXISTS purchases (
+-- ===== PURCHASE HISTORY TABLE =====
+CREATE TABLE IF NOT EXISTS purchase_history (
   id SERIAL PRIMARY KEY,
-  player_id INT REFERENCES players(id) ON DELETE CASCADE,
-  pack_id INT REFERENCES store_packs(id),
-  amount_usd DECIMAL(10, 2) NOT NULL,
-  gold_coins INT NOT NULL,
-  sweeps_coins INT,
-  payment_method VARCHAR(50), -- 'stripe', 'square', etc
-  payment_id VARCHAR(255),
-  status VARCHAR(50) DEFAULT 'Completed', -- 'Pending', 'Completed', 'Failed', 'Refunded'
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  store_pack_id INTEGER REFERENCES store_packs(id),
+  amount_usd DECIMAL(8, 2) NOT NULL,
+  gold_coins INTEGER,
+  sweeps_coins INTEGER,
+  payment_method VARCHAR(100),
+  transaction_id VARCHAR(255) UNIQUE,
+  status VARCHAR(50) DEFAULT 'completed',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Wallet ledger (detailed transaction audit trail)
-CREATE TABLE IF NOT EXISTS wallet_ledger (
-  id SERIAL PRIMARY KEY,
-  player_id INT REFERENCES players(id) ON DELETE CASCADE,
-  transaction_type VARCHAR(100) NOT NULL, -- 'purchase', 'game_win', 'game_loss', 'bonus', 'refund', etc
-  gc_amount DECIMAL(15, 2) DEFAULT 0,
-  sc_amount DECIMAL(15, 2) DEFAULT 0,
-  gc_balance_after DECIMAL(15, 2),
-  sc_balance_after DECIMAL(15, 2),
-  related_game_result_id INT,
-  related_bet_id INT,
-  related_purchase_id INT,
-  description TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+CREATE INDEX IF NOT EXISTS idx_purchase_history_player_id ON purchase_history(player_id);
 
--- Player statistics
-CREATE TABLE IF NOT EXISTS player_stats (
+-- ===== POKER TABLES TABLE =====
+CREATE TABLE IF NOT EXISTS poker_tables (
   id SERIAL PRIMARY KEY,
-  player_id INT UNIQUE REFERENCES players(id) ON DELETE CASCADE,
-  total_wagered DECIMAL(15, 2) DEFAULT 0,
-  total_won DECIMAL(15, 2) DEFAULT 0,
-  total_spent DECIMAL(15, 2) DEFAULT 0,
-  games_played INT DEFAULT 0,
-  current_streak INT DEFAULT 0,
-  max_win DECIMAL(15, 2) DEFAULT 0,
-  max_loss DECIMAL(15, 2) DEFAULT 0,
-  favorite_game VARCHAR(255),
-  last_played_game VARCHAR(255),
-  total_playtime_hours INT DEFAULT 0,
+  name VARCHAR(255) NOT NULL,
+  stakes VARCHAR(50) NOT NULL,
+  max_players INTEGER NOT NULL,
+  current_players INTEGER DEFAULT 0,
+  buy_in_min DECIMAL(15, 2) NOT NULL,
+  buy_in_max DECIMAL(15, 2) NOT NULL,
+  active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Achievements
+-- ===== POKER SESSIONS TABLE =====
+CREATE TABLE IF NOT EXISTS poker_sessions (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  table_id INTEGER NOT NULL REFERENCES poker_tables(id),
+  buy_in DECIMAL(15, 2) NOT NULL,
+  cash_out DECIMAL(15, 2),
+  status VARCHAR(50) DEFAULT 'active',
+  started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  ended_at TIMESTAMP
+);
+
+-- ===== BINGO GAMES TABLE =====
+CREATE TABLE IF NOT EXISTS bingo_games (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  pattern bingo_pattern NOT NULL,
+  players INTEGER DEFAULT 0,
+  ticket_price DECIMAL(8, 2) NOT NULL,
+  jackpot DECIMAL(15, 2) NOT NULL,
+  status VARCHAR(50) DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===== BINGO TICKETS TABLE =====
+CREATE TABLE IF NOT EXISTS bingo_tickets (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  game_id INTEGER NOT NULL REFERENCES bingo_games(id),
+  ticket_number VARCHAR(100) UNIQUE,
+  numbers INTEGER[],
+  marked_numbers INTEGER[],
+  status VARCHAR(50) DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===== SPORTS EVENTS TABLE =====
+CREATE TABLE IF NOT EXISTS sports_events (
+  id SERIAL PRIMARY KEY,
+  sport sport_type NOT NULL,
+  event_name VARCHAR(255) NOT NULL,
+  status event_status DEFAULT 'Upcoming',
+  total_bets DECIMAL(15, 2) DEFAULT 0,
+  line_movement VARCHAR(50),
+  odds_update TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===== BETS TABLE =====
+CREATE TABLE IF NOT EXISTS bets (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  event_id INTEGER REFERENCES sports_events(id),
+  bet_type VARCHAR(50) NOT NULL,
+  amount DECIMAL(15, 2) NOT NULL,
+  odds DECIMAL(8, 4),
+  potential_win DECIMAL(15, 2),
+  status VARCHAR(50) DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  settled_at TIMESTAMP
+);
+
+-- ===== ACHIEVEMENTS TABLE =====
 CREATE TABLE IF NOT EXISTS achievements (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   description TEXT,
-  icon_url VARCHAR(255),
-  badge_name VARCHAR(255),
-  requirement_type VARCHAR(50), -- 'wins', 'wagered', 'games_played', 'streak', etc
-  requirement_value INT NOT NULL,
+  icon_url VARCHAR(500),
+  badge_name VARCHAR(100) UNIQUE,
+  requirement_type achievement_requirement_type NOT NULL,
+  requirement_value INTEGER NOT NULL,
   enabled BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Player achievements (earned)
+-- ===== PLAYER ACHIEVEMENTS TABLE =====
 CREATE TABLE IF NOT EXISTS player_achievements (
   id SERIAL PRIMARY KEY,
-  player_id INT REFERENCES players(id) ON DELETE CASCADE,
-  achievement_id INT REFERENCES achievements(id) ON DELETE CASCADE,
-  earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  achievement_id INTEGER NOT NULL REFERENCES achievements(id) ON DELETE CASCADE,
+  unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(player_id, achievement_id)
 );
 
--- Leaderboard entries (denormalized for performance)
-CREATE TABLE IF NOT EXISTS leaderboard_entries (
+CREATE INDEX IF NOT EXISTS idx_player_achievements_player_id ON player_achievements(player_id);
+
+-- ===== KYC DOCUMENTS TABLE =====
+CREATE TABLE IF NOT EXISTS kyc_documents (
   id SERIAL PRIMARY KEY,
-  player_id INT REFERENCES players(id) ON DELETE CASCADE,
-  leaderboard_type VARCHAR(50), -- 'wins', 'wagered', 'streak', etc
-  rank INT,
-  score DECIMAL(15, 2),
-  period VARCHAR(50), -- 'daily', 'weekly', 'monthly', 'all_time'
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  document_type VARCHAR(100) NOT NULL,
+  document_url VARCHAR(500),
+  status VARCHAR(50) DEFAULT 'pending',
+  verified_at TIMESTAMP,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_players_email ON players(email);
-CREATE INDEX IF NOT EXISTS idx_players_username ON players(username);
-CREATE INDEX IF NOT EXISTS idx_players_status ON players(status);
-CREATE INDEX IF NOT EXISTS idx_player_sessions_token ON player_sessions(token);
-CREATE INDEX IF NOT EXISTS idx_player_sessions_player ON player_sessions(player_id);
-CREATE INDEX IF NOT EXISTS idx_transactions_player ON transactions(player_id);
-CREATE INDEX IF NOT EXISTS idx_transactions_created ON transactions(created_at);
-CREATE INDEX IF NOT EXISTS idx_bonuses_status ON bonuses(status);
-CREATE INDEX IF NOT EXISTS idx_games_category ON games(category);
-CREATE INDEX IF NOT EXISTS idx_kyc_documents_player ON kyc_documents(player_id);
-CREATE INDEX IF NOT EXISTS idx_security_alerts_status ON security_alerts(status);
-CREATE INDEX IF NOT EXISTS idx_slots_results_player ON slots_results(player_id);
-CREATE INDEX IF NOT EXISTS idx_slots_results_created ON slots_results(created_at);
-CREATE INDEX IF NOT EXISTS idx_poker_results_player ON poker_results(player_id);
-CREATE INDEX IF NOT EXISTS idx_bingo_results_player ON bingo_results(player_id);
-CREATE INDEX IF NOT EXISTS idx_sports_bets_player ON sports_bets(player_id);
-CREATE INDEX IF NOT EXISTS idx_sports_bets_status ON sports_bets(status);
-CREATE INDEX IF NOT EXISTS idx_purchases_player ON purchases(player_id);
-CREATE INDEX IF NOT EXISTS idx_purchases_status ON purchases(status);
-CREATE INDEX IF NOT EXISTS idx_wallet_ledger_player ON wallet_ledger(player_id);
-CREATE INDEX IF NOT EXISTS idx_wallet_ledger_created ON wallet_ledger(created_at);
-CREATE INDEX IF NOT EXISTS idx_player_achievements_player ON player_achievements(player_id);
-CREATE INDEX IF NOT EXISTS idx_leaderboard_type_period ON leaderboard_entries(leaderboard_type, period);
+-- ===== SECURITY ALERTS TABLE =====
+CREATE TABLE IF NOT EXISTS security_alerts (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
+  alert_type security_alert_type NOT NULL,
+  description TEXT,
+  ip_address VARCHAR(50),
+  user_agent TEXT,
+  status VARCHAR(50) DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  resolved_at TIMESTAMP
+);
+
+-- ===== LEADERBOARD TABLE =====
+CREATE TABLE IF NOT EXISTS leaderboards (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  rank INTEGER,
+  score DECIMAL(15, 2) NOT NULL,
+  period VARCHAR(50),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_leaderboards_player_id ON leaderboards(player_id);
+CREATE INDEX IF NOT EXISTS idx_leaderboards_rank ON leaderboards(rank);
+
+-- ===== GAME CONFIG TABLE =====
+CREATE TABLE IF NOT EXISTS game_config (
+  id SERIAL PRIMARY KEY,
+  game_id INTEGER REFERENCES games(id),
+  config_key VARCHAR(255) NOT NULL,
+  config_value TEXT,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create views for common queries
+CREATE OR REPLACE VIEW player_summary AS
+SELECT 
+  p.id,
+  p.username,
+  p.email,
+  p.gc_balance,
+  p.sc_balance,
+  p.status,
+  ps.total_wagered,
+  ps.total_won,
+  ps.games_played,
+  p.created_at,
+  p.last_login
+FROM players p
+LEFT JOIN player_stats ps ON p.id = ps.player_id;
+
+CREATE OR REPLACE VIEW active_games AS
+SELECT * FROM games WHERE enabled = TRUE;
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_wallet_transactions_type ON wallet_transactions(type);
+CREATE INDEX IF NOT EXISTS idx_bets_player_id ON bets(player_id);
+CREATE INDEX IF NOT EXISTS idx_bets_status ON bets(status);
+CREATE INDEX IF NOT EXISTS idx_kyc_documents_player_id ON kyc_documents(player_id);
+CREATE INDEX IF NOT EXISTS idx_security_alerts_player_id ON security_alerts(player_id);
+CREATE INDEX IF NOT EXISTS idx_bingo_tickets_player_id ON bingo_tickets(player_id);
+CREATE INDEX IF NOT EXISTS idx_poker_sessions_player_id ON poker_sessions(player_id);
