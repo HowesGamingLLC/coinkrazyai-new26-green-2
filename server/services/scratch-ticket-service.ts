@@ -199,7 +199,7 @@ export class ScratchTicketService {
             ticket_number: ticket.ticket_number,
             design_id: ticket.design_id,
             player_id: ticket.player_id,
-            slots: JSON.parse(ticket.slots),
+            slots: typeof ticket.slots === 'string' ? JSON.parse(ticket.slots) : ticket.slots,
             status: ticket.status,
             claim_status: ticket.claim_status,
             created_at: ticket.created_at,
@@ -237,7 +237,7 @@ export class ScratchTicketService {
       }
 
       const ticket = ticketResult.rows[0];
-      const slots: ScratchTicketSlot[] = JSON.parse(ticket.slots);
+      const slots: ScratchTicketSlot[] = typeof ticket.slots === 'string' ? JSON.parse(ticket.slots) : ticket.slots;
 
       // Check if ticket is still active
       if (ticket.status !== 'active') {
@@ -312,7 +312,7 @@ export class ScratchTicketService {
       }
 
       const ticket = ticketResult.rows[0];
-      const slots: ScratchTicketSlot[] = JSON.parse(ticket.slots);
+      const slots: ScratchTicketSlot[] = typeof ticket.slots === 'string' ? JSON.parse(ticket.slots) : ticket.slots;
 
       // Check if already claimed
       if (ticket.claim_status === 'claimed') {
@@ -435,7 +435,7 @@ export class ScratchTicketService {
         ticket_number: row.ticket_number,
         design_id: row.design_id,
         player_id: row.player_id,
-        slots: JSON.parse(row.slots),
+        slots: typeof row.slots === 'string' ? JSON.parse(row.slots) : row.slots,
         status: row.status,
         claim_status: row.claim_status,
         created_at: row.created_at,
@@ -464,7 +464,7 @@ export class ScratchTicketService {
         ticket_number: row.ticket_number,
         design_id: row.design_id,
         player_id: row.player_id,
-        slots: JSON.parse(row.slots),
+        slots: typeof row.slots === 'string' ? JSON.parse(row.slots) : row.slots,
         status: row.status,
         claim_status: row.claim_status,
         created_at: row.created_at,

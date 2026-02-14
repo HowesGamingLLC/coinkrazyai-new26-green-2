@@ -204,7 +204,7 @@ export class PullTabService {
             ticket_number: ticket.ticket_number,
             design_id: ticket.design_id,
             player_id: ticket.player_id,
-            tabs: JSON.parse(ticket.tabs),
+            tabs: typeof ticket.tabs === 'string' ? JSON.parse(ticket.tabs) : ticket.tabs,
             status: ticket.status,
             claim_status: ticket.claim_status,
             winning_tab_index: ticket.winning_tab_index,
@@ -243,7 +243,7 @@ export class PullTabService {
       }
 
       const ticket = ticketResult.rows[0];
-      const tabs: PullTabTab[] = JSON.parse(ticket.tabs);
+      const tabs: PullTabTab[] = typeof ticket.tabs === 'string' ? JSON.parse(ticket.tabs) : ticket.tabs;
 
       // Check if ticket is still active
       if (ticket.status !== 'active') {
@@ -318,7 +318,7 @@ export class PullTabService {
       }
 
       const ticket = ticketResult.rows[0];
-      const tabs: PullTabTab[] = JSON.parse(ticket.tabs);
+      const tabs: PullTabTab[] = typeof ticket.tabs === 'string' ? JSON.parse(ticket.tabs) : ticket.tabs;
 
       // Check if already claimed
       if (ticket.claim_status === 'claimed') {
@@ -432,7 +432,7 @@ export class PullTabService {
         ticket_number: row.ticket_number,
         design_id: row.design_id,
         player_id: row.player_id,
-        tabs: JSON.parse(row.tabs),
+        tabs: typeof row.tabs === 'string' ? JSON.parse(row.tabs) : row.tabs,
         status: row.status,
         claim_status: row.claim_status,
         winning_tab_index: row.winning_tab_index,
@@ -462,7 +462,7 @@ export class PullTabService {
         ticket_number: row.ticket_number,
         design_id: row.design_id,
         player_id: row.player_id,
-        tabs: JSON.parse(row.tabs),
+        tabs: typeof row.tabs === 'string' ? JSON.parse(row.tabs) : row.tabs,
         status: row.status,
         claim_status: row.claim_status,
         winning_tab_index: row.winning_tab_index,

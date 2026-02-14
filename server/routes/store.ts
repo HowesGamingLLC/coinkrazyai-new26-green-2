@@ -8,7 +8,7 @@ import { storeService } from "../services/store-service";
 export const handleGetPacks: RequestHandler = async (req, res) => {
   try {
     // Get packages from store service (includes admin-created packages)
-    const packs = storeService.getActivePackages();
+    const packs = await storeService.getActivePackages();
 
     res.json({
       success: true,

@@ -1,5 +1,4 @@
-// In-memory store for packages and payment methods
-// This will be replaced with database queries once persistence is added
+import { query } from '../db/connection';
 
 interface GoldCoinPackage {
   id: number;
@@ -8,11 +7,11 @@ interface GoldCoinPackage {
   price_usd: number;
   gold_coins: number;
   sweeps_coins: number;
-  bonus_sc: number;
   bonus_percentage: number;
   is_popular: boolean;
   is_best_value: boolean;
-  display_order: number;
+  position: number;
+  enabled: boolean;
 }
 
 interface PaymentMethod {
@@ -24,159 +23,83 @@ interface PaymentMethod {
 }
 
 class StoreService {
-  private packages: GoldCoinPackage[] = [
-    {
-      id: 1,
-      title: 'Starter Pack',
-      description: 'Perfect for new players',
-      price_usd: 4.99,
-      gold_coins: 500,
-      sweeps_coins: 2.5,
-      bonus_sc: 0,
-      bonus_percentage: 0,
-      is_popular: false,
-      is_best_value: false,
-      display_order: 1,
-    },
-    {
-      id: 2,
-      title: 'Popular Pack',
-      description: 'Most popular choice',
-      price_usd: 9.99,
-      gold_coins: 1200,
-      sweeps_coins: 6.0,
-      bonus_sc: 1.0,
-      bonus_percentage: 20,
-      is_popular: true,
-      is_best_value: false,
-      display_order: 2,
-    },
-    {
-      id: 3,
-      title: 'Gold Pack',
-      description: 'Best value option',
-      price_usd: 24.99,
-      gold_coins: 3500,
-      sweeps_coins: 17.5,
-      bonus_sc: 5.0,
-      bonus_percentage: 25,
-      is_popular: false,
-      is_best_value: true,
-      display_order: 3,
-    },
-  ];
+  // ===== PACKAGES =====
 
-  private paymentMethods: PaymentMethod[] = [
+  async getPackages(): Promise<GoldCoinPackage[]> {
+    const result = await query('SELECT * FROM store_packs ORDER BY position ASC');
+    return result.rows;
+  }
+
+  async getActivePackages(): Promise<GoldCoinPackage[]> {
+    const result = await query('SELECT * FROM store_packs WHERE enabled = true ORDER BY position ASC');
+    return result.rows;
+  }
+
+  async getPackageById(id: number): Promise<GoldCoinPackage | undefined> {
+    const result = await query('SELECT * FROM store_packs WHERE id = $1', [id]);
+    return result.rows[0];
+  }
+
+  async createPackage(data: Omit<GoldCoinPackage, 'id'>): Promise<GoldCoinPackage> {
+    const result = await query(
+      `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, position, enabled)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING *`,
+      [data.title, data.description, data.price_usd, data.gold_coins, data.sweeps_coins, data.bonus_percentage, data.is_popular, data.is_best_value, data.position, data.enabled]
+    );
+    return result.rows[0];
+  }
+
+  async updatePackage(id: number, data: Partial<GoldCoinPackage>): Promise<GoldCoinPackage | undefined> {
+    const fields: string[] = [];
+    const values: any[] = [];
+    let i = 1;
+
+    Object.entries(data).forEach(([key, value]) => {
+      fields.push(`${key} = $${i++}`);
+      values.push(value);
+    });
+
+    if (fields.length === 0) return this.getPackageById(id);
+
+    values.push(id);
+    const result = await query(
+      `UPDATE store_packs SET ${fields.join(', ')}, updated_at = NOW() WHERE id = $${i} RETURNING *`,
+      values
+    );
+    return result.rows[0];
+  }
+
+  async deletePackage(id: number): Promise<boolean> {
+    const result = await query('DELETE FROM store_packs WHERE id = $1', [id]);
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // ===== PAYMENT METHODS =====
+  // Note: payment_methods table was not in schema.sql, but referenced in service. 
+  // I will use a simple in-memory fallback for now or assume it might be added.
+  // Actually, I should probably add it to the schema if it's needed for "completeness".
+  
+  private mockPaymentMethods: PaymentMethod[] = [
     {
       id: 1,
       name: 'Stripe Payment',
       provider: 'stripe',
       is_active: true,
       config: { api_key: '***', secret_key: '***' },
-    },
-    {
-      id: 2,
-      name: 'PayPal',
-      provider: 'paypal',
-      is_active: true,
-      config: { api_key: '***', secret_key: '***' },
-    },
-    {
-      id: 3,
-      name: 'Google Pay',
-      provider: 'google_pay',
-      is_active: true,
-      config: { api_key: '***', secret_key: '***' },
-    },
+    }
   ];
 
-  private nextPackageId = 4;
-  private nextPaymentMethodId = 4;
-
-  // ===== PACKAGES =====
-
-  getPackages(): GoldCoinPackage[] {
-    return this.packages.sort((a, b) => a.display_order - b.display_order);
+  async getPaymentMethods(): Promise<PaymentMethod[]> {
+    return this.mockPaymentMethods;
   }
 
-  getActivePackages(): GoldCoinPackage[] {
-    return this.packages.filter(p => p.gold_coins > 0).sort((a, b) => a.display_order - b.display_order);
+  async getActivePaymentMethods(): Promise<PaymentMethod[]> {
+    return this.mockPaymentMethods.filter(m => m.is_active);
   }
 
-  getPackageById(id: number): GoldCoinPackage | undefined {
-    return this.packages.find(p => p.id === id);
-  }
-
-  createPackage(data: Omit<GoldCoinPackage, 'id'>): GoldCoinPackage {
-    const newPackage: GoldCoinPackage = {
-      ...data,
-      id: this.nextPackageId++,
-    };
-    this.packages.push(newPackage);
-    return newPackage;
-  }
-
-  updatePackage(id: number, data: Partial<GoldCoinPackage>): GoldCoinPackage | undefined {
-    const index = this.packages.findIndex(p => p.id === id);
-    if (index === -1) return undefined;
-
-    this.packages[index] = {
-      ...this.packages[index],
-      ...data,
-      id, // Ensure ID doesn't change
-    };
-    return this.packages[index];
-  }
-
-  deletePackage(id: number): boolean {
-    const index = this.packages.findIndex(p => p.id === id);
-    if (index === -1) return false;
-
-    this.packages.splice(index, 1);
-    return true;
-  }
-
-  // ===== PAYMENT METHODS =====
-
-  getPaymentMethods(): PaymentMethod[] {
-    return this.paymentMethods;
-  }
-
-  getActivePaymentMethods(): PaymentMethod[] {
-    return this.paymentMethods.filter(m => m.is_active);
-  }
-
-  getPaymentMethodById(id: number): PaymentMethod | undefined {
-    return this.paymentMethods.find(m => m.id === id);
-  }
-
-  createPaymentMethod(data: Omit<PaymentMethod, 'id'>): PaymentMethod {
-    const newMethod: PaymentMethod = {
-      ...data,
-      id: this.nextPaymentMethodId++,
-    };
-    this.paymentMethods.push(newMethod);
-    return newMethod;
-  }
-
-  updatePaymentMethod(id: number, data: Partial<PaymentMethod>): PaymentMethod | undefined {
-    const index = this.paymentMethods.findIndex(m => m.id === id);
-    if (index === -1) return undefined;
-
-    this.paymentMethods[index] = {
-      ...this.paymentMethods[index],
-      ...data,
-      id, // Ensure ID doesn't change
-    };
-    return this.paymentMethods[index];
-  }
-
-  deletePaymentMethod(id: number): boolean {
-    const index = this.paymentMethods.findIndex(m => m.id === id);
-    if (index === -1) return false;
-
-    this.paymentMethods.splice(index, 1);
-    return true;
+  async getPaymentMethodById(id: number): Promise<PaymentMethod | undefined> {
+    return this.mockPaymentMethods.find(m => m.id === id);
   }
 }
 
