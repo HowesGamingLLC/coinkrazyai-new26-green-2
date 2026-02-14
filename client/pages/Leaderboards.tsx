@@ -15,9 +15,17 @@ export default function Leaderboards() {
     const fetchLeaderboard = async () => {
       setIsLoading(true);
       try {
-        const res = await ApiClient.getLeaderboard(activeTab, 'all');
+        // Map tab names to valid leaderboard types
+        const typeMap: { [key: string]: string } = {
+          'all_time': 'wins',
+          'monthly': 'wins',
+          'daily': 'wins'
+        };
+        const type = typeMap[activeTab] || 'wins';
+
+        const res = await ApiClient.getLeaderboard(type, activeTab);
         if (res.success && res.data) {
-          setLeaderboardData(res.data);
+          setLeaderboardData(res.data.entries || res.data);
         } else {
           toast({ title: 'Error', description: 'Failed to load leaderboard', variant: 'destructive' });
         }
@@ -35,12 +43,19 @@ export default function Leaderboards() {
   useEffect(() => {
     const fetchPlayerRank = async () => {
       try {
+        // Only fetch player rank if user has an auth token
+        const authToken = localStorage.getItem('auth_token');
+        if (!authToken) {
+          return;
+        }
+
         const res = await ApiClient.getPlayerRank();
         if (res.success && res.data) {
           setPlayerRank(res.data);
         }
       } catch (error) {
-        console.error('Failed to fetch player rank:', error);
+        // Session might be expired, which is okay - leaderboard can still be viewed
+        console.debug('Could not fetch player rank (user may not be authenticated):', error);
       }
     };
 
