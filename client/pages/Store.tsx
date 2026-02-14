@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Zap, Gift, TrendingUp, CreditCard, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { StorePack } from '@shared/api';
+import { ReceiptModal } from '@/components/ui/ReceiptModal';
+import { useLocation } from 'react-router-dom';
 
 interface PaymentMethod {
   id: number;
@@ -25,6 +27,33 @@ const Store = () => {
   const [isPurchasing, setIsPurchasing] = useState<number | null>(null);
   const [selectedPack, setSelectedPack] = useState<StorePack | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+
+  // Receipt State
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [receiptData, setReceiptData] = useState<{
+    title: string;
+    description: string;
+    amount: string;
+    currency: 'GC' | 'SC';
+  } | null>(null);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check for success URL params
+    const params = new URLSearchParams(location.search);
+    if (params.get('success') === 'true') {
+      setReceiptData({
+        title: 'Coin Pack Purchase',
+        description: 'Coins added to your wallet',
+        amount: 'Varies', // We don't have the pack info here easily unless we fetch by session_id
+        currency: 'GC'
+      });
+      setShowReceipt(true);
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -73,7 +102,11 @@ const Store = () => {
 
     setIsPurchasing(selectedPack.id);
     try {
-      await store.purchase(selectedPack.id, selectedPaymentMethod.provider);
+      const response = await store.purchase(selectedPack.id, selectedPaymentMethod.provider);
+      if (response.success && response.data?.checkoutUrl) {
+        window.location.href = response.data.checkoutUrl;
+        return;
+      }
       toast.success(`Purchase of ${selectedPack.title} completed! Check your wallet.`);
       setSelectedPack(null);
       setSelectedPaymentMethod(null);
@@ -344,6 +377,17 @@ const Store = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {receiptData && (
+        <ReceiptModal
+          isOpen={showReceipt}
+          onClose={() => setShowReceipt(false)}
+          title={receiptData.title}
+          description={receiptData.description}
+          amount={receiptData.amount}
+          currency={receiptData.currency}
+        />
       )}
     </div>
   );

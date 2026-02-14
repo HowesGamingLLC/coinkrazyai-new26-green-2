@@ -110,13 +110,119 @@ export class StripeService {
     }
   }
 
-  static async verifyWebhookSignature(body: string, signature: string, secret: string) {
+  static async verifyWebhookSignature(body: string, signature: string) {
     try {
+      const secret = process.env.STRIPE_WEBHOOK_SECRET;
+      if (!secret) {
+        throw new Error('STRIPE_WEBHOOK_SECRET not set');
+      }
       const stripeClient = getStripe();
       return stripeClient.webhooks.constructEvent(body, signature, secret);
     } catch (error) {
       console.error('Webhook signature verification failed:', error);
       throw error;
     }
+  }
+
+  static async createCheckoutSession(
+    playerId: number,
+    packId: number,
+    pack: { title: string; price_usd: number; gold_coins: number; sweeps_coins: number },
+    baseUrl: string
+  ) {
+    try {
+      const stripeClient = getStripe();
+      const session = await stripeClient.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: pack.title,
+                description: `${pack.gold_coins.toLocaleString()} Gold Coins + ${pack.sweeps_coins.toFixed(2)} Sweeps Coins`,
+              },
+              unit_amount: Math.round(pack.price_usd * 100),
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${baseUrl}/wallet?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/store?canceled=true`,
+        metadata: {
+          playerId: String(playerId),
+          packId: String(packId),
+          goldCoins: String(pack.gold_coins),
+          sweepsCoins: String(pack.sweeps_coins),
+        },
+      });
+
+      return { success: true, checkoutUrl: session.url, sessionId: session.id };
+    } catch (error) {
+      console.error('Stripe checkout session error:', error);
+      return { success: false, error: String(error) };
+    }
+  }
+
+  static async handlePaymentSuccess(sessionId: string) {
+    try {
+      const stripeClient = getStripe();
+      const session = await stripeClient.checkout.sessions.retrieve(sessionId);
+
+      if (session.payment_status === 'paid') {
+        const playerId = parseInt(session.metadata?.playerId || '0');
+        const packId = parseInt(session.metadata?.packId || '0');
+        const gcAmount = parseFloat(session.metadata?.goldCoins || '0');
+        const scAmount = parseFloat(session.metadata?.sweepsCoins || '0');
+        const amountUsd = (session.amount_total || 0) / 100;
+
+        if (playerId && packId) {
+          const { recordPurchase, recordWalletTransaction } = await import('../db/queries');
+          const { WalletService } = await import('./wallet-service');
+          const { NotificationService } = await import('./notification-service');
+
+          // Record purchase
+          await recordPurchase(playerId, packId, amountUsd, gcAmount, scAmount, session.id);
+
+          // Update wallet
+          const result = await recordWalletTransaction(
+            playerId,
+            'Store Purchase',
+            gcAmount,
+            scAmount,
+            `Purchased ${session.metadata?.goldCoins} GC + ${session.metadata?.sweepsCoins} SC`
+          );
+
+          // Notify wallet update
+          WalletService.notifyWalletUpdate(playerId, {
+            goldCoins: result.rows[0].gc_balance_after,
+            sweepsCoins: result.rows[0].sc_balance_after
+          } as any);
+
+          // Send notification
+          const { query } = await import('../db/connection');
+          const playerEmailResult = await query('SELECT email FROM players WHERE id = $1', [playerId]);
+          if (playerEmailResult.rows.length > 0) {
+            NotificationService.notifyPurchase(
+              playerId,
+              playerEmailResult.rows[0].email,
+              amountUsd,
+              'USD',
+              `Coin Pack: ${gcAmount} GC + ${scAmount} SC`
+            );
+          }
+        }
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Stripe handle success error:', error);
+      return { success: false, error: String(error) };
+    }
+  }
+
+  static async handlePaymentFailure(sessionId: string) {
+    console.log(`Payment failed or expired for session: ${sessionId}`);
+    return { success: true };
   }
 }
