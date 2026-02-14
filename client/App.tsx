@@ -25,6 +25,7 @@ import Leaderboards from "./pages/Leaderboards";
 import Achievements from "./pages/Achievements";
 import Support from "./pages/Support";
 import Games from "./pages/Games";
+import ScratchTickets from "./pages/ScratchTickets";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/poker" element={<Poker />} />
               <Route path="/bingo" element={<Bingo />} />
               <Route path="/sportsbook" element={<Sportsbook />} />
+              <Route path="/scratch-tickets" element={<ScratchTickets />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/account" element={<Account />} />
               <Route path="/wallet" element={<Wallet />} />

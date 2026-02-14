@@ -416,6 +416,212 @@ export const updateLeaderboardEntries = async () => {
   `);
 };
 
+// ===== SCRATCH TICKET DESIGNS (ADMIN) =====
+export const getScratchTicketDesigns = async (enabled?: boolean) => {
+  if (enabled !== undefined) {
+    return query(
+      `SELECT * FROM scratch_ticket_designs WHERE enabled = $1 ORDER BY created_at DESC`,
+      [enabled]
+    );
+  }
+  return query(`SELECT * FROM scratch_ticket_designs ORDER BY created_at DESC`);
+};
+
+export const getScratchTicketDesignById = async (id: number) => {
+  return query(
+    `SELECT * FROM scratch_ticket_designs WHERE id = $1`,
+    [id]
+  );
+};
+
+export const createScratchTicketDesign = async (designData: any) => {
+  const {
+    name,
+    description,
+    cost_sc,
+    slot_count,
+    win_probability,
+    prize_min_sc,
+    prize_max_sc,
+    image_url,
+    background_color,
+    admin_id,
+  } = designData;
+
+  return query(
+    `INSERT INTO scratch_ticket_designs (name, description, cost_sc, slot_count, win_probability, prize_min_sc, prize_max_sc, image_url, background_color, created_by, enabled)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
+     RETURNING *`,
+    [name, description, cost_sc, slot_count, win_probability, prize_min_sc, prize_max_sc, image_url, background_color, admin_id]
+  );
+};
+
+export const updateScratchTicketDesign = async (id: number, updateData: any) => {
+  const updates: string[] = [];
+  const values: any[] = [];
+  let paramIndex = 1;
+
+  if (updateData.name !== undefined) {
+    updates.push(`name = $${paramIndex++}`);
+    values.push(updateData.name);
+  }
+  if (updateData.description !== undefined) {
+    updates.push(`description = $${paramIndex++}`);
+    values.push(updateData.description);
+  }
+  if (updateData.cost_sc !== undefined) {
+    updates.push(`cost_sc = $${paramIndex++}`);
+    values.push(updateData.cost_sc);
+  }
+  if (updateData.slot_count !== undefined) {
+    updates.push(`slot_count = $${paramIndex++}`);
+    values.push(updateData.slot_count);
+  }
+  if (updateData.win_probability !== undefined) {
+    updates.push(`win_probability = $${paramIndex++}`);
+    values.push(updateData.win_probability);
+  }
+  if (updateData.prize_min_sc !== undefined) {
+    updates.push(`prize_min_sc = $${paramIndex++}`);
+    values.push(updateData.prize_min_sc);
+  }
+  if (updateData.prize_max_sc !== undefined) {
+    updates.push(`prize_max_sc = $${paramIndex++}`);
+    values.push(updateData.prize_max_sc);
+  }
+  if (updateData.enabled !== undefined) {
+    updates.push(`enabled = $${paramIndex++}`);
+    values.push(updateData.enabled);
+  }
+
+  if (updates.length === 0) return null;
+
+  updates.push(`updated_at = NOW()`);
+  values.push(id);
+
+  const sql = `UPDATE scratch_ticket_designs SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+  return query(sql, values);
+};
+
+// ===== SCRATCH TICKET PURCHASES & MANAGEMENT =====
+export const createScratchTicket = async (playerId: number, designId: number, slots: any[]) => {
+  const ticketNumber = `ST-${Date.now()}-${playerId}`;
+
+  return query(
+    `INSERT INTO scratch_tickets (design_id, player_id, ticket_number, slots, status, claim_status)
+     VALUES ($1, $2, $3, $4, 'active', 'unclaimed')
+     RETURNING *`,
+    [designId, playerId, ticketNumber, JSON.stringify(slots)]
+  );
+};
+
+export const getScratchTicketsByPlayer = async (playerId: number, limit = 50) => {
+  return query(
+    `SELECT st.*, std.name as design_name, std.cost_sc, std.slot_count
+     FROM scratch_tickets st
+     JOIN scratch_ticket_designs std ON st.design_id = std.id
+     WHERE st.player_id = $1
+     ORDER BY st.created_at DESC
+     LIMIT $2`,
+    [playerId, limit]
+  );
+};
+
+export const getScratchTicketById = async (ticketId: number) => {
+  return query(
+    `SELECT st.*, std.* FROM scratch_tickets st
+     JOIN scratch_ticket_designs std ON st.design_id = std.id
+     WHERE st.id = $1`,
+    [ticketId]
+  );
+};
+
+export const updateScratchTicketReveal = async (ticketId: number, revealedSlots: number[]) => {
+  return query(
+    `UPDATE scratch_tickets
+     SET revealed_slots = $1, updated_at = NOW()
+     WHERE id = $2
+     RETURNING *`,
+    [revealedSlots, ticketId]
+  );
+};
+
+export const claimScratchTicketPrize = async (ticketId: number) => {
+  return query(
+    `UPDATE scratch_tickets
+     SET claim_status = 'claimed', claimed_at = NOW(), updated_at = NOW()
+     WHERE id = $1
+     RETURNING *`,
+    [ticketId]
+  );
+};
+
+// ===== SCRATCH TICKET RESULTS =====
+export const createScratchTicketResult = async (ticketId: number, designId: number, playerId: number, won: boolean, prizeAmount: number | null, winningSlotIndex: number | null) => {
+  return query(
+    `INSERT INTO scratch_ticket_results (ticket_id, design_id, player_id, won, prize_amount, winning_slot_index)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING *`,
+    [ticketId, designId, playerId, won, prizeAmount, winningSlotIndex]
+  );
+};
+
+export const getScratchTicketResult = async (ticketId: number) => {
+  return query(
+    `SELECT * FROM scratch_ticket_results WHERE ticket_id = $1`,
+    [ticketId]
+  );
+};
+
+// ===== SCRATCH TICKET TRANSACTIONS =====
+export const recordScratchTicketTransaction = async (playerId: number, ticketId: number, transactionType: string, amountSc: number, balanceBefore: number, balanceAfter: number, description: string) => {
+  return query(
+    `INSERT INTO scratch_ticket_transactions (player_id, ticket_id, transaction_type, amount_sc, balance_before, balance_after, description)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING *`,
+    [playerId, ticketId, transactionType, amountSc, balanceBefore, balanceAfter, description]
+  );
+};
+
+export const getScratchTicketTransactionHistory = async (playerId: number, limit = 50) => {
+  return query(
+    `SELECT * FROM scratch_ticket_transactions
+     WHERE player_id = $1
+     ORDER BY created_at DESC
+     LIMIT $2`,
+    [playerId, limit]
+  );
+};
+
+export const getScratchTicketTransactionHistoryAdmin = async (limit = 100, offset = 0) => {
+  return query(
+    `SELECT st.*, p.username, p.name as player_name, std.name as design_name
+     FROM scratch_ticket_transactions st
+     JOIN players p ON st.player_id = p.id
+     LEFT JOIN scratch_tickets skt ON st.ticket_id = skt.id
+     LEFT JOIN scratch_ticket_designs std ON skt.design_id = std.id
+     ORDER BY st.created_at DESC
+     LIMIT $1 OFFSET $2`,
+    [limit, offset]
+  );
+};
+
+// ===== SCRATCH TICKET STATS =====
+export const getScratchTicketStats = async () => {
+  return query(`
+    SELECT
+      COUNT(DISTINCT st.player_id) as total_players,
+      COUNT(st.id) as total_tickets_purchased,
+      SUM(CASE WHEN str.won = true THEN 1 ELSE 0 END) as winning_tickets,
+      ROUND(100.0 * SUM(CASE WHEN str.won = true THEN 1 ELSE 0 END) / NULLIF(COUNT(st.id), 0), 2) as win_percentage,
+      SUM(str.prize_amount) as total_prizes_awarded,
+      SUM(std.cost_sc * COUNT(st.id)) as total_sc_spent
+    FROM scratch_tickets st
+    LEFT JOIN scratch_ticket_results str ON st.id = str.ticket_id
+    LEFT JOIN scratch_ticket_designs std ON st.design_id = std.id
+  `);
+};
+
 // ===== ADMIN STATS =====
 export const getAdminStats = async () => {
   const playerStats = await getPlayerStats();

@@ -294,6 +294,15 @@ export function createServer() {
   app.get("/api/sportsbook/config", getSportsbookConfig);
   app.post("/api/sportsbook/config/update", verifyAdmin, updateSportsbookConfig);
 
+  // ===== SCRATCH TICKETS ROUTES =====
+  app.get("/api/scratch-tickets/designs", getAvailableDesigns);
+  app.post("/api/scratch-tickets/purchase", verifyPlayer, purchaseTicket);
+  app.post("/api/scratch-tickets/reveal", verifyPlayer, revealSlot);
+  app.post("/api/scratch-tickets/claim", verifyPlayer, claimPrize);
+  app.get("/api/scratch-tickets/:ticketId", verifyPlayer, getTicket);
+  app.get("/api/scratch-tickets", verifyPlayer, getMyTickets);
+  app.get("/api/scratch-tickets/history/transactions", verifyPlayer, getScratchTransactionHistory);
+
   // ===== GAMES ROUTES =====
   app.get("/api/games", handleGetGames);
   app.get("/api/games/:id", handleGetGameById);
@@ -433,6 +442,16 @@ export function createServer() {
   app.post("/api/admin/v2/sportsbook/events", verifyAdmin, createSportsEvent);
   app.put("/api/admin/v2/sportsbook/events/:eventId", verifyAdmin, updateSportsEvent);
   app.get("/api/admin/v2/sportsbook/stats", verifyAdmin, getSportsbookStats);
+
+  // Scratch Tickets
+  app.get("/api/admin/v2/scratch-tickets/designs", verifyAdmin, getScratchDesigns);
+  app.get("/api/admin/v2/scratch-tickets/designs/:designId", verifyAdmin, getScratchDesign);
+  app.post("/api/admin/v2/scratch-tickets/designs", verifyAdmin, createScratchDesign);
+  app.put("/api/admin/v2/scratch-tickets/designs/:designId", verifyAdmin, updateScratchDesign);
+  app.delete("/api/admin/v2/scratch-tickets/designs/:designId", verifyAdmin, deleteScratchDesign);
+  app.get("/api/admin/v2/scratch-tickets/stats", verifyAdmin, getScratchStatistics);
+  app.get("/api/admin/v2/scratch-tickets/transactions", verifyAdmin, getScratchAdminTransactionHistory);
+  app.get("/api/admin/v2/scratch-tickets/results", verifyAdmin, getScratchTicketResults);
 
   // ===== OPERATIONS ROUTES =====
   // Security

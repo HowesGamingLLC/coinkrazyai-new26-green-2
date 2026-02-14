@@ -1,0 +1,103 @@
+import React from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Loader2, Gift, Sparkles } from 'lucide-react';
+
+interface WinningPopupProps {
+  isOpen: boolean;
+  winAmount: number;
+  onClaim: () => Promise<void>;
+  onClose: () => void;
+  isClaiming: boolean;
+}
+
+export const WinningPopup: React.FC<WinningPopupProps> = ({
+  isOpen,
+  winAmount,
+  onClaim,
+  onClose,
+  isClaiming,
+}) => {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md border-2 border-yellow-400">
+        <DialogHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="relative w-24 h-24">
+              <div className="absolute inset-0 bg-yellow-300 rounded-full animate-pulse opacity-30" />
+              <div className="absolute inset-2 bg-yellow-200 rounded-full animate-pulse opacity-50" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Sparkles className="w-12 h-12 text-yellow-500 animate-bounce" />
+              </div>
+            </div>
+          </div>
+
+          <DialogTitle className="text-4xl font-bold bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">
+            🎉 You Won!
+          </DialogTitle>
+
+          <DialogDescription className="text-base mt-2">
+            Congratulations on your big win!
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Prize Amount Display */}
+          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg p-8 text-center border-2 border-yellow-200 dark:border-yellow-800">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Prize Amount</p>
+            <p className="text-5xl font-bold text-yellow-600 mb-2">
+              {winAmount}
+            </p>
+            <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+              Sweeps Coins (SC)
+            </p>
+          </div>
+
+          {/* Celebration Message */}
+          <div className="text-center space-y-2">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Your prize has been calculated and is ready to claim!
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-500">
+              Click the button below to add this amount to your wallet.
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={isClaiming}
+              className="flex-1"
+            >
+              Maybe Later
+            </Button>
+            <Button
+              onClick={onClaim}
+              disabled={isClaiming}
+              className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+            >
+              {isClaiming ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Collecting Prize...
+                </>
+              ) : (
+                <>
+                  <Gift className="w-4 h-4 mr-2" />
+                  Collect {winAmount} SC
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Celebration Animation Text */}
+          <div className="text-center text-2xl">
+            🎊 🎈 🎁 🎉 🏆
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
