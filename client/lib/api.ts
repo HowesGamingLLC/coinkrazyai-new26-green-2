@@ -25,8 +25,12 @@ export async function apiCall<T>(
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'API request failed');
+    try {
+      const error = await response.json();
+      throw new Error(error.error || 'API request failed');
+    } catch (e) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
   }
 
   return response.json();
@@ -55,8 +59,12 @@ export async function adminApiCall<T>(
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'API request failed');
+    try {
+      const error = await response.json();
+      throw new Error(error.error || 'API request failed');
+    } catch (e) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
   }
 
   return response.json();
