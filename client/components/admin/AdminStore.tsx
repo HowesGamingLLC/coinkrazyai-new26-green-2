@@ -43,12 +43,10 @@ const AdminStore = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      // Fetch packages and payment methods
-      const [packagesRes, methodsRes] = await Promise.all([
-        adminV2.store?.getPackages?.() || Promise.resolve({ data: [] }),
-        adminV2.store?.getPaymentMethods?.() || Promise.resolve({ data: [] }),
-      ]);
-      
+      // Fetch packages and payment methods from admin endpoints
+      const packagesRes = await adminV2.store.getPackages();
+      const methodsRes = await adminV2.store.getPaymentMethods();
+
       setPackages(packagesRes.data || []);
       setPaymentMethods(methodsRes.data || []);
     } catch (error) {

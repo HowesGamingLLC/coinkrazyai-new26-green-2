@@ -1,52 +1,11 @@
 import { RequestHandler } from 'express';
+import { storeService } from '../services/store-service';
 
 // ===== GOLD COIN PACKAGES =====
 
 export const getStorePackages: RequestHandler = async (req, res) => {
   try {
-    // For now, return mock data - replace with DB query when schema is ready
-    const packages = [
-      {
-        id: 1,
-        title: 'Starter Pack',
-        description: 'Perfect for new players',
-        price_usd: 4.99,
-        gold_coins: 500,
-        sweeps_coins: 2.5,
-        bonus_sc: 0,
-        bonus_percentage: 0,
-        is_popular: false,
-        is_best_value: false,
-        display_order: 1,
-      },
-      {
-        id: 2,
-        title: 'Popular Pack',
-        description: 'Most popular choice',
-        price_usd: 9.99,
-        gold_coins: 1200,
-        sweeps_coins: 6.0,
-        bonus_sc: 1.0,
-        bonus_percentage: 20,
-        is_popular: true,
-        is_best_value: false,
-        display_order: 2,
-      },
-      {
-        id: 3,
-        title: 'Gold Pack',
-        description: 'Best value option',
-        price_usd: 24.99,
-        gold_coins: 3500,
-        sweeps_coins: 17.5,
-        bonus_sc: 5.0,
-        bonus_percentage: 25,
-        is_popular: false,
-        is_best_value: true,
-        display_order: 3,
-      },
-    ];
-
+    const packages = storeService.getPackages();
     res.json({ success: true, data: packages });
   } catch (error) {
     console.error('Failed to get packages:', error);
@@ -59,15 +18,13 @@ export const createStorePackage: RequestHandler = async (req, res) => {
     const { title, description, price_usd, gold_coins, sweeps_coins, bonus_sc, bonus_percentage, is_popular, is_best_value, display_order } = req.body;
 
     // Validation
-    if (!title || !price_usd || !gold_coins || !sweeps_coins) {
+    if (!title || price_usd === undefined || gold_coins === undefined || sweeps_coins === undefined) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // For now, return success with mock data - replace with DB insert when schema is ready
-    const newPackage = {
-      id: Math.floor(Math.random() * 10000),
+    const newPackage = storeService.createPackage({
       title,
-      description,
+      description: description || '',
       price_usd: parseFloat(price_usd),
       gold_coins: parseInt(gold_coins),
       sweeps_coins: parseFloat(sweeps_coins),
@@ -76,9 +33,9 @@ export const createStorePackage: RequestHandler = async (req, res) => {
       is_popular: is_popular || false,
       is_best_value: is_best_value || false,
       display_order: parseInt(display_order) || 1,
-    };
+    });
 
-    res.json({ success: true, data: newPackage });
+    res.status(201).json({ success: true, data: newPackage });
   } catch (error) {
     console.error('Failed to create package:', error);
     res.status(500).json({ error: 'Failed to create package' });
@@ -90,20 +47,25 @@ export const updateStorePackage: RequestHandler = async (req, res) => {
     const { id } = req.params;
     const { title, description, price_usd, gold_coins, sweeps_coins, bonus_sc, bonus_percentage, is_popular, is_best_value, display_order } = req.body;
 
-    // For now, return success with updated mock data
-    const updatedPackage = {
-      id: parseInt(id),
-      title,
-      description,
-      price_usd: parseFloat(price_usd),
-      gold_coins: parseInt(gold_coins),
-      sweeps_coins: parseFloat(sweeps_coins),
-      bonus_sc: parseFloat(bonus_sc) || 0,
-      bonus_percentage: parseInt(bonus_percentage) || 0,
-      is_popular: is_popular || false,
-      is_best_value: is_best_value || false,
-      display_order: parseInt(display_order) || 1,
-    };
+    const packageId = parseInt(id);
+    const existingPackage = storeService.getPackageById(packageId);
+
+    if (!existingPackage) {
+      return res.status(404).json({ error: 'Package not found' });
+    }
+
+    const updatedPackage = storeService.updatePackage(packageId, {
+      title: title !== undefined ? title : existingPackage.title,
+      description: description !== undefined ? description : existingPackage.description,
+      price_usd: price_usd !== undefined ? parseFloat(price_usd) : existingPackage.price_usd,
+      gold_coins: gold_coins !== undefined ? parseInt(gold_coins) : existingPackage.gold_coins,
+      sweeps_coins: sweeps_coins !== undefined ? parseFloat(sweeps_coins) : existingPackage.sweeps_coins,
+      bonus_sc: bonus_sc !== undefined ? parseFloat(bonus_sc) : existingPackage.bonus_sc,
+      bonus_percentage: bonus_percentage !== undefined ? parseInt(bonus_percentage) : existingPackage.bonus_percentage,
+      is_popular: is_popular !== undefined ? is_popular : existingPackage.is_popular,
+      is_best_value: is_best_value !== undefined ? is_best_value : existingPackage.is_best_value,
+      display_order: display_order !== undefined ? parseInt(display_order) : existingPackage.display_order,
+    });
 
     res.json({ success: true, data: updatedPackage });
   } catch (error) {
@@ -115,9 +77,14 @@ export const updateStorePackage: RequestHandler = async (req, res) => {
 export const deleteStorePackage: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params;
+    const packageId = parseInt(id);
 
-    // For now, just return success
-    res.json({ success: true, message: `Package ${id} deleted` });
+    const success = storeService.deletePackage(packageId);
+    if (!success) {
+      return res.status(404).json({ error: 'Package not found' });
+    }
+
+    res.json({ success: true, message: `Package ${packageId} deleted` });
   } catch (error) {
     console.error('Failed to delete package:', error);
     res.status(500).json({ error: 'Failed to delete package' });
@@ -128,31 +95,7 @@ export const deleteStorePackage: RequestHandler = async (req, res) => {
 
 export const getPaymentMethods: RequestHandler = async (req, res) => {
   try {
-    // Return mock payment methods - replace with DB query when schema is ready
-    const methods = [
-      {
-        id: 1,
-        name: 'Stripe Payment',
-        provider: 'stripe',
-        is_active: true,
-        config: { api_key: '***', secret_key: '***' },
-      },
-      {
-        id: 2,
-        name: 'PayPal',
-        provider: 'paypal',
-        is_active: true,
-        config: { api_key: '***', secret_key: '***' },
-      },
-      {
-        id: 3,
-        name: 'Google Pay',
-        provider: 'google_pay',
-        is_active: true,
-        config: { api_key: '***', secret_key: '***' },
-      },
-    ];
-
+    const methods = storeService.getPaymentMethods();
     res.json({ success: true, data: methods });
   } catch (error) {
     console.error('Failed to get payment methods:', error);
@@ -165,18 +108,17 @@ export const createPaymentMethod: RequestHandler = async (req, res) => {
     const { name, provider, config, is_active } = req.body;
 
     if (!name || !provider) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Missing required fields: name, provider' });
     }
 
-    const newMethod = {
-      id: Math.floor(Math.random() * 10000),
+    const newMethod = storeService.createPaymentMethod({
       name,
       provider,
       is_active: is_active !== false,
       config: config || {},
-    };
+    });
 
-    res.json({ success: true, data: newMethod });
+    res.status(201).json({ success: true, data: newMethod });
   } catch (error) {
     console.error('Failed to create payment method:', error);
     res.status(500).json({ error: 'Failed to create payment method' });
@@ -188,13 +130,19 @@ export const updatePaymentMethod: RequestHandler = async (req, res) => {
     const { id } = req.params;
     const { name, provider, config, is_active } = req.body;
 
-    const updatedMethod = {
-      id: parseInt(id),
-      name,
-      provider,
-      is_active: is_active !== false,
-      config: config || {},
-    };
+    const methodId = parseInt(id);
+    const existingMethod = storeService.getPaymentMethodById(methodId);
+
+    if (!existingMethod) {
+      return res.status(404).json({ error: 'Payment method not found' });
+    }
+
+    const updatedMethod = storeService.updatePaymentMethod(methodId, {
+      name: name !== undefined ? name : existingMethod.name,
+      provider: provider !== undefined ? provider : existingMethod.provider,
+      is_active: is_active !== undefined ? is_active : existingMethod.is_active,
+      config: config !== undefined ? config : existingMethod.config,
+    });
 
     res.json({ success: true, data: updatedMethod });
   } catch (error) {
@@ -206,8 +154,14 @@ export const updatePaymentMethod: RequestHandler = async (req, res) => {
 export const deletePaymentMethod: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params;
+    const methodId = parseInt(id);
 
-    res.json({ success: true, message: `Payment method ${id} deleted` });
+    const success = storeService.deletePaymentMethod(methodId);
+    if (!success) {
+      return res.status(404).json({ error: 'Payment method not found' });
+    }
+
+    res.json({ success: true, message: `Payment method ${methodId} deleted` });
   } catch (error) {
     console.error('Failed to delete payment method:', error);
     res.status(500).json({ error: 'Failed to delete payment method' });

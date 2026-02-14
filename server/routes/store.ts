@@ -2,23 +2,13 @@ import { RequestHandler } from "express";
 import * as dbQueries from "../db/queries";
 import { query } from "../db/connection";
 import { StripeService } from "../services/stripe-service";
+import { storeService } from "../services/store-service";
 
 // Get available coin packs
 export const handleGetPacks: RequestHandler = async (req, res) => {
   try {
-    const result = await dbQueries.getStorePacks();
-
-    const packs = result.rows.map(row => ({
-      id: row.id,
-      title: row.title,
-      description: row.description,
-      price_usd: row.price_usd,
-      gold_coins: row.gold_coins,
-      sweeps_coins: row.sweeps_coins,
-      bonus_percentage: row.bonus_percentage,
-      is_popular: row.is_popular,
-      is_best_value: row.is_best_value
-    }));
+    // Get packages from store service (includes admin-created packages)
+    const packs = storeService.getActivePackages();
 
     res.json({
       success: true,
