@@ -43,7 +43,7 @@ export const getPlayersList: RequestHandler = async (req, res) => {
 export const getPlayer: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await db.getPlayerById(parseInt(id));
+    const result = await db.getPlayerById(parseInt(Array.isArray(id) ? id[0] : id));
 
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -246,7 +246,7 @@ export const getSecurityAlerts: RequestHandler = async (req, res) => {
 export const getKYCDocs: RequestHandler = async (req, res) => {
   try {
     const { playerId } = req.params;
-    const result = await db.getKYCDocuments(parseInt(playerId));
+    const result = await db.getKYCDocuments(parseInt(Array.isArray(playerId) ? playerId[0] : playerId));
 
     res.json({
       success: true,

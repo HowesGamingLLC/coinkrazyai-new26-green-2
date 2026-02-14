@@ -1,6 +1,7 @@
 import { RequestHandler } from "express";
 import * as dbQueries from "../db/queries";
 import { query } from "../db/connection";
+import { StripeService } from "../services/stripe-service";
 
 // Get available coin packs
 export const handleGetPacks: RequestHandler = async (req, res) => {
@@ -42,9 +43,9 @@ export const handlePurchase: RequestHandler = async (req, res) => {
       });
     }
 
-    const { pack_id, payment_token } = req.body;
+    const { packId, payment_method } = req.body;
 
-    if (!pack_id) {
+    if (!packId) {
       return res.status(400).json({
         success: false,
         error: 'Pack ID required'
@@ -54,7 +55,7 @@ export const handlePurchase: RequestHandler = async (req, res) => {
     // Get pack details
     const packResult = await query(
       'SELECT * FROM store_packs WHERE id = $1 AND enabled = true',
-      [pack_id]
+      [packId]
     );
 
     if (packResult.rows.length === 0) {
@@ -66,50 +67,35 @@ export const handlePurchase: RequestHandler = async (req, res) => {
 
     const pack = packResult.rows[0];
 
-    // In a real implementation, you would:
-    // 1. Create a Stripe/Square payment intent
-    // 2. Verify the payment_token
-    // 3. Process the payment
-    // 4. Only proceed if payment is confirmed
-    
-    // For now, we'll simulate successful payment
-    // In production, replace this with actual payment processing
-    
-    // Record the purchase
-    const purchaseResult = await dbQueries.recordPurchase(
+    // Get the base URL from the request or environment
+    const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
+
+    // Create Stripe checkout session
+    const checkoutResult = await StripeService.createCheckoutSession(
       req.user.playerId,
-      pack_id,
-      pack.price_usd,
-      pack.gold_coins,
-      pack.sweeps_coins,
-      `demo-payment-${Date.now()}`
+      packId,
+      {
+        title: pack.title,
+        price_usd: pack.price_usd,
+        gold_coins: pack.gold_coins,
+        sweeps_coins: pack.sweeps_coins || 0
+      },
+      baseUrl
     );
 
-    // Add coins to wallet
-    const totalGc = pack.gold_coins;
-    const totalSc = pack.sweeps_coins || 0;
-    
-    await dbQueries.recordWalletTransaction(
-      req.user.playerId,
-      'purchase',
-      totalGc,
-      totalSc,
-      `Purchased ${pack.title}`
-    );
-
-    // Get updated wallet
-    const player = await dbQueries.getPlayerById(req.user.playerId);
-    const updatedWallet = player.rows[0];
+    if (!checkoutResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: checkoutResult.error
+      });
+    }
 
     res.json({
       success: true,
       data: {
-        message: `Successfully purchased ${pack.title}!`,
-        purchase_id: purchaseResult.rows[0].id,
-        wallet: {
-          goldCoins: updatedWallet.gc_balance,
-          sweepsCoins: updatedWallet.sc_balance
-        }
+        message: 'Checkout session created',
+        checkoutUrl: checkoutResult.checkoutUrl,
+        sessionId: checkoutResult.sessionId
       }
     });
   } catch (error) {
@@ -334,22 +320,69 @@ export const handleDeletePack: RequestHandler = async (req, res) => {
   }
 };
 
-// Square webhook handler
+// Stripe webhook handler
 export const handleSquareWebhook: RequestHandler = async (req, res) => {
   try {
-    // In production, verify HMAC signature here
-    // const signature = req.headers['x-square-hmac-sha256'];
-    // Verify signature with your Square API key...
+    // Get the Stripe signature from headers
+    const signature = req.headers['stripe-signature'] as string;
 
-    console.log('[Store] Square webhook received:', req.body.type);
+    if (!signature) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing stripe-signature header'
+      });
+    }
 
-    // Handle different event types
-    const eventType = req.body.type;
+    // Verify webhook signature
+    const event = StripeService.verifyWebhookSignature(
+      JSON.stringify(req.body),
+      signature
+    );
 
-    // For now, just acknowledge receipt
+    if (!event) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid webhook signature'
+      });
+    }
+
+    console.log('[Store] Stripe webhook received:', event.type);
+
+    // Handle different Stripe event types
+    switch (event.type) {
+      case 'checkout.session.completed':
+        {
+          const session = event.data.object;
+          await StripeService.handlePaymentSuccess(session.id);
+          console.log('[Store] Payment successful for session:', session.id);
+          break;
+        }
+
+      case 'checkout.session.expired':
+        {
+          const session = event.data.object;
+          await StripeService.handlePaymentFailure(session.id);
+          console.log('[Store] Payment expired for session:', session.id);
+          break;
+        }
+
+      case 'charge.failed':
+        {
+          const charge = event.data.object;
+          if (charge.metadata?.playerId) {
+            console.log('[Store] Charge failed for player:', charge.metadata.playerId);
+          }
+          break;
+        }
+
+      default:
+        console.log('[Store] Unhandled Stripe event type:', event.type);
+    }
+
+    // Return 200 OK to acknowledge receipt
     res.status(200).json({
       success: true,
-      message: 'Webhook processed'
+      received: true
     });
   } catch (error) {
     console.error('[Store] Webhook error:', error);

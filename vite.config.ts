@@ -34,7 +34,7 @@ function expressPlugin(): Plugin {
       const app = createServer();
 
       if (server.httpServer) {
-        setupSocketIO(server.httpServer);
+        setupSocketIO(server.httpServer as any);
       }
 
       // Add Express app as middleware to Vite dev server

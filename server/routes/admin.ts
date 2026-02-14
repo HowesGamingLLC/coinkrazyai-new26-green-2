@@ -1,10 +1,11 @@
 import { RequestHandler } from "express";
-import { WalletService } from "../services/wallet-service";
+import * as dbQueries from "../db/queries";
 
-const ADMIN_EMAIL = "coinkrazy26@gmail.com";
-const ADMIN_PASSWORD = "admin123";
-
-// Admin state
+/**
+ * Admin state for game configurations and AI management
+ * This is an in-memory cache for admin settings.
+ * For persistence, consider moving these to the database.
+ */
 let adminState = {
   gameConfigs: {
     slots: { rtp: 95, minBet: 0.01, maxBet: 100 },
@@ -24,72 +25,33 @@ let adminState = {
   maintenanceMode: false
 };
 
-// Session tracking (simplified)
-const adminSessions: Record<string, { token: string; loginTime: string; lastActivity: string }> = {};
+/**
+ * Note: Admin authentication is now handled exclusively through:
+ * - server/services/auth-service.ts -> AuthService.loginAdmin()
+ * - server/routes/auth.ts -> handleAdminLogin()
+ * This uses the admin_users table in the database for secure admin credentials.
+ */
 
-export const handleAdminLogin: RequestHandler = (req, res) => {
+export const handleGetAdminStats: RequestHandler = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const playerStats = await dbQueries.getPlayerStats();
+    const transactions = await dbQueries.getTransactions(10);
 
-    if (!email || !password) {
-      return res.status(400).json({ success: false, error: "Email and password required" });
-    }
-
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      // Generate a more realistic token
-      const token = `admin-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      adminSessions[token] = {
-        token,
-        loginTime: new Date().toISOString(),
-        lastActivity: new Date().toISOString()
-      };
-
-      res.json({ 
-        success: true, 
-        data: { 
-          token,
-          user: { 
-            email: ADMIN_EMAIL, 
-            role: 'admin',
-            name: 'Admin',
-            permissions: ['read', 'write', 'delete']
-          },
-          expiresIn: 86400 // 24 hours
-        } 
-      });
-    } else {
-      res.status(401).json({ success: false, error: "Invalid credentials" });
-    }
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Login failed' });
-  }
-};
-
-// Middleware to verify admin token
-const verifyAdminToken = (req: any, res: any, next: Function) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token || !adminSessions[token]) {
-    return res.status(401).json({ success: false, error: "Unauthorized" });
-  }
-  adminSessions[token].lastActivity = new Date().toISOString();
-  next();
-};
-
-export const handleGetAdminStats: RequestHandler = (req, res) => {
-  try {
-    const wallet = WalletService.getWallet('default-user');
-    const transactions = WalletService.getTransactions(10);
+    const totalPlayers = playerStats.rows[0]?.total_players || 0;
+    const activePlayers = playerStats.rows[0]?.active_players || 0;
+    const totalGCVolume = playerStats.rows[0]?.avg_gc_balance || 0;
+    const totalSCVolume = playerStats.rows[0]?.avg_sc_balance || 0;
 
     res.json({
       success: true,
       data: {
         overview: {
-          totalPlayers: 1542,
-          activePlayers: 342,
+          totalPlayers,
+          activePlayers,
           activeTables: 8,
           totalRevenue: 125430.50,
-          totalGCVolume: wallet.goldCoins,
-          totalSCVolume: wallet.sweepsCoins,
+          totalGCVolume,
+          totalSCVolume,
           systemHealth: adminState.systemHealth,
           maintenanceMode: adminState.maintenanceMode
         },
@@ -101,12 +63,12 @@ export const handleGetAdminStats: RequestHandler = (req, res) => {
           sportsbook: { bets: 12456, avgOdds: 1.89 }
         },
         revenueData: [40, 60, 45, 90, 85, 100, 75],
-        recentTransactions: transactions.map((tx, i) => ({
-          id: `tx-${i}`,
+        recentTransactions: transactions.rows.map((tx: any) => ({
+          id: tx.id,
           type: tx.type,
-          currency: tx.currency,
-          amount: tx.amount,
-          timestamp: tx.timestamp
+          amount: (tx.gc_amount || 0) + (tx.sc_amount || 0),
+          description: tx.description || tx.type,
+          timestamp: tx.created_at
         }))
       }
     });
