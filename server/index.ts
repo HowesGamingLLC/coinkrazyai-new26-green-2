@@ -206,6 +206,25 @@ import {
   getStoreSettings,
   updateStoreSettings
 } from "./routes/store-management";
+import {
+  getAvailableDesigns,
+  purchaseTicket,
+  revealSlot,
+  claimPrize,
+  getTicket,
+  getMyTickets,
+  getTransactionHistory as getScratchTransactionHistory
+} from "./routes/scratch-tickets";
+import {
+  getDesigns as getScratchDesigns,
+  getDesign as getScratchDesign,
+  createDesign as createScratchDesign,
+  updateDesign as updateScratchDesign,
+  deleteDesign as deleteScratchDesign,
+  getStatistics as getScratchStatistics,
+  getTransactionHistory as getScratchAdminTransactionHistory,
+  getTicketResults as getScratchTicketResults
+} from "./routes/scratch-tickets-admin";
 
 export function createServer() {
   const app = express();

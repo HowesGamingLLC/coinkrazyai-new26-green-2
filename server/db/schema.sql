@@ -942,3 +942,78 @@ CREATE TABLE IF NOT EXISTS performance_metrics (
 
 CREATE INDEX IF NOT EXISTS idx_performance_metrics_metric_name ON performance_metrics(metric_name);
 CREATE INDEX IF NOT EXISTS idx_performance_metrics_recorded_at ON performance_metrics(recorded_at);
+
+-- ===== COINKRIAZY SCRATCH TICKETS =====
+-- Ticket design templates created by admins
+CREATE TABLE IF NOT EXISTS scratch_ticket_designs (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  cost_sc DECIMAL(8, 2) NOT NULL,
+  slot_count INTEGER NOT NULL DEFAULT 6,
+  win_probability DECIMAL(5, 2) NOT NULL DEFAULT 16.67,
+  prize_min_sc DECIMAL(8, 2) NOT NULL DEFAULT 1,
+  prize_max_sc DECIMAL(8, 2) NOT NULL DEFAULT 10,
+  image_url VARCHAR(500),
+  background_color VARCHAR(7) DEFAULT '#FFD700',
+  enabled BOOLEAN DEFAULT TRUE,
+  created_by INTEGER REFERENCES admin_users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_scratch_ticket_designs_enabled ON scratch_ticket_designs(enabled);
+
+-- Purchased scratch tickets for individual players
+CREATE TABLE IF NOT EXISTS scratch_tickets (
+  id SERIAL PRIMARY KEY,
+  design_id INTEGER NOT NULL REFERENCES scratch_ticket_designs(id),
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  ticket_number VARCHAR(50) UNIQUE NOT NULL,
+  slots JSONB NOT NULL,
+  revealed_slots INTEGER[] DEFAULT ARRAY[]::INTEGER[],
+  status VARCHAR(50) DEFAULT 'active',
+  claim_status VARCHAR(50) DEFAULT 'unclaimed',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  claimed_at TIMESTAMP,
+  expires_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_scratch_tickets_player_id ON scratch_tickets(player_id);
+CREATE INDEX IF NOT EXISTS idx_scratch_tickets_design_id ON scratch_tickets(design_id);
+CREATE INDEX IF NOT EXISTS idx_scratch_tickets_status ON scratch_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_scratch_tickets_ticket_number ON scratch_tickets(ticket_number);
+
+-- Detailed results of scratch ticket outcomes
+CREATE TABLE IF NOT EXISTS scratch_ticket_results (
+  id SERIAL PRIMARY KEY,
+  ticket_id INTEGER NOT NULL UNIQUE REFERENCES scratch_tickets(id) ON DELETE CASCADE,
+  design_id INTEGER NOT NULL REFERENCES scratch_ticket_designs(id),
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  won BOOLEAN NOT NULL,
+  prize_amount DECIMAL(8, 2),
+  winning_slot_index INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_scratch_ticket_results_player_id ON scratch_ticket_results(player_id);
+CREATE INDEX IF NOT EXISTS idx_scratch_ticket_results_design_id ON scratch_ticket_results(design_id);
+CREATE INDEX IF NOT EXISTS idx_scratch_ticket_results_won ON scratch_ticket_results(won);
+
+-- Transaction history for purchases and claims
+CREATE TABLE IF NOT EXISTS scratch_ticket_transactions (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  ticket_id INTEGER REFERENCES scratch_tickets(id) ON DELETE CASCADE,
+  transaction_type VARCHAR(50) NOT NULL,
+  amount_sc DECIMAL(8, 2) NOT NULL,
+  balance_before DECIMAL(15, 2),
+  balance_after DECIMAL(15, 2),
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_scratch_ticket_transactions_player_id ON scratch_ticket_transactions(player_id);
+CREATE INDEX IF NOT EXISTS idx_scratch_ticket_transactions_ticket_id ON scratch_ticket_transactions(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_scratch_ticket_transactions_type ON scratch_ticket_transactions(transaction_type);
+CREATE INDEX IF NOT EXISTS idx_scratch_ticket_transactions_created_at ON scratch_ticket_transactions(created_at);
