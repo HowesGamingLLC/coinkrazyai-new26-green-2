@@ -1,427 +1,301 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/auth-context';
+import { admin } from '@/lib/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import { ApiClient } from '@/lib/api';
-import { 
-  Users, 
-  Settings, 
-  BarChart3, 
-  ShieldAlert, 
-  Coins, 
-  Gamepad2, 
-  Bot,
-  LogOut,
-  Save,
-  CheckCircle2,
-  AlertCircle,
-  LayoutDashboard,
-  Shield,
-  TrendingUp,
-  Lock,
-  MessageSquare,
-  Gift,
-  Trophy,
-  CreditCard,
-  Check,
-  Zap,
-  Users2,
-  Database,
-  FileText,
-  Key,
-  Upload,
-  Bell,
-  Link2
-} from 'lucide-react';
-import { PlayerManagement } from '@/components/admin/PlayerManagement';
-import { BonusManagement } from '@/components/admin/BonusManagement';
-import { GameManagement } from '@/components/admin/GameManagement';
-import { AnalyticsDashboard } from '@/components/admin/AnalyticsDashboard';
-import { SecurityManagement } from '@/components/admin/SecurityManagement';
-import { WalletManagement } from '@/components/admin/WalletManagement';
-import { KYCSettings } from '@/components/admin/KYCSettings';
-import { PokerManagement } from '@/components/admin/PokerManagement';
-import { BingoManagement } from '@/components/admin/BingoManagement';
-import { SportsManagement } from '@/components/admin/SportsManagement';
-import { APIManagement } from '@/components/admin/APIManagement';
-import { VIPManagement } from '@/components/admin/VIPManagement';
-import { MakeItRain } from '@/components/admin/MakeItRain';
-import { JackpotManagement } from '@/components/admin/JackpotManagement';
-import { FraudDetection } from '@/components/admin/FraudDetection';
-import { RedemptionApprovals } from '@/components/admin/RedemptionApprovals';
-import { SupportTickets } from '@/components/admin/SupportTickets';
-import {
-  BankingPayments,
-  GameIngestion,
-  AIGameBuilder,
-  ContentManagement,
-  CasinoSettings,
-  SocialManagement,
-  PlayerRetention,
-  AffiliateManagement,
-  SystemLogs,
-  DatabaseBackups,
-  PerformanceMonitoring,
-  NotificationSettings,
-  ComplianceManagement,
-  AdvancedSettings,
-  CallerManagement,
-  SportsSettings
-} from '@/components/admin/RemainingAdminSections';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Users, Gamepad2, BarChart3, AlertCircle, Zap } from 'lucide-react';
+import { toast } from 'sonner';
 
-// --- Stats Card ---
-const StatsCard = ({ icon: Icon, label, value, color }: any) => (
-  <Card className="border-border">
-    <CardContent className="p-6 flex items-center gap-4">
-      <div className={cn("p-3 bg-muted rounded-xl", color)}>
-        <Icon className="w-6 h-6" />
-      </div>
-      <div>
-        <p className="text-sm text-muted-foreground font-semibold uppercase">{label}</p>
-        <p className="text-2xl font-black">{value}</p>
-      </div>
-    </CardContent>
-  </Card>
-);
-
-// --- Admin Section Placeholder ---
-const AdminSection = ({ title, description, icon: Icon }: any) => (
-  <Card className="border-border">
-    <CardHeader>
-      <div className="flex items-center gap-4 mb-4">
-        <div className="p-3 bg-primary/10 rounded-lg">
-          <Icon className="w-6 h-6 text-primary" />
-        </div>
-        <div>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </div>
-      </div>
-    </CardHeader>
-    <CardContent>
-      <div className="flex items-center justify-center h-48 text-muted-foreground">
-        <p className="text-center">
-          <span className="font-bold">{title}</span> management interface coming soon...
-        </p>
-      </div>
-    </CardContent>
-  </Card>
-);
-
-// --- Sidebar Navigation ---
-const AdminSideMenu = ({ activeSection, onSelectSection }: any) => {
-  const sections = [
-    {
-      title: "CORE MANAGEMENT",
-      items: [
-        { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { id: "players", label: "Player Management", icon: Users2 },
-        { id: "kyc", label: "KYC Settings", icon: Shield },
-        { id: "wallet", label: "Wallet Management", icon: Coins }
-      ]
-    },
-    {
-      title: "FINANCIAL",
-      items: [
-        { id: "rain", label: "Make it Rain", icon: Gift },
-        { id: "bonuses", label: "Bonus Management", icon: Zap },
-        { id: "jackpot", label: "Jackpot Management", icon: Trophy },
-        { id: "banking", label: "Banking & Payments", icon: CreditCard },
-        { id: "redemption", label: "Redemption Approvals", icon: Check }
-      ]
-    },
-    {
-      title: "GAMES & SPORTS",
-      items: [
-        { id: "library", label: "Game Library", icon: Gamepad2 },
-        { id: "ingestion", label: "Game Ingestion", icon: Upload },
-        { id: "ai-builder", label: "AI Game Builder", icon: Bot },
-        { id: "poker", label: "Poker Management", icon: Gamepad2 },
-        { id: "bingo", label: "Bingo Management", icon: Gamepad2 },
-        { id: "caller", label: "Caller Management", icon: MessageSquare },
-        { id: "sportsbook", label: "Sportsbook", icon: TrendingUp },
-        { id: "sports-settings", label: "Sports Settings", icon: Settings }
-      ]
-    },
-    {
-      title: "OPERATIONS",
-      items: [
-        { id: "security", label: "Security Management", icon: Lock },
-        { id: "content", label: "Content Management", icon: FileText },
-        { id: "casino-settings", label: "Casino Settings", icon: Settings },
-        { id: "social", label: "Social Management", icon: MessageSquare },
-        { id: "retention", label: "Player Retention", icon: Users }
-      ]
-    },
-    {
-      title: "ADVANCED",
-      items: [
-        { id: "analytics", label: "Analytics & Reporting", icon: BarChart3 },
-        { id: "vip", label: "VIP Management", icon: Gift },
-        { id: "fraud", label: "Fraud Detection", icon: ShieldAlert },
-        { id: "affiliate", label: "Affiliate Management", icon: Link2 },
-        { id: "tickets", label: "Support & Tickets", icon: MessageSquare },
-        { id: "logs", label: "System Logs", icon: FileText },
-        { id: "api", label: "API Management", icon: Key },
-        { id: "database", label: "Database & Backups", icon: Database },
-        { id: "performance", label: "Performance", icon: Zap },
-        { id: "notifications", label: "Notifications", icon: Bell },
-        { id: "compliance", label: "Compliance", icon: Check },
-        { id: "advanced-settings", label: "Advanced Settings", icon: Settings }
-      ]
-    }
-  ];
-
-  return (
-    <div className="w-72 bg-muted/30 border-r border-border overflow-y-auto max-h-[calc(100vh-200px)]">
-      {sections.map((section) => (
-        <div key={section.title}>
-          <div className="px-4 py-3 text-xs font-black text-muted-foreground uppercase tracking-wider sticky top-0 bg-muted/50 border-b border-border/50">
-            {section.title}
-          </div>
-          <div className="space-y-1 p-2">
-            {section.items.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onSelectSection(item.id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors",
-                    isActive 
-                      ? "bg-primary text-primary-foreground" 
-                      : "text-foreground hover:bg-muted/50"
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-// --- Main Admin Component ---
 const Admin = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { isAdmin, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<any>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [players, setPlayers] = useState<any[]>([]);
+  const [games, setGames] = useState<any[]>([]);
+  const [aiEmployees, setAiEmployees] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-      setIsLoggedIn(true);
-      fetchStats();
+    if (!authLoading && !isAdmin) {
+      navigate('/');
+      return;
     }
-  }, []);
 
-  const fetchStats = async () => {
-    try {
-      const res = await ApiClient.getAdminStats();
-      if (res.success) {
-        setStats(res.data);
+    const fetchAdminData = async () => {
+      try {
+        const [statsRes, playersRes, gamesRes, aiRes] = await Promise.all([
+          admin.getDashboardStats(),
+          admin.getPlayers(),
+          admin.getGames(),
+          admin.getAIEmployees(),
+        ]);
+
+        setStats(statsRes.data);
+        setPlayers(playersRes.data || []);
+        setGames(gamesRes.data || []);
+        setAiEmployees(aiRes.data || []);
+      } catch (error: any) {
+        console.error('Failed to fetch admin data:', error);
+        toast.error('Failed to load admin dashboard');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (e) {
-      console.error("Admin stats fetch error:", e);
-    }
-  };
+    };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+    if (isAdmin) {
+      fetchAdminData();
+    }
+  }, [isAdmin, authLoading, navigate]);
+
+  const handleToggleMaintenance = async () => {
     try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
-      if (data.success && data.token) {
-        // Store both admin token and auth token for API calls
-        localStorage.setItem('adminToken', data.token);
-        localStorage.setItem('auth_token', data.token);
-        setIsLoggedIn(true);
-        setEmail('');
-        setPassword('');
-        fetchStats();
-        toast({ title: "Welcome back, Admin", description: "Login successful." });
-      } else {
-        toast({ title: "Login failed", description: data.error || "Invalid credentials", variant: "destructive" });
-      }
-    } catch (e) {
-      console.error('Admin login error:', e);
-      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
+      await admin.setMaintenanceMode(!maintenanceMode);
+      setMaintenanceMode(!maintenanceMode);
+      toast.success(`Maintenance mode ${!maintenanceMode ? 'enabled' : 'disabled'}`);
+    } catch (error: any) {
+      toast.error('Failed to toggle maintenance mode');
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    setIsLoggedIn(false);
+  const handleUpdatePlayerBalance = async (playerId: number, gc: number, sc: number) => {
+    try {
+      await admin.updatePlayerBalance(playerId, gc, sc);
+      toast.success('Player balance updated');
+      // Refresh players
+      const res = await admin.getPlayers();
+      setPlayers(res.data || []);
+    } catch (error: any) {
+      toast.error('Failed to update player balance');
+    }
   };
 
-  if (!isLoggedIn) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[70vh]">
-        <Card className="w-full max-w-md border-primary/20 bg-muted/30">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mx-auto mb-4">
-              <ShieldAlert className="text-primary-foreground w-10 h-10" />
-            </div>
-            <CardTitle className="text-2xl font-black italic">ADMIN LOGIN</CardTitle>
-            <CardDescription>Enter your credentials to access the command center.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Input 
-                  type="email" 
-                  placeholder="Admin Email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-background border-border"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Input 
-                  type="password" 
-                  placeholder="Password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-background border-border"
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full font-bold h-12">LOGIN TO DASHBOARD</Button>
-            </form>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6">
+      {/* Header with Maintenance Mode */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter">ADMIN <span className="text-primary">COMMAND CENTER</span></h1>
-          <p className="text-muted-foreground">Full control over CoinKrazyAI2 platform.</p>
+          <h1 className="text-4xl font-black tracking-tight">ADMIN DASHBOARD</h1>
+          <p className="text-muted-foreground">Manage the CoinKrazy AI2 platform</p>
         </div>
-        <Button variant="outline" onClick={handleLogout} className="border-destructive/20 text-destructive hover:bg-destructive/10">
-          <LogOut className="w-4 h-4 mr-2" /> Logout
+        <Button
+          onClick={handleToggleMaintenance}
+          variant={maintenanceMode ? 'destructive' : 'outline'}
+        >
+          {maintenanceMode ? 'End Maintenance' : 'Maintenance Mode'}
         </Button>
       </div>
 
-      <div className="flex gap-6">
-        {/* Sidebar Navigation */}
-        <AdminSideMenu activeSection={activeSection} onSelectSection={setActiveSection} />
-
-        {/* Main Content Area */}
-        <div className="flex-1 space-y-6 overflow-y-auto pr-4">
-          {activeSection === 'dashboard' && (
-            <>
-              {/* Quick Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatsCard icon={Users} label="Total Players" value={stats?.overview?.totalPlayers || '1.5K'} color="text-blue-400" />
-                <StatsCard icon={Gamepad2} label="Active Tables" value={stats?.overview?.activeTables || '24'} color="text-green-400" />
-                <StatsCard icon={Coins} label="GC Volume" value={`${Math.floor(stats?.overview?.totalGCVolume || 0)} GC`} color="text-yellow-400" />
-                <StatsCard icon={ShieldAlert} label="System Health" value={stats?.overview?.systemHealth || 'Optimal'} color="text-primary" />
-              </div>
-
-              {/* Dashboard Overview */}
-              <Tabs defaultValue="overview" className="space-y-6">
-                <TabsList className="bg-muted border border-border p-1">
-                  <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                    Overview
-                  </TabsTrigger>
-                  <TabsTrigger value="ai" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                    AI Employees
-                  </TabsTrigger>
-                  <TabsTrigger value="games" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                    Game Control
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="overview" className="space-y-6">
-                  <Card className="border-border">
-                    <CardHeader>
-                      <CardTitle>Platform Activity</CardTitle>
-                      <CardDescription>Real-time platform metrics and performance</CardDescription>
-                    </CardHeader>
-                    <CardContent className="h-64 flex items-end justify-around gap-2 pt-8">
-                      {[40, 60, 45, 90, 85, 100, 75].map((h, i) => (
-                        <div key={i} className="bg-primary w-full rounded-t-lg transition-all hover:opacity-80 cursor-pointer" style={{ height: `${h}%` }} />
-                      ))}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="ai" className="text-muted-foreground">
-                  <AdminSection title="AI Employees" description="Manage AI agents and their duties" icon={Bot} />
-                </TabsContent>
-
-                <TabsContent value="games" className="text-muted-foreground">
-                  <AdminSection title="Game Control" description="Configure game settings and RTP" icon={Gamepad2} />
-                </TabsContent>
-              </Tabs>
-            </>
-          )}
-
-          {/* Core Management Sections */}
-          {activeSection === 'players' && <PlayerManagement />}
-          {activeSection === 'kyc' && <KYCSettings />}
-          {activeSection === 'wallet' && <WalletManagement />}
-
-          {/* Financial Sections */}
-          {activeSection === 'rain' && <MakeItRain />}
-          {activeSection === 'bonuses' && <BonusManagement />}
-          {activeSection === 'jackpot' && <JackpotManagement />}
-          {activeSection === 'banking' && <BankingPayments />}
-          {activeSection === 'redemption' && <RedemptionApprovals />}
-
-          {/* Games & Sports Sections */}
-          {activeSection === 'library' && <GameManagement />}
-          {activeSection === 'ingestion' && <GameIngestion />}
-          {activeSection === 'ai-builder' && <AIGameBuilder />}
-          {activeSection === 'poker' && <PokerManagement />}
-          {activeSection === 'bingo' && <BingoManagement />}
-          {activeSection === 'caller' && <CallerManagement />}
-          {activeSection === 'sportsbook' && <SportsManagement />}
-          {activeSection === 'sports-settings' && <SportsSettings />}
-
-          {/* Operations Sections */}
-          {activeSection === 'security' && <SecurityManagement />}
-          {activeSection === 'content' && <ContentManagement />}
-          {activeSection === 'casino-settings' && <CasinoSettings />}
-          {activeSection === 'social' && <SocialManagement />}
-          {activeSection === 'retention' && <PlayerRetention />}
-
-          {/* Advanced Sections */}
-          {activeSection === 'analytics' && <AnalyticsDashboard />}
-          {activeSection === 'vip' && <VIPManagement />}
-          {activeSection === 'fraud' && <FraudDetection />}
-          {activeSection === 'affiliate' && <AffiliateManagement />}
-          {activeSection === 'tickets' && <SupportTickets />}
-          {activeSection === 'logs' && <SystemLogs />}
-          {activeSection === 'api' && <APIManagement />}
-          {activeSection === 'database' && <DatabaseBackups />}
-          {activeSection === 'performance' && <PerformanceMonitoring />}
-          {activeSection === 'notifications' && <NotificationSettings />}
-          {activeSection === 'compliance' && <ComplianceManagement />}
-          {activeSection === 'advanced-settings' && <AdvancedSettings />}
+      {maintenanceMode && (
+        <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-lg flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 text-yellow-600" />
+          <p className="text-yellow-600 font-semibold">Maintenance mode is active - players cannot access the platform</p>
         </div>
-      </div>
+      )}
+
+      {/* Stats Overview */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader>
+              <CardDescription>Total Players</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black">{stats.total_players || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                {stats.active_players || 0} active
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardDescription>Verified Players</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black text-green-600">{stats.verified_players || 0}</div>
+              <p className="text-xs text-muted-foreground">KYC Verified</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardDescription>Active Games</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black text-primary">{games?.length || 0}</div>
+              <p className="text-xs text-muted-foreground">Available to play</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardDescription>AI Employees</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black text-blue-600">{aiEmployees?.length || 0}</div>
+              <p className="text-xs text-muted-foreground">Active assistants</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <Tabs defaultValue="players" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="players">
+            <Users className="w-4 h-4 mr-2" />
+            Players
+          </TabsTrigger>
+          <TabsTrigger value="games">
+            <Gamepad2 className="w-4 h-4 mr-2" />
+            Games
+          </TabsTrigger>
+          <TabsTrigger value="ai">
+            <Zap className="w-4 h-4 mr-2" />
+            AI Staff
+          </TabsTrigger>
+          <TabsTrigger value="analytics">
+            <BarChart3 className="w-4 h-4 mr-2" />
+            Analytics
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Players Tab */}
+        <TabsContent value="players" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Players</CardTitle>
+              <CardDescription>Manage player accounts and balances</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {players.length > 0 ? (
+                  players.map(player => (
+                    <div key={player.id} className="p-3 border border-border rounded-lg flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">{player.name}</p>
+                        <p className="text-xs text-muted-foreground">{player.email}</p>
+                      </div>
+                      <div className="text-right text-sm">
+                        <p>GC: {(player.gc_balance || 0).toLocaleString()}</p>
+                        <p>SC: {(player.sc_balance || 0).toFixed(2)}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground">No players found</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Games Tab */}
+        <TabsContent value="games" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Games</CardTitle>
+              <CardDescription>Manage game settings and RTP</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {games.length > 0 ? (
+                  games.map(game => (
+                    <div key={game.id} className="p-3 border border-border rounded-lg flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">{game.name}</p>
+                        <p className="text-xs text-muted-foreground">{game.category}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={game.enabled ? 'default' : 'destructive'}>
+                          RTP: {game.rtp}%
+                        </Badge>
+                        <Button size="sm" variant="outline">Edit</Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground">No games found</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* AI Staff Tab */}
+        <TabsContent value="ai" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Employees</CardTitle>
+              <CardDescription>Manage AI assistants and their duties</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {aiEmployees.length > 0 ? (
+                  aiEmployees.map(ai => (
+                    <div key={ai.id} className="p-3 border border-border rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="font-semibold">{ai.name}</p>
+                          <p className="text-xs text-muted-foreground">{ai.role}</p>
+                        </div>
+                        <Badge variant={ai.status === 'active' ? 'default' : 'secondary'}>
+                          {ai.status}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Tasks: {ai.tasks?.join(', ') || 'None'}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground">No AI employees found</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Analytics</CardTitle>
+              <CardDescription>Platform statistics and insights</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Avg GC Balance</p>
+                    <p className="text-2xl font-bold">
+                      ${(stats?.avg_gc_balance || 0).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Avg SC Balance</p>
+                    <p className="text-2xl font-bold">
+                      ${(stats?.avg_sc_balance || 0).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
