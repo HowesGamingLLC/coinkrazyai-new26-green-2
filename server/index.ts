@@ -108,6 +108,9 @@ import {
   updatePlayerStatus,
   updatePlayerBalance,
   getPlayerTransactions,
+  getPlayerTransactionsByUsername,
+  updatePlayerBalanceByUsername,
+  updatePlayerStatusByUsername,
   submitKYC,
   approveKYC,
   rejectKYC
@@ -340,6 +343,12 @@ export function createServer() {
   app.put("/api/admin/v2/players/:playerId/status", verifyAdmin, updatePlayerStatus);
   app.put("/api/admin/v2/players/:playerId/balance", verifyAdmin, updatePlayerBalance);
   app.get("/api/admin/v2/players/:playerId/transactions", verifyAdmin, getPlayerTransactions);
+
+  // Username-based routes
+  app.put("/api/admin/v2/players/username/:username/status", verifyAdmin, updatePlayerStatusByUsername);
+  app.put("/api/admin/v2/players/username/:username/balance", verifyAdmin, updatePlayerBalanceByUsername);
+  app.get("/api/admin/v2/players/username/:username/transactions", verifyAdmin, getPlayerTransactionsByUsername);
+
   app.post("/api/admin/v2/kyc/submit", verifyAdmin, submitKYC);
   app.post("/api/admin/v2/kyc/:documentId/approve", verifyAdmin, approveKYC);
   app.post("/api/admin/v2/kyc/:documentId/reject", verifyAdmin, rejectKYC);

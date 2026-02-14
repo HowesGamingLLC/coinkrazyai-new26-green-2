@@ -55,9 +55,9 @@ const AdminPlayers = () => {
     fetchPlayers();
   }, [page, searchTerm, statusFilter, kycFilter]);
 
-  const handleStatusChange = async (playerId: number, newStatus: string) => {
+  const handleStatusChange = async (username: string, newStatus: string) => {
     try {
-      await adminV2.players.updateStatus(playerId, newStatus);
+      await adminV2.players.updateStatusByUsername(username, newStatus);
       toast.success(`Player status updated to ${newStatus}`);
       fetchPlayers();
     } catch (error) {
@@ -66,13 +66,13 @@ const AdminPlayers = () => {
     }
   };
 
-  const handleBalanceUpdate = async (playerId: number, gcAmount: number, scAmount: number) => {
+  const handleBalanceUpdate = async (username: string, gcAmount: number, scAmount: number) => {
     const newGc = prompt('Enter new GC balance:', String(gcAmount));
     if (newGc !== null) {
       const newSc = prompt('Enter new SC balance:', String(scAmount));
       if (newSc !== null) {
         try {
-          await adminV2.players.updateBalance(playerId, parseFloat(newGc), parseFloat(newSc));
+          await adminV2.players.updateBalanceByUsername(username, parseFloat(newGc), parseFloat(newSc));
           toast.success('Player balance updated');
           fetchPlayers();
         } catch (error) {
@@ -212,7 +212,7 @@ const AdminPlayers = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleBalanceUpdate(player.id, player.gc_balance, player.sc_balance)}
+                            onClick={() => handleBalanceUpdate(player.username, player.gc_balance, player.sc_balance)}
                           >
                             Balance
                           </Button>
@@ -220,7 +220,7 @@ const AdminPlayers = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => handleStatusChange(
-                              player.id,
+                              player.username,
                               player.status === 'Active' ? 'Suspended' : 'Active'
                             )}
                           >
