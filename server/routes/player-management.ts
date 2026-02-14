@@ -34,10 +34,12 @@ export const listPlayers: RequestHandler = async (req, res) => {
     params.push(offset);
 
     const result = await query(
-      `SELECT 
-        p.id, p.username, p.email, p.name, p.gc_balance, p.sc_balance, 
-        p.status, p.kyc_level, p.created_at, p.last_login, p.phone, p.country,
-        ps.total_wagered, ps.total_won, ps.games_played
+      `SELECT
+        p.id, p.username, p.email, p.name, p.gc_balance, p.sc_balance,
+        p.status, p.kyc_level, p.created_at, p.last_login,
+        COALESCE(ps.total_wagered, 0) as total_wagered,
+        COALESCE(ps.total_won, 0) as total_won,
+        COALESCE(ps.games_played, 0) as games_played
       FROM players p
       LEFT JOIN player_stats ps ON p.id = ps.player_id
       ${whereClause}
