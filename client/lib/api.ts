@@ -551,6 +551,12 @@ export const adminV2 = {
         body: JSON.stringify({ gameId, data }),
       });
     },
+    crawlSlots: async (url: string) => {
+      return adminApiCall<any>('/admin/v2/games/crawl', {
+        method: 'POST',
+        body: JSON.stringify({ url }),
+      });
+    },
   },
 
   poker: {

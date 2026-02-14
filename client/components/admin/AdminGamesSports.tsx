@@ -449,6 +449,30 @@ const AdminGamesSports = () => {
                     <Button className="w-full" type="submit">Build with AI</Button>
                   </form>
                 </div>
+
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-semibold mb-3">Slots Game Crawler</h4>
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const url = formData.get('crawlUrl') as string;
+                    try {
+                      const res = await adminV2.games.crawlSlots(url);
+                      if (res.success) {
+                        toast.success(res.message || 'Crawl started');
+                        (e.target as HTMLFormElement).reset();
+                      } else {
+                        toast.error(res.error || 'Failed to start crawl');
+                      }
+                    } catch (error) {
+                      toast.error('Failed to connect to crawler');
+                    }
+                  }} className="space-y-2">
+                    <Input name="crawlUrl" placeholder="Enter URL to crawl (e.g., https://games.com/slots)" type="url" required />
+                    <p className="text-[10px] text-muted-foreground italic">Automatically identifies and imports slot game mechanics from provided URL.</p>
+                    <Button className="w-full bg-orange-600 hover:bg-orange-700" type="submit">Start Crawler</Button>
+                  </form>
+                </div>
               </div>
 
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">

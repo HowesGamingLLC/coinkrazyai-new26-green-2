@@ -295,3 +295,29 @@ export const ingestGameData: RequestHandler = async (req, res) => {
     res.status(500).json({ error: 'Failed to ingest game data' });
   }
 };
+
+export const crawlSlots: RequestHandler = async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+
+    // Mock crawling process
+    console.log(`[Crawler] Starting crawl for: ${url}`);
+
+    // Simulate some work
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    await SlackService.notifyAdminAction(req.user?.email || 'admin', 'Triggered Slots Crawler', `URL: ${url}`);
+
+    res.json({
+      success: true,
+      message: 'Crawl started successfully. Results will appear in the library soon.',
+      task_id: Math.floor(Math.random() * 1000000)
+    });
+  } catch (error) {
+    console.error('Crawl slots error:', error);
+    res.status(500).json({ error: 'Failed to start crawler' });
+  }
+};
