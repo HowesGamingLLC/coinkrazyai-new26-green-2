@@ -262,6 +262,12 @@ export function createServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Log all requests
+  app.use((req, _res, next) => {
+    console.log(`[HTTP] ${req.method} ${req.url}`);
+    next();
+  });
+
   // ===== AUTH ROUTES =====
   app.post("/api/auth/register", handleRegister);
   app.post("/api/auth/login", handleLogin);

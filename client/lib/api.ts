@@ -8,6 +8,7 @@ export async function apiCall<T>(
   options?: RequestInit
 ): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
+  console.log(`[apiCall] Fetching: ${url}`);
   const token = localStorage.getItem('auth_token');
 
   const headers: HeadersInit = {
