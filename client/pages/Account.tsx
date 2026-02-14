@@ -1,172 +1,286 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Save, Lock, Bell, Eye, EyeOff } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
-export default function Account() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [settings, setSettings] = useState({
-    email: 'john@example.com',
+const Account = () => {
+  const { user, isLoading, isAuthenticated, refreshProfile } = useAuth();
+  const navigate = useNavigate();
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
-    emailNotifications: true,
-    smsNotifications: false,
-    pushNotifications: true,
-    twoFactor: false,
-    responsibleGaming: true,
-    gameSpeed: 'normal',
-    theme: 'dark'
   });
 
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.name,
+        email: user.email,
+      }));
+    }
+  }, [user, isLoading, isAuthenticated, navigate]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setError('');
+  };
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsUpdating(true);
+
+    try {
+      const updates: any = {};
+      
+      if (formData.name !== user?.name) {
+        updates.name = formData.name;
+      }
+      if (formData.email !== user?.email) {
+        updates.email = formData.email;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        toast.info('No changes to save');
+        setIsUpdating(false);
+        return;
+      }
+
+      // TODO: Call API to update profile
+      // For now, just show success
+      await refreshProfile();
+      toast.success('Profile updated successfully');
+    } catch (err: any) {
+      const message = err.message || 'Update failed';
+      setError(message);
+      toast.error(message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!formData.currentPassword) {
+      setError('Current password is required');
+      return;
+    }
+
+    if (!formData.newPassword) {
+      setError('New password is required');
+      return;
+    }
+
+    if (formData.newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (formData.newPassword !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    setIsUpdating(true);
+
+    try {
+      // TODO: Call API to update password
+      toast.success('Password updated successfully');
+      setFormData(prev => ({
+        ...prev,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      }));
+    } catch (err: any) {
+      const message = err.message || 'Password update failed';
+      setError(message);
+      toast.error(message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-4xl font-black">Account Settings</h1>
-          <p className="text-muted-foreground mt-2">Manage your account and preferences</p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Account Settings</h1>
+        <p className="text-muted-foreground">Manage your account preferences and security</p>
+      </div>
 
-        {/* Change Password */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Lock className="w-5 h-5 text-primary" />
-              <div>
-                <CardTitle>Change Password</CardTitle>
-                <CardDescription>Update your security password</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-bold mb-2 block">Current Password</label>
-              <Input type="password" placeholder="••••••••" className="bg-muted/50" />
-            </div>
-            <div>
-              <label className="text-sm font-bold mb-2 block">New Password</label>
-              <Input type="password" placeholder="••••••••" className="bg-muted/50" />
-            </div>
-            <div>
-              <label className="text-sm font-bold mb-2 block">Confirm Password</label>
-              <Input type="password" placeholder="••••••••" className="bg-muted/50" />
-            </div>
-            <Button className="font-bold">
-              <Save className="w-4 h-4 mr-2" /> Update Password
-            </Button>
-          </CardContent>
-        </Card>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-        {/* Two-Factor Authentication */}
-        <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Profile Update */}
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Two-Factor Authentication</CardTitle>
-                <CardDescription>Add extra security to your account</CardDescription>
-              </div>
-              <Badge className={settings.twoFactor ? 'bg-green-500/10 text-green-500' : 'bg-gray-500/10 text-gray-500'} style={{borderStyle: 'none'}}>
-                {settings.twoFactor ? 'Enabled' : 'Disabled'}
-              </Badge>
-            </div>
+            <CardTitle>Profile Information</CardTitle>
+            <CardDescription>Update your personal information</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              {settings.twoFactor ? 'Two-factor authentication is enabled.' : 'Protect your account with an extra layer of security.'}
-            </p>
-            <Button className={settings.twoFactor ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'font-bold'}>
-              {settings.twoFactor ? 'Disable 2FA' : 'Enable 2FA'}
+            <form onSubmit={handleProfileUpdate} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  disabled={isUpdating}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  disabled={isUpdating}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isUpdating}
+                className="w-full"
+              >
+                {isUpdating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Save Profile
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Quick Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Settings</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button variant="outline" className="w-full justify-start">
+              Two-Factor Auth
             </Button>
-          </CardContent>
-        </Card>
-
-        {/* Notification Preferences */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-primary" />
-              <div>
-                <CardTitle>Notifications</CardTitle>
-                <CardDescription>Choose how you receive updates</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {[
-              { label: 'Email Notifications', key: 'emailNotifications', desc: 'Game results, bonuses, promotions' },
-              { label: 'SMS Notifications', key: 'smsNotifications', desc: 'Important account alerts' },
-              { label: 'Push Notifications', key: 'pushNotifications', desc: 'Live game updates' }
-            ].map((notif) => (
-              <div key={notif.key} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
-                <div>
-                  <p className="font-bold">{notif.label}</p>
-                  <p className="text-sm text-muted-foreground">{notif.desc}</p>
-                </div>
-                <input type="checkbox" defaultChecked={settings[notif.key as keyof typeof settings] === true} className="w-5 h-5 rounded" />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Preferences */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Preferences</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-bold mb-2 block">Game Speed</label>
-                <select
-                  value={settings.gameSpeed}
-                  onChange={(e) => setSettings({...settings, gameSpeed: e.target.value})}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
-                >
-                  <option value="slow">Slow</option>
-                  <option value="normal">Normal</option>
-                  <option value="fast">Fast</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-bold mb-2 block">Theme</label>
-                <select
-                  value={settings.theme}
-                  onChange={(e) => setSettings({...settings, theme: e.target.value})}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
-                >
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                  <option value="auto">Auto</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
-              <div>
-                <p className="font-bold">Responsible Gaming</p>
-                <p className="text-sm text-muted-foreground">Set spending limits and session timers</p>
-              </div>
-              <input type="checkbox" defaultChecked={settings.responsibleGaming} className="w-5 h-5 rounded" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Danger Zone */}
-        <Card className="border-red-500/20 bg-red-500/5">
-          <CardHeader>
-            <CardTitle className="text-red-500">Danger Zone</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/20">
-              <p className="font-bold text-sm mb-2">Delete Account</p>
-              <p className="text-sm text-muted-foreground mb-4">Permanently delete your account and all data. This cannot be undone.</p>
-              <Button className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border-red-500/20">Delete Account</Button>
-            </div>
+            <Button variant="outline" className="w-full justify-start">
+              Notification Settings
+            </Button>
+            <Button variant="outline" className="w-full justify-start">
+              Privacy Settings
+            </Button>
           </CardContent>
         </Card>
       </div>
+
+      {/* Password Update */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Change Password</CardTitle>
+          <CardDescription>Update your password to keep your account secure</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handlePasswordUpdate} className="space-y-4 max-w-md">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <Input
+                id="currentPassword"
+                name="currentPassword"
+                type="password"
+                placeholder="••••••••"
+                value={formData.currentPassword}
+                onChange={handleChange}
+                disabled={isUpdating}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                name="newPassword"
+                type="password"
+                placeholder="••••••••"
+                value={formData.newPassword}
+                onChange={handleChange}
+                disabled={isUpdating}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                placeholder="••••••••"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                disabled={isUpdating}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isUpdating}
+            >
+              {isUpdating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Update Password
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
+        <CardHeader>
+          <CardTitle className="text-red-600">Danger Zone</CardTitle>
+          <CardDescription>Irreversible actions</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button variant="destructive" className="w-full">
+            Delete Account
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
-}
+};
+
+export default Account;

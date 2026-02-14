@@ -5,9 +5,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/lib/auth-context";
 import { Layout } from "@/components/Layout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Store from "./pages/Store";
 import Admin from "./pages/Admin";
 import Slots from "./pages/Slots";
@@ -30,27 +33,31 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/games" element={<Games />} />
-            <Route path="/store" element={<Store />} />
-            <Route path="/slots" element={<Slots />} />
-            <Route path="/poker" element={<Poker />} />
-            <Route path="/bingo" element={<Bingo />} />
-            <Route path="/sportsbook" element={<Sportsbook />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/account" element={<Account />} />
-            <Route path="/wallet" element={<Wallet />} />
-            <Route path="/leaderboards" element={<Leaderboards />} />
-            <Route path="/achievements" element={<Achievements />} />
-            <Route path="/support" element={<Support />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/games" element={<Games />} />
+              <Route path="/store" element={<Store />} />
+              <Route path="/slots" element={<Slots />} />
+              <Route path="/poker" element={<Poker />} />
+              <Route path="/bingo" element={<Bingo />} />
+              <Route path="/sportsbook" element={<Sportsbook />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/account" element={<Account />} />
+              <Route path="/wallet" element={<Wallet />} />
+              <Route path="/leaderboards" element={<Leaderboards />} />
+              <Route path="/achievements" element={<Achievements />} />
+              <Route path="/support" element={<Support />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Layout>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

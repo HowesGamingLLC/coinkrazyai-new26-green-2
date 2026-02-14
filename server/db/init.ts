@@ -20,8 +20,9 @@ export const initializeDatabase = async () => {
           await query(statement);
         } catch (err: any) {
           // Log but don't fail on schema errors - the table might already exist with different schema
-          if (err.code === '42703' || err.code === '42701' || err.code === '42P07') {
-            console.log('[DB] Skipping schema statement (table/index/column exists):', err.message?.substring(0, 80));
+          // 42703 = column does not exist, 42701 = duplicate column, 42P07 = table exists, 42710 = type exists
+          if (err.code === '42703' || err.code === '42701' || err.code === '42P07' || err.code === '42710') {
+            console.log('[DB] Skipping schema statement (already exists):', err.message?.substring(0, 80));
           } else {
             throw err;
           }

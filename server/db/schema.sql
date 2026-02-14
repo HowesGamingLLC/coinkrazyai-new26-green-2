@@ -322,6 +322,142 @@ LEFT JOIN player_stats ps ON p.id = ps.player_id;
 CREATE OR REPLACE VIEW active_games AS
 SELECT * FROM games WHERE enabled = TRUE;
 
+-- ===== PLAYER SESSIONS TABLE =====
+CREATE TABLE IF NOT EXISTS player_sessions (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  token TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_sessions_player_id ON player_sessions(player_id);
+CREATE INDEX IF NOT EXISTS idx_player_sessions_token ON player_sessions(token);
+
+-- ===== SLOTS RESULTS TABLE =====
+CREATE TABLE IF NOT EXISTS slots_results (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  game_id INTEGER REFERENCES games(id),
+  bet_amount DECIMAL(15, 2) NOT NULL,
+  winnings DECIMAL(15, 2) NOT NULL,
+  symbols VARCHAR(100),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_slots_results_player_id ON slots_results(player_id);
+CREATE INDEX IF NOT EXISTS idx_slots_results_game_id ON slots_results(game_id);
+
+-- ===== POKER RESULTS TABLE =====
+CREATE TABLE IF NOT EXISTS poker_results (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  table_id INTEGER REFERENCES poker_tables(id),
+  buy_in DECIMAL(15, 2) NOT NULL,
+  cash_out DECIMAL(15, 2),
+  hands_played INTEGER,
+  duration_minutes INTEGER,
+  profit DECIMAL(15, 2),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_poker_results_player_id ON poker_results(player_id);
+CREATE INDEX IF NOT EXISTS idx_poker_results_table_id ON poker_results(table_id);
+
+-- ===== BINGO RESULTS TABLE =====
+CREATE TABLE IF NOT EXISTS bingo_results (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  game_id INTEGER REFERENCES bingo_games(id),
+  ticket_price DECIMAL(8, 2) NOT NULL,
+  winnings DECIMAL(15, 2),
+  pattern_matched VARCHAR(50),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_bingo_results_player_id ON bingo_results(player_id);
+CREATE INDEX IF NOT EXISTS idx_bingo_results_game_id ON bingo_results(game_id);
+
+-- ===== TRANSACTIONS TABLE =====
+CREATE TABLE IF NOT EXISTS transactions (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  type VARCHAR(100) NOT NULL,
+  amount DECIMAL(15, 2) NOT NULL,
+  currency VARCHAR(3) DEFAULT 'USD',
+  status VARCHAR(50) DEFAULT 'Completed',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_player_id ON transactions(player_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON transactions(created_at);
+
+-- ===== LEADERBOARD ENTRIES TABLE =====
+CREATE TABLE IF NOT EXISTS leaderboard_entries (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  leaderboard_type VARCHAR(100) NOT NULL,
+  rank INTEGER,
+  score DECIMAL(15, 2) NOT NULL,
+  period VARCHAR(50),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(player_id, leaderboard_type, period)
+);
+
+CREATE INDEX IF NOT EXISTS idx_leaderboard_entries_type ON leaderboard_entries(leaderboard_type);
+CREATE INDEX IF NOT EXISTS idx_leaderboard_entries_period ON leaderboard_entries(period);
+
+-- ===== SPORTS BETS TABLE =====
+CREATE TABLE IF NOT EXISTS sports_bets (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  event_id INTEGER REFERENCES sports_events(id),
+  bet_type VARCHAR(50) NOT NULL,
+  amount DECIMAL(15, 2) NOT NULL,
+  odds DECIMAL(8, 4),
+  potential_winnings DECIMAL(15, 2),
+  actual_winnings DECIMAL(15, 2),
+  status VARCHAR(50) DEFAULT 'Pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  settled_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_sports_bets_player_id ON sports_bets(player_id);
+CREATE INDEX IF NOT EXISTS idx_sports_bets_event_id ON sports_bets(event_id);
+
+-- ===== WALLET LEDGER TABLE =====
+CREATE TABLE IF NOT EXISTS wallet_ledger (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  transaction_type VARCHAR(100) NOT NULL,
+  gc_amount DECIMAL(15, 2) DEFAULT 0,
+  sc_amount DECIMAL(15, 2) DEFAULT 0,
+  gc_balance_after DECIMAL(15, 2),
+  sc_balance_after DECIMAL(15, 2),
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_wallet_ledger_player_id ON wallet_ledger(player_id);
+CREATE INDEX IF NOT EXISTS idx_wallet_ledger_created_at ON wallet_ledger(created_at);
+
+-- ===== PURCHASES TABLE =====
+CREATE TABLE IF NOT EXISTS purchases (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  pack_id INTEGER REFERENCES store_packs(id),
+  amount_usd DECIMAL(8, 2) NOT NULL,
+  gold_coins INTEGER,
+  sweeps_coins INTEGER,
+  payment_method VARCHAR(50),
+  payment_id VARCHAR(255) UNIQUE,
+  status VARCHAR(50) DEFAULT 'Completed',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_purchases_player_id ON purchases(player_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_created_at ON purchases(created_at);
+
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_wallet_transactions_type ON wallet_transactions(type);
 CREATE INDEX IF NOT EXISTS idx_bets_player_id ON bets(player_id);

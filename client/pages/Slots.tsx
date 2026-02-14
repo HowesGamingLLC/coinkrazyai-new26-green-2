@@ -1,231 +1,338 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/auth-context';
+import { slots, games } from '@/lib/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useWallet } from '@/hooks/use-wallet';
-import { toast } from '@/hooks/use-toast';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Coins, Trophy, Info, TrendingUp } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { CoinAnimation } from '@/components/CoinAnimation';
-import { ApiClient } from '@/lib/api';
+import { Loader2, Zap, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { toast } from 'sonner';
+import { GameInfo } from '@shared/api';
 
-const SYMBOL_MAP: Record<string, string> = {
-  cherry: '🍒',
-  lemon: '🍋',
-  orange: '🍊',
-  plum: '🍇',
-  bell: '🔔',
-  diamond: '💎',
-  seven: '7️⃣'
+const SYMBOLS = ['🍒', '🍊', '🍋', '🍌', '🍉', '⭐', '💎', '🔔'];
+const WINNING_COMBINATIONS = {
+  'three_of_a_kind': 10,
+  'two_pair': 3,
+  'single_pair': 1,
 };
 
+interface GameState {
+  reels: [string, string, string];
+  isSpinning: boolean;
+  lastWinnings: number;
+  totalWins: number;
+  totalLosses: number;
+  spins: number;
+}
+
 const Slots = () => {
-  const { wallet, currency, refreshWallet } = useWallet();
-  const [bet, setBet] = useState(10);
-  const [isSpinning, setIsSpinning] = useState(false);
-  const [reels, setReels] = useState([
-    ['cherry', 'lemon', 'orange'],
-    ['bell', 'seven', 'diamond'],
-    ['plum', 'cherry', 'bell']
-  ]);
-  const [winnings, setWinnings] = useState(0);
-  const [showWinAnimation, setShowWinAnimation] = useState(false);
-  const [config, setConfig] = useState<any>(null);
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [gameList, setGameList] = useState<GameInfo[]>([]);
+  const [selectedGame, setSelectedGame] = useState<GameInfo | null>(null);
+  const [isLoadingGames, setIsLoadingGames] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const [betAmount, setBetAmount] = useState(100);
+  const [gameState, setGameState] = useState<GameState>({
+    reels: ['🎰', '🎰', '🎰'],
+    isSpinning: false,
+    lastWinnings: 0,
+    totalWins: 0,
+    totalLosses: 0,
+    spins: 0,
+  });
 
   useEffect(() => {
-    const fetchConfig = async () => {
+    if (!authLoading && !isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    const fetchGames = async () => {
       try {
-        const res = await ApiClient.getSlotsConfig();
-        if (res.success) {
-          setConfig(res.data);
+        const response = await games.getGames();
+        const slotGames = (response.data || []).filter(g => g.type === 'slots');
+        setGameList(slotGames);
+        if (slotGames.length > 0) {
+          setSelectedGame(slotGames[0]);
         }
-      } catch (error) {
-        console.error('Failed to fetch slots config:', error);
+      } catch (error: any) {
+        console.error('Failed to fetch games:', error);
+        toast.error('Failed to load games');
+      } finally {
+        setIsLoadingGames(false);
       }
     };
-    fetchConfig();
-  }, []);
 
-  const handleSpin = async () => {
-    if (isSpinning) return;
-    if (!wallet) {
-      toast({ title: "Error", description: "Wallet not loaded", variant: "destructive" });
-      return;
+    if (isAuthenticated) {
+      fetchGames();
     }
+  }, [isAuthenticated, authLoading, navigate]);
 
-    // Check balance
-    const balance = currency === 'GC' ? wallet.goldCoins : wallet.sweepsCoins;
-    if (balance < bet) {
-      toast({ title: "Insufficient Balance", description: `You need ${bet} ${currency}. You have ${balance}.`, variant: "destructive" });
-      return;
+  const getWinAmount = (reels: [string, string, string]) => {
+    if (reels[0] === reels[1] && reels[1] === reels[2]) {
+      return betAmount * 10;
+    } else if (reels[0] === reels[1] || reels[1] === reels[2]) {
+      return betAmount * 2;
     }
-
-    setIsSpinning(true);
-    setWinnings(0);
-    setShowWinAnimation(false);
-
-    try {
-      const res = await ApiClient.spinSlots(1, bet);
-      const data = res;
-
-      if (data.success) {
-        // Simulate reel spinning delay
-        setTimeout(() => {
-          if (data.data?.symbols) {
-            const symbols = data.data.symbols.split(',');
-            setReels([
-              [symbols[0], symbols[3], symbols[6]],
-              [symbols[1], symbols[4], symbols[7]],
-              [symbols[2], symbols[5], symbols[8]]
-            ]);
-          }
-          setIsSpinning(false);
-
-          if (data.data?.winnings > 0) {
-            setWinnings(data.data.winnings);
-            setShowWinAnimation(true);
-            toast({
-              title: "🎉 BIG WIN!",
-              description: `You won ${data.data.winnings} ${currency}!`,
-              className: "bg-primary text-primary-foreground font-bold"
-            });
-          } else {
-            toast({
-              title: "No Win",
-              description: "Better luck next time!",
-              variant: "default"
-            });
-          }
-
-          // Refresh wallet after a short delay
-          setTimeout(refreshWallet, 500);
-        }, 2000);
-      } else {
-        setIsSpinning(false);
-        toast({ title: "Error", description: data.error || "Spin failed", variant: "destructive" });
-      }
-    } catch (e) {
-      setIsSpinning(false);
-      toast({ title: "Error", description: "Spin failed. Try again.", variant: "destructive" });
-      console.error('Spin error:', e);
-    }
+    return 0;
   };
 
+  const handleSpin = async () => {
+    if (gameState.isSpinning) return;
+    if (!selectedGame) return;
+    if ((user?.gc_balance || 0) < betAmount) {
+      toast.error('Insufficient balance');
+      return;
+    }
+
+    setGameState(prev => ({ ...prev, isSpinning: true, lastWinnings: 0 }));
+
+    // Simulate spinning
+    const spinDuration = 1500;
+    let spinCount = 0;
+    const spinInterval = setInterval(() => {
+      const newReels: [string, string, string] = [
+        SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+        SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+        SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+      ];
+      setGameState(prev => ({ ...prev, reels: newReels }));
+      spinCount++;
+
+      if (spinCount * 50 >= spinDuration) {
+        clearInterval(spinInterval);
+        // Final result
+        const finalReels: [string, string, string] = [
+          SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+          SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+          SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+        ];
+        setGameState(prev => {
+          const winAmount = getWinAmount(finalReels);
+          const newState = {
+            ...prev,
+            reels: finalReels,
+            isSpinning: false,
+            lastWinnings: winAmount,
+            totalWins: prev.totalWins + winAmount,
+            totalLosses: prev.totalLosses + (winAmount === 0 ? betAmount : 0),
+            spins: prev.spins + 1,
+          };
+
+          if (winAmount > 0) {
+            toast.success(`You won ${winAmount} GC!`);
+            if (!isMuted) playSound();
+          } else {
+            toast.info('No win this time. Try again!');
+          }
+
+          return newState;
+        });
+
+        // Call API to record result
+        try {
+          await slots.spin(selectedGame.id as number, betAmount);
+        } catch (error) {
+          console.error('Failed to record spin:', error);
+        }
+      }
+    }, 50);
+  };
+
+  const playSound = () => {
+    // Placeholder for sound effect
+    console.log('Playing win sound');
+  };
+
+  const resetGame = () => {
+    setGameState({
+      reels: ['🎰', '🎰', '🎰'],
+      isSpinning: false,
+      lastWinnings: 0,
+      totalWins: 0,
+      totalLosses: 0,
+      spins: 0,
+    });
+  };
+
+  if (isLoadingGames) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <CoinAnimation trigger={showWinAnimation} />
-      
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-2">
-          <Badge className="bg-primary/20 text-primary border-none">
-            <Zap className="w-3 h-3 mr-1 fill-primary" /> SlotsAI RTP Active: 96.5%
-          </Badge>
-          <h1 className="text-4xl md:text-6xl font-black tracking-tighter italic">KRAZY <span className="text-primary">SEVENS</span></h1>
-          <p className="text-muted-foreground font-medium">Classic 3x3 Slots with AI-powered Jackpots.</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-black tracking-tight">SLOTS</h1>
+          <p className="text-muted-foreground">Spin to win with our AI-powered slot machines</p>
         </div>
-        
-        <Card className="bg-muted/50 border-border p-4 flex gap-8">
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase">WINNINGS</p>
-            <p className="text-2xl font-black text-primary">+{winnings} {currency}</p>
-          </div>
-          <div className="border-l border-border pl-8">
-            <p className="text-xs font-bold text-muted-foreground uppercase">BALANCE</p>
-            <p className="text-2xl font-black">
-              {currency === 'GC' ? wallet?.goldCoins.toLocaleString() : wallet?.sweepsCoins.toFixed(2)}
-            </p>
-          </div>
-        </Card>
-      </div>
-
-      {/* Slots Board */}
-      <div className="relative p-8 bg-gradient-to-b from-muted to-background rounded-3xl border-4 border-border shadow-2xl">
-        <div className="grid grid-cols-3 gap-4 h-64 md:h-80">
-          {reels.map((column, colIdx) => (
-            <div key={colIdx} className="bg-card border-2 border-border/50 rounded-2xl overflow-hidden relative flex flex-col justify-around">
-              <AnimatePresence mode="wait">
-                {column.map((symbol, rowIdx) => (
-                  <motion.div
-                    key={`${symbol}-${rowIdx}-${isSpinning}`}
-                    initial={isSpinning ? { y: -100, opacity: 0 } : { y: 0, opacity: 1 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: 100, opacity: 0 }}
-                    transition={{ 
-                      duration: 0.1, 
-                      repeat: isSpinning ? Infinity : 0,
-                      delay: colIdx * 0.1
-                    }}
-                    className="flex items-center justify-center text-5xl md:text-7xl"
-                  >
-                    {SYMBOL_MAP[symbol]}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              
-              {/* Spinning Overlay */}
-              {isSpinning && (
-                <div className="absolute inset-0 bg-primary/5 animate-pulse pointer-events-none" />
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Win Lines Visualization (Simplified) */}
-        <div className="absolute top-1/2 left-0 right-0 h-1 bg-primary/20 -translate-y-1/2 pointer-events-none" />
-      </div>
-
-      {/* Controls */}
-      <div className="bg-muted p-6 rounded-3xl border border-border flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="space-y-1">
-            <p className="text-xs font-bold text-muted-foreground uppercase">BET AMOUNT</p>
-            <div className="flex items-center gap-2">
-              {[10, 50, 100, 500].map(val => (
-                <Button 
-                  key={val}
-                  size="sm"
-                  variant={bet === val ? 'default' : 'outline'}
-                  onClick={() => setBet(val)}
-                  className="font-bold"
-                >
-                  {val}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <Button 
-          size="lg"
-          onClick={handleSpin}
-          disabled={isSpinning}
-          className={cn(
-            "w-full md:w-64 h-16 text-2xl font-black italic tracking-wider transition-all shadow-lg shadow-primary/20",
-            isSpinning ? "opacity-50" : "hover:scale-105"
-          )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsMuted(!isMuted)}
+          className="rounded-full"
         >
-          {isSpinning ? 'SPINNING...' : 'SPIN'}
+          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
         </Button>
       </div>
 
-      {/* Paytable Preview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 bg-muted/30 rounded-xl border border-border text-center">
-          <p className="text-4xl mb-2">7️⃣7️⃣7️⃣</p>
-          <p className="text-xs font-bold text-muted-foreground uppercase">100x Bet</p>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Game Selection Sidebar */}
+        <div className="space-y-4">
+          <h3 className="font-bold text-sm uppercase tracking-wider">Available Games</h3>
+          <div className="space-y-2">
+            {gameList.map(game => (
+              <button
+                key={game.id}
+                onClick={() => setSelectedGame(game)}
+                className={`w-full text-left p-3 rounded-lg border transition-all ${
+                  selectedGame?.id === game.id
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:bg-muted'
+                }`}
+              >
+                <p className="font-semibold text-sm">{game.title || game.name}</p>
+                <p className="text-xs text-muted-foreground">RTP: {game.rtp}%</p>
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="p-4 bg-muted/30 rounded-xl border border-border text-center">
-          <p className="text-4xl mb-2">💎💎💎</p>
-          <p className="text-xs font-bold text-muted-foreground uppercase">50x Bet</p>
-        </div>
-        <div className="p-4 bg-muted/30 rounded-xl border border-border text-center">
-          <p className="text-4xl mb-2">🔔🔔🔔</p>
-          <p className="text-xs font-bold text-muted-foreground uppercase">10x Bet</p>
-        </div>
-        <div className="p-4 bg-muted/30 rounded-xl border border-border flex items-center justify-center gap-2">
-          <Info className="w-5 h-5 text-muted-foreground" />
-          <p className="text-xs font-bold text-muted-foreground uppercase">View Full Paytable</p>
+
+        {/* Main Game Area */}
+        <div className="lg:col-span-3 space-y-6">
+          {selectedGame && (
+            <>
+              {/* Game Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>{selectedGame.title || selectedGame.name}</CardTitle>
+                  <CardDescription>
+                    RTP: {selectedGame.rtp}% | Volatility: {selectedGame.volatility || 'Medium'}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              {/* Slot Machine */}
+              <Card className="bg-gradient-to-b from-primary/10 to-primary/5 border-primary/20">
+                <CardContent className="pt-8">
+                  <div className="space-y-6">
+                    {/* Reels */}
+                    <div className="flex items-center justify-center gap-4">
+                      {gameState.reels.map((symbol, i) => (
+                        <div
+                          key={i}
+                          className={`w-24 h-24 md:w-32 md:h-32 flex items-center justify-center text-5xl md:text-6xl border-4 border-primary rounded-lg bg-muted/80 transition-transform ${
+                            gameState.isSpinning ? 'animate-bounce' : ''
+                          }`}
+                        >
+                          {symbol}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Last Result */}
+                    {gameState.lastWinnings > 0 && (
+                      <div className="text-center p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                        <p className="text-sm text-muted-foreground">Last Win</p>
+                        <p className="text-3xl font-black text-green-600">+{gameState.lastWinnings} GC</p>
+                      </div>
+                    )}
+
+                    {/* Controls */}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-semibold block mb-2">Bet Amount</label>
+                        <div className="flex gap-2">
+                          {[10, 50, 100, 500].map(amount => (
+                            <Button
+                              key={amount}
+                              variant={betAmount === amount ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setBetAmount(amount)}
+                              disabled={gameState.isSpinning}
+                            >
+                              {amount}
+                            </Button>
+                          ))}
+                        </div>
+                        <input
+                          type="range"
+                          min="10"
+                          max={Math.min(1000, user?.gc_balance || 0)}
+                          step="10"
+                          value={betAmount}
+                          onChange={(e) => setBetAmount(Number(e.target.value))}
+                          disabled={gameState.isSpinning}
+                          className="w-full mt-3"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                          <span>${betAmount}</span>
+                          <span>Balance: {(user?.gc_balance || 0).toLocaleString()} GC</span>
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={handleSpin}
+                        disabled={gameState.isSpinning || (user?.gc_balance || 0) < betAmount}
+                        size="lg"
+                        className="w-full font-bold text-lg"
+                      >
+                        {gameState.isSpinning ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Spinning...
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="w-4 h-4 mr-2" />
+                            SPIN NOW
+                          </>
+                        )}
+                      </Button>
+
+                      <Button
+                        onClick={resetGame}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Reset Game
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Statistics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Session Statistics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Spins</p>
+                      <p className="text-2xl font-bold">{gameState.spins}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total Wins</p>
+                      <p className="text-2xl font-bold text-green-600">{gameState.totalWins.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total Losses</p>
+                      <p className="text-2xl font-bold text-red-600">{gameState.totalLosses.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       </div>
     </div>

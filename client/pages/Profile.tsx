@@ -1,257 +1,166 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/auth-context';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Calendar, Trophy, TrendingUp, Edit2, Copy, Loader } from 'lucide-react';
-import { ApiClient } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
-import { useWallet } from '@/hooks/use-wallet';
+import { Loader2, User, Calendar, Mail, Verified } from 'lucide-react';
 
-export default function Profile() {
-  const [user, setUser] = useState<any>(null);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', email: '' });
-  const [isSaving, setIsSaving] = useState(false);
-  const { wallet } = useWallet();
+const Profile = () => {
+  const { user, isLoading, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [profileRes, txRes] = await Promise.all([
-          ApiClient.getProfile(),
-          ApiClient.getWalletTransactions(50)
-        ]);
-
-        if (profileRes.success && profileRes.data) {
-          setUser(profileRes.data);
-          setEditForm({ name: profileRes.data.username || '', email: profileRes.data.email || '' });
-        } else {
-          toast({ title: 'Error', description: 'Failed to load profile', variant: 'destructive' });
-        }
-
-        if (txRes.success && txRes.data) {
-          setTransactions(txRes.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch profile:', error);
-        toast({ title: 'Error', description: 'Failed to load profile', variant: 'destructive' });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const handleSaveProfile = async () => {
-    if (!editForm.name.trim() || !editForm.email.trim()) {
-      toast({ title: 'Validation Error', description: 'Please fill in all fields', variant: 'destructive' });
-      return;
+    if (!isLoading && !isAuthenticated) {
+      navigate('/login');
     }
-
-    setIsSaving(true);
-    try {
-      const res = await ApiClient.updateProfile({
-        name: editForm.name,
-        email: editForm.email
-      });
-
-      if (res.success) {
-        setUser({ ...user, ...editForm });
-        setIsEditing(false);
-        toast({ title: 'Success', description: 'Profile updated successfully' });
-      } else {
-        toast({ title: 'Error', description: res.message || 'Failed to update profile', variant: 'destructive' });
-      }
-    } catch (error) {
-      console.error('Failed to update profile:', error);
-      toast({ title: 'Error', description: 'Failed to update profile', variant: 'destructive' });
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  }, [isLoading, isAuthenticated, navigate]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 md:p-8">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="h-48 bg-muted animate-pulse rounded-lg" />
-          <div className="h-40 bg-muted animate-pulse rounded-lg" />
-          <div className="h-96 bg-muted animate-pulse rounded-lg" />
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 md:p-8">
-        <div className="max-w-4xl mx-auto">
-          <Card>
-            <CardContent className="p-8 text-center">
-              <p className="text-muted-foreground">Failed to load profile</p>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Profile loading failed</p>
+        <Button onClick={() => navigate('/')} className="mt-4">
+          Return Home
+        </Button>
       </div>
     );
   }
 
-  const wins = transactions.filter(t => (t.gc_amount || 0) + (t.sc_amount || 0) > 0).length;
-  const losses = transactions.filter(t => (t.gc_amount || 0) + (t.sc_amount || 0) < 0).length;
-  const winRate = wins + losses > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
+  const joinDate = user.join_date ? new Date(user.join_date).toLocaleDateString() : 'Unknown';
+  const lastLogin = user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Profile Header */}
-        <Card className="border-primary/20">
-          <CardContent className="p-8">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-6">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center">
-                  <User className="w-12 h-12 text-primary-foreground" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-black">{user.username}</h1>
-                  <p className="text-muted-foreground">@{user.username}</p>
-                  <Badge className="mt-2 bg-primary/10 text-primary border-none">Member</Badge>
-                </div>
-              </div>
-              <Button
-                className="font-bold gap-2"
-                onClick={() => setIsEditing(!isEditing)}
-              >
-                <Edit2 className="w-4 h-4" /> {isEditing ? 'Cancel' : 'Edit Profile'}
-              </Button>
-            </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Player Profile</h1>
+        <p className="text-muted-foreground">View and manage your account information</p>
+      </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="text-center">
-                <p className="text-muted-foreground text-sm uppercase font-bold">Wins</p>
-                <p className="text-2xl font-black text-green-500">{wins}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-muted-foreground text-sm uppercase font-bold">Losses</p>
-                <p className="text-2xl font-black text-red-500">{losses}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-muted-foreground text-sm uppercase font-bold">Win Rate</p>
-                <p className="text-2xl font-black">{winRate}%</p>
-              </div>
-              <div className="text-center">
-                <p className="text-muted-foreground text-sm uppercase font-bold">GC Balance</p>
-                <p className="text-2xl font-black">{wallet?.goldCoins || 0}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-muted-foreground text-sm uppercase font-bold">SC Balance</p>
-                <p className="text-2xl font-black text-green-500">{wallet?.sweepsCoins || 0}</p>
-              </div>
+      {/* Main Profile Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-1 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 w-24 h-24 rounded-full bg-primary/20 border-4 border-primary flex items-center justify-center">
+              <User className="w-12 h-12 text-primary" />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Account Details / Edit Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{isEditing ? 'Edit Profile' : 'Account Information'}</CardTitle>
+            <CardTitle className="text-2xl">{user.name}</CardTitle>
+            <CardDescription>@{user.username}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {isEditing ? (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-bold uppercase text-muted-foreground">Name</label>
-                  <input
-                    type="text"
-                    value={editForm.name}
-                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className="w-full mt-2 p-2 border border-border rounded-lg bg-background"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-bold uppercase text-muted-foreground">Email</label>
-                  <input
-                    type="email"
-                    value={editForm.email}
-                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    className="w-full mt-2 p-2 border border-border rounded-lg bg-background"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleSaveProfile}
-                    disabled={isSaving}
-                    className="flex-1"
-                  >
-                    {isSaving && <Loader className="w-4 h-4 mr-2 animate-spin" />}
-                    Save Changes
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditing(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg">
-                  <Mail className="w-5 h-5 text-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase font-bold">Email</p>
-                    <p className="font-bold">{user.email}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg">
-                  <Calendar className="w-5 h-5 text-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase font-bold">Joined</p>
-                    <p className="font-bold">{new Date(user.created_at).toLocaleDateString()}</p>
-                  </div>
-                </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Account Status</p>
+              <Badge variant={user.status === 'Active' ? 'default' : 'destructive'}>
+                {user.status}
+              </Badge>
+            </div>
+
+            {user.kyc_verified && (
+              <div className="flex items-center gap-2 text-sm text-green-600">
+                <Verified className="w-4 h-4" />
+                <span>KYC Verified</span>
               </div>
             )}
+
+            <div className="pt-4 space-y-2">
+              <Button className="w-full" asChild variant="outline">
+                <a href="/account">Edit Profile</a>
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
-        <Card>
+        {/* Profile Details */}
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
+            <CardTitle>Account Information</CardTitle>
+            <CardDescription>Your account details and preferences</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {transactions.slice(0, 5).map((tx, i) => {
-                const amount = (tx.gc_amount || 0) + (tx.sc_amount || 0);
-                const isWin = amount > 0;
-                const currencyLabel = tx.gc_amount ? 'GC' : 'SC';
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Email */}
+              <div>
+                <label className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mb-2">
+                  <Mail className="w-4 h-4" />
+                  Email Address
+                </label>
+                <p className="text-lg">{user.email}</p>
+              </div>
 
-                return (
-                  <div key={i} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                    <div>
-                      <p className="font-bold capitalize">{tx.type}</p>
-                      <p className="text-sm text-muted-foreground">{new Date(tx.created_at).toLocaleDateString()}</p>
-                    </div>
-                    <div className="text-right">
-                      <Badge className={isWin ? 'bg-green-500/10 text-green-500 border-none' : 'bg-red-500/10 text-red-500 border-none'}>
-                        {isWin ? 'Win' : 'Loss'}
-                      </Badge>
-                      <p className={`font-black mt-1 ${isWin ? 'text-green-500' : 'text-red-500'}`}>
-                        {isWin ? '+' : ''}{Math.abs(amount)} {currencyLabel}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+              {/* Join Date */}
+              <div>
+                <label className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mb-2">
+                  <Calendar className="w-4 h-4" />
+                  Member Since
+                </label>
+                <p className="text-lg">{joinDate}</p>
+              </div>
+
+              {/* KYC Level */}
+              <div>
+                <label className="text-sm font-semibold text-muted-foreground mb-2 block">
+                  Verification Level
+                </label>
+                <Badge variant="outline" className="text-base">
+                  {user.kyc_level}
+                </Badge>
+              </div>
+
+              {/* Last Login */}
+              <div>
+                <label className="text-sm font-semibold text-muted-foreground mb-2 block">
+                  Last Login
+                </label>
+                <p className="text-lg">{lastLogin}</p>
+              </div>
+            </div>
+
+            {/* Wallet Summary */}
+            <div className="pt-6 border-t border-border">
+              <h3 className="font-semibold mb-4">Wallet Balance</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-secondary/20 p-4 rounded-lg border border-secondary/20">
+                  <p className="text-sm text-muted-foreground mb-1">Gold Coins</p>
+                  <p className="text-2xl font-bold text-secondary">{user.gc_balance.toLocaleString()}</p>
+                </div>
+                <div className="bg-primary/20 p-4 rounded-lg border border-primary/20">
+                  <p className="text-sm text-muted-foreground mb-1">Sweeps Coins</p>
+                  <p className="text-2xl font-bold text-primary">{user.sc_balance.toFixed(2)}</p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Account Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Account Settings</CardTitle>
+          <CardDescription>Manage your security and preferences</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button asChild variant="outline" className="w-full">
+            <a href="/account">Change Password</a>
+          </Button>
+          <Button asChild variant="outline" className="w-full">
+            <a href="/account">Two-Factor Authentication</a>
+          </Button>
+          <Button asChild variant="outline" className="w-full">
+            <a href="/account">Privacy Settings</a>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
-}
+};
+
+export default Profile;

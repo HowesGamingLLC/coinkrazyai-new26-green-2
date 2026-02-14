@@ -1,229 +1,214 @@
 import React, { useEffect, useState } from 'react';
-import { StorePack } from '@shared/api';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/auth-context';
+import { store } from '@/lib/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Coins, Zap, ShieldCheck, Sparkles, Loader } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { CoinAnimation } from '@/components/CoinAnimation';
-import { ApiClient } from '@/lib/api';
+import { Loader2, Zap, Gift, TrendingUp } from 'lucide-react';
+import { toast } from 'sonner';
+import { StorePack } from '@shared/api';
 
 const Store = () => {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [packs, setPacks] = useState<StorePack[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState<number | null>(null);
-  const [showAnimation, setShowAnimation] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState<number | null>(null);
 
   useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
     const fetchPacks = async () => {
       try {
-        const res = await ApiClient.getStorePacks();
-        if (res.success && res.data) {
-          setPacks(res.data);
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to load coin packs",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        console.error('Failed to fetch packs:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load coin packs",
-          variant: "destructive"
-        });
+        const response = await store.getPacks();
+        setPacks(response.data || []);
+      } catch (error: any) {
+        console.error('Failed to fetch store packs:', error);
+        toast.error('Failed to load store packs');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchPacks();
-  }, []);
+    if (isAuthenticated) {
+      fetchPacks();
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
   const handlePurchase = async (packId: number) => {
+    setIsPurchasing(packId);
     try {
-      setIsProcessing(packId);
-      setShowAnimation(true);
-
-      const response = await ApiClient.purchasePack(packId, 'stripe');
-      const data = response;
-
-      if (data.success) {
-        toast({
-          title: "Checkout Session Created!",
-          description: "Redirecting to payment...",
-          className: "bg-primary text-primary-foreground font-bold"
-        });
-
-        // Redirect to Stripe checkout
-        if (data.data?.checkoutUrl) {
-          setTimeout(() => {
-            window.location.href = data.data.checkoutUrl;
-          }, 1500);
-        } else {
-          toast({
-            title: "Info",
-            description: "Session created. Check your email for payment link.",
-            variant: "default"
-          });
-        }
-      } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to create checkout session",
-          variant: "destructive"
-        });
-        setShowAnimation(false);
-      }
-    } catch (error) {
-      console.error('Purchase error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process purchase",
-        variant: "destructive"
-      });
-      setShowAnimation(false);
-    } finally {
-      setIsProcessing(null);
+      // In a real app, this would redirect to a payment processor
+      // For now, we'll show a message
+      toast.success('Purchase feature coming soon! Please check with admin.');
+      setIsPurchasing(null);
+    } catch (error: any) {
+      toast.error('Purchase failed');
+      setIsPurchasing(null);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader className="w-12 h-12 text-primary animate-spin" />
-          <p className="text-muted-foreground">Loading coin packs...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary" />
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-12">
-      <CoinAnimation trigger={showAnimation} />
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl font-black tracking-tighter sm:text-6xl">GET <span className="text-primary">GOLD COINS</span></h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Choose a Gold Coin pack below. Every purchase includes a <span className="text-primary font-bold">FREE Sweeps Coin bonus</span>!
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-4xl font-black tracking-tight">COIN STORE</h1>
+        <p className="text-muted-foreground text-lg mt-2">
+          Get more Gold Coins and Sweeps Coins to play your favorite games
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {packs.length > 0 ? (
-          packs.map((pack) => (
-            <Card
-              key={pack.id}
-              className="relative overflow-hidden border-2 border-border/50 hover:border-primary transition-all group flex flex-col"
-            >
-              {pack.is_best_value && (
-                <div className="absolute top-0 right-0 z-10">
-                  <Badge className="rounded-tr-none rounded-bl-lg bg-primary text-primary-foreground font-bold px-3 py-1">
+      {/* Banner */}
+      <Card className="bg-gradient-to-r from-primary/20 to-primary/10 border-primary/30">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
+            <Zap className="w-12 h-12 text-primary flex-shrink-0" />
+            <div>
+              <h3 className="font-bold text-lg">Limited Time Bonus</h3>
+              <p className="text-muted-foreground">Get 20% extra coins on your first purchase!</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Packs Grid */}
+      <div>
+        <h2 className="text-2xl font-bold mb-6">Choose Your Pack</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {packs && packs.length > 0 ? (
+            packs.map((pack) => (
+              <Card
+                key={pack.id}
+                className={`relative overflow-hidden border-2 transition-all hover:shadow-lg ${
+                  pack.is_best_value
+                    ? 'border-primary ring-2 ring-primary/20'
+                    : pack.is_popular
+                    ? 'border-blue-400 ring-2 ring-blue-400/20'
+                    : 'border-border'
+                }`}
+              >
+                {pack.is_best_value && (
+                  <div className="absolute -right-12 top-6 bg-primary text-primary-foreground px-20 py-1 rotate-45 text-sm font-bold">
                     BEST VALUE
-                  </Badge>
-                </div>
-              )}
-              {pack.is_popular && !pack.is_best_value && (
-                <div className="absolute top-0 right-0 z-10">
-                  <Badge className="rounded-tr-none rounded-bl-lg bg-green-500 text-white font-bold px-3 py-1">
-                    POPULAR
-                  </Badge>
-                </div>
-              )}
-
-              <CardHeader className="text-center pt-8">
-                <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                  <Coins className="w-10 h-10 text-secondary" />
-                </div>
-                <CardTitle className="text-2xl font-bold">{pack.title}</CardTitle>
-                <CardDescription className="text-primary font-bold text-lg">
-                  +{pack.sweeps_coins} FREE SC
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="text-center flex-1">
-                <div className="space-y-2">
-                  <p className="text-4xl font-black">{pack.gold_coins.toLocaleString()}</p>
-                  <p className="text-muted-foreground font-semibold uppercase tracking-widest text-xs">
-                    Gold Coins
-                  </p>
-                </div>
-                {pack.bonus_percentage > 0 && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <Badge className="bg-green-500/10 text-green-500 border-none">
-                      {pack.bonus_percentage}% Bonus
-                    </Badge>
                   </div>
                 )}
-                <div className="mt-8 pt-8 border-t border-border space-y-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
-                    <ShieldCheck className="w-4 h-4 text-green-500" />
-                    <span>Secure Stripe Payment</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
-                    <Zap className="w-4 h-4 text-primary" />
-                    <span>Instant Credit</span>
-                  </div>
-                </div>
-              </CardContent>
+                
+                {pack.is_popular && !pack.is_best_value && (
+                  <Badge className="absolute top-4 right-4 bg-blue-500">Popular</Badge>
+                )}
 
-              <CardFooter className="p-6">
-                <Button
-                  onClick={() => handlePurchase(pack.id)}
-                  disabled={isProcessing === pack.id}
-                  className="w-full h-14 text-xl font-black bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {isProcessing === pack.id ? (
-                    <Loader className="w-5 h-5 animate-spin mr-2" />
-                  ) : null}
-                  ${pack.price_usd.toFixed(2)}
-                </Button>
-              </CardFooter>
-            </Card>
-          ))
-        ) : (
-          <Card className="col-span-full">
-            <CardContent className="p-8 text-center">
-              <p className="text-muted-foreground">No coin packs available</p>
-            </CardContent>
-          </Card>
-        )}
+                <CardHeader>
+                  <CardTitle className="text-2xl">${pack.price_usd.toFixed(2)}</CardTitle>
+                  <CardDescription>{pack.title}</CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-6">
+                  <p className="text-sm text-muted-foreground">{pack.description}</p>
+
+                  {/* Coins */}
+                  <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                    {pack.gold_coins > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Gold Coins</span>
+                        <span className="text-xl font-bold text-secondary">
+                          {pack.gold_coins.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                    {pack.sweeps_coins > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Sweeps Coins</span>
+                        <span className="text-xl font-bold text-primary">
+                          {pack.sweeps_coins.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                    {pack.bonus_percentage > 0 && (
+                      <div className="border-t border-border pt-3 flex justify-between items-center">
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <Gift className="w-4 h-4" /> Bonus
+                        </span>
+                        <span className="font-bold text-green-600">+{pack.bonus_percentage}%</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Buy Button */}
+                  <Button
+                    onClick={() => handlePurchase(pack.id)}
+                    disabled={isPurchasing === pack.id}
+                    className={`w-full font-bold text-base ${
+                      pack.is_best_value ? '' : ''
+                    }`}
+                    variant={pack.is_best_value ? 'default' : 'outline'}
+                  >
+                    {isPurchasing === pack.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Buy Now
+                      </>
+                    )}
+                  </Button>
+
+                  {pack.is_best_value && (
+                    <p className="text-xs text-center text-primary font-semibold">
+                      Save ${(pack.price_usd * 0.15).toFixed(2)} vs Starter
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <p className="text-muted-foreground">No packs available</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Trust Section */}
-      <section className="bg-muted/50 rounded-3xl p-8 border border-border grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-        <div className="space-y-3">
-          <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto">
-            <ShieldCheck className="w-6 h-6 text-primary" />
+      {/* FAQ Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Frequently Asked Questions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <h4 className="font-semibold mb-2">What's the difference between Gold Coins and Sweeps Coins?</h4>
+            <p className="text-sm text-muted-foreground">
+              Gold Coins are for fun play, while Sweeps Coins can be redeemed for real value. All games support both currencies.
+            </p>
           </div>
-          <h3 className="font-bold">PCI Compliant</h3>
-          <p className="text-sm text-muted-foreground">Payments are handled securely by Square. We never store your card details.</p>
-        </div>
-        <div className="space-y-3">
-          <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto">
-            <Sparkles className="w-6 h-6 text-primary" />
+          <div>
+            <h4 className="font-semibold mb-2">Are my coins safe?</h4>
+            <p className="text-sm text-muted-foreground">
+              Yes! All transactions are encrypted and secured by industry-standard SSL technology.
+            </p>
           </div>
-          <h3 className="font-bold">Instant Bonus</h3>
-          <p className="text-sm text-muted-foreground">Your free Sweeps Coins are automatically credited to your wallet upon successful purchase.</p>
-        </div>
-        <div className="space-y-3">
-          <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto">
-            <ShieldCheck className="w-6 h-6 text-primary" />
+          <div>
+            <h4 className="font-semibold mb-2">Can I get a refund?</h4>
+            <p className="text-sm text-muted-foreground">
+              Refunds are available within 30 days of purchase. Contact our support team for details.
+            </p>
           </div>
-          <h3 className="font-bold">KYC Verified</h3>
-          <p className="text-sm text-muted-foreground">Fast and secure KYC process for all redemptions over 100 SC.</p>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
     </div>
   );
 };

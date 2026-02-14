@@ -1,185 +1,162 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/auth-context';
+import { leaderboards } from '@/lib/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, TrendingUp } from 'lucide-react';
-import { ApiClient } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { Loader2, Trophy, Medal } from 'lucide-react';
+import { toast } from 'sonner';
+import { LeaderboardEntry } from '@shared/api';
 
-export default function Leaderboards() {
-  const [activeTab, setActiveTab] = useState('all_time');
-  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
-  const [playerRank, setPlayerRank] = useState<any>(null);
+const Leaderboards = () => {
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const navigate = useNavigate();
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [myRank, setMyRank] = useState<LeaderboardEntry | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      setIsLoading(true);
-      try {
-        // Map tab names to valid leaderboard types
-        const typeMap: { [key: string]: string } = {
-          'all_time': 'wins',
-          'monthly': 'wins',
-          'daily': 'wins'
-        };
-        const type = typeMap[activeTab] || 'wins';
+    if (!authLoading && !isAuthenticated) {
+      navigate('/login');
+      return;
+    }
 
-        const res = await ApiClient.getLeaderboard(type, activeTab);
-        if (res.success && res.data) {
-          setLeaderboardData(res.data.entries || res.data);
-        } else {
-          toast({ title: 'Error', description: 'Failed to load leaderboard', variant: 'destructive' });
-        }
-      } catch (error) {
-        console.error('Failed to fetch leaderboard:', error);
-        toast({ title: 'Error', description: 'Failed to load leaderboard', variant: 'destructive' });
+    const fetchLeaderboards = async () => {
+      try {
+        const [leaderboardRes, myRankRes] = await Promise.all([
+          leaderboards.getLeaderboard(),
+          leaderboards.getMyRank(),
+        ]);
+        setLeaderboard(leaderboardRes.data || []);
+        setMyRank(myRankRes.data || null);
+      } catch (error: any) {
+        console.error('Failed to fetch leaderboards:', error);
+        toast.error('Failed to load leaderboards');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchLeaderboard();
-  }, [activeTab]);
+    if (isAuthenticated) {
+      fetchLeaderboards();
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
-  useEffect(() => {
-    const fetchPlayerRank = async () => {
-      try {
-        // Only fetch player rank if user has an auth token
-        const authToken = localStorage.getItem('auth_token');
-        if (!authToken) {
-          return;
-        }
-
-        const res = await ApiClient.getPlayerRank();
-        if (res.success && res.data) {
-          setPlayerRank(res.data);
-        }
-      } catch (error) {
-        // Session might be expired, which is okay - leaderboard can still be viewed
-        console.debug('Could not fetch player rank (user may not be authenticated):', error);
-      }
-    };
-
-    fetchPlayerRank();
-  }, []);
-
-  const getRankMedal = (rank: number) => {
-    if (rank === 1) return <Trophy className="w-6 h-6 text-yellow-500" />;
-    if (rank === 2) return <Trophy className="w-6 h-6 text-gray-400" />;
-    if (rank === 3) return <Trophy className="w-6 h-6 text-orange-400" />;
-    return <span className="font-black text-lg">{rank}</span>;
-  };
-
-  const formatValue = (value: any, type: string) => {
-    if (type === 'winnings') return `$${value.toLocaleString()}`;
-    if (type === 'wins') return `${value} Wins`;
-    if (type === 'streak') return `${value} Win Streak`;
-    return value;
+  const getMedalIcon = (rank: number) => {
+    switch (rank) {
+      case 1:
+        return '🥇';
+      case 2:
+        return '🥈';
+      case 3:
+        return '🥉';
+      default:
+        return null;
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 md:p-8">
-        <div className="max-w-5xl mx-auto space-y-6">
-          <div className="h-8 bg-muted animate-pulse rounded w-1/3" />
-          <div className="flex gap-2">
-            {[1, 2, 3].map(i => <div key={i} className="h-10 bg-muted animate-pulse rounded w-32" />)}
-          </div>
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-16 bg-muted animate-pulse rounded" />)}
-          </div>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 md:p-8">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-4xl font-black flex items-center gap-3"><Trophy className="w-10 h-10 text-yellow-500" />Leaderboards</h1>
-          <p className="text-muted-foreground mt-2">Compete with players worldwide</p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-4xl font-black tracking-tight">LEADERBOARDS</h1>
+        <p className="text-muted-foreground">Top players ranked by score</p>
+      </div>
 
-        {/* Leaderboard Tabs */}
-        <div className="flex gap-2">
-          {[
-            { id: 'all_time', label: 'All-Time' },
-            { id: 'monthly', label: 'Monthly' },
-            { id: 'daily', label: 'Daily' }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-lg font-bold transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-foreground hover:bg-muted/70'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Leaderboard Table */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-2">
-              {leaderboardData.slice(0, 10).map((entry, index) => {
-                const isYourRank = playerRank && playerRank.rank === entry.rank;
-                const displayValue = entry.total_wins !== undefined ? entry.total_wins : entry.amount || 0;
-
-                return (
-                  <div
-                    key={index}
-                    className={`flex items-center gap-4 p-4 rounded-lg border ${
-                      isYourRank ? 'bg-primary/10 border-primary/30' : 'bg-muted/30 border-border'
-                    }`}
-                  >
-                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                      {getRankMedal(entry.rank)}
-                    </div>
-                    <div className="flex-1">
-                      <p className={`font-bold ${isYourRank ? 'text-primary' : ''}`}>
-                        {entry.username}
-                        {isYourRank && ' (You)'}
-                      </p>
-                      <Badge className="text-xs border-none mt-1 bg-muted/50">
-                        {entry.badge || 'Member'}
-                      </Badge>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-black text-lg text-green-500">
-                        ${displayValue.toLocaleString()}
-                      </p>
-                      <TrendingUp className="w-4 h-4 text-green-500 inline ml-1" />
-                    </div>
-                  </div>
-                );
-              })}
+      {/* My Rank */}
+      {myRank && (
+        <Card className="bg-gradient-to-r from-primary/20 to-primary/10 border-primary/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="w-6 h-6 text-primary" />
+              Your Rank
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Rank</p>
+                <p className="text-4xl font-black text-primary"># {myRank.rank}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Score</p>
+                <p className="text-4xl font-black">{myRank.score.toLocaleString()}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
+      )}
 
-        {/* Your Rank Card */}
-        {playerRank && (
-          <Card className="border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-muted-foreground uppercase text-sm font-bold mb-1">Your Current Rank</p>
-                  <p className="text-3xl font-black">#{playerRank.rank}</p>
-                  <p className="text-sm text-muted-foreground mt-1">Top {Math.round((playerRank.rank / (playerRank.total_players || 50000)) * 100 * 10) / 10}% of players</p>
+      {/* Leaderboard */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Global Leaderboard</CardTitle>
+          <CardDescription>Top 50 players by total score</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {leaderboard.map(entry => (
+              <div
+                key={entry.player_id}
+                className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                  entry.player_id === user?.id
+                    ? 'bg-primary/10 border-primary/30'
+                    : 'border-border hover:bg-muted/50'
+                }`}
+              >
+                {/* Rank & Name */}
+                <div className="flex items-center gap-4 flex-1">
+                  <div className="w-12 flex items-center justify-center">
+                    {getMedalIcon(entry.rank) ? (
+                      <span className="text-2xl">{getMedalIcon(entry.rank)}</span>
+                    ) : (
+                      <Badge variant="outline" className="font-bold">
+                        #{entry.rank}
+                      </Badge>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-bold">
+                      {entry.name}
+                      {entry.player_id === user?.id && (
+                        <Badge className="ml-2 text-xs">YOU</Badge>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">@{entry.username}</p>
+                  </div>
                 </div>
+
+                {/* Score */}
                 <div className="text-right">
-                  <p className="text-muted-foreground uppercase text-sm font-bold mb-1">Total Winnings</p>
-                  <p className="text-3xl font-black text-green-500">${(playerRank.total_wins || 0).toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">Score</p>
+                  <p className="font-bold text-lg">{entry.score.toLocaleString()}</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Info */}
+      <Card className="bg-muted/50">
+        <CardHeader>
+          <CardTitle className="text-base">How Scoring Works</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <p>Players earn points based on their wins and total wagered amount across all games.</p>
+          <p>The leaderboard updates in real-time as players win or lose.</p>
+          <p>Top players receive exclusive rewards and recognition.</p>
+        </CardContent>
+      </Card>
     </div>
   );
-}
+};
+
+export default Leaderboards;

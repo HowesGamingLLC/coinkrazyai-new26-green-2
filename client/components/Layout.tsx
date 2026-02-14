@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/lib/auth-context';
 import { useWallet } from '@/hooks/use-wallet';
-import { Coins, User, Home, Gamepad2, ShoppingCart, BarChart3, MessageSquare, Trophy, Award, Headphones, Settings, Zap } from 'lucide-react';
+import { Coins, User, Home, Gamepad2, ShoppingCart, BarChart3, MessageSquare, Trophy, Award, Headphones, Settings, Zap, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LayoutProps {
@@ -10,6 +11,7 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { user, isAuthenticated, logout, isAdmin } = useAuth();
   const { wallet, currency, toggleCurrency } = useWallet();
   const location = useLocation();
 
@@ -27,7 +29,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { label: 'Wallet', path: '/wallet', icon: Coins },
     { label: 'Settings', path: '/account', icon: Settings },
     { label: 'Support', path: '/support', icon: Headphones },
-    { label: 'Admin', path: '/admin', icon: BarChart3 },
+    ...(isAdmin ? [{ label: 'Admin', path: '/admin', icon: BarChart3 }] : []),
   ];
 
   return (
@@ -45,45 +47,69 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Link>
 
           <div className="flex items-center gap-4">
-            {/* Currency Toggle */}
-            <div className="flex items-center bg-muted rounded-full p-1 border border-border">
-              <button
-                onClick={() => currency !== 'GC' && toggleCurrency()}
-                className={cn(
-                  "px-3 py-1 rounded-full text-xs font-bold transition-all",
-                  currency === 'GC' ? "bg-secondary text-secondary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                GC
-              </button>
-              <button
-                onClick={() => currency !== 'SC' && toggleCurrency()}
-                className={cn(
-                  "px-3 py-1 rounded-full text-xs font-bold transition-all",
-                  currency === 'SC' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                SC
-              </button>
-            </div>
+            {isAuthenticated ? (
+              <>
+                {/* Currency Toggle */}
+                <div className="flex items-center bg-muted rounded-full p-1 border border-border">
+                  <button
+                    onClick={() => currency !== 'GC' && toggleCurrency()}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs font-bold transition-all",
+                      currency === 'GC' ? "bg-secondary text-secondary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    GC
+                  </button>
+                  <button
+                    onClick={() => currency !== 'SC' && toggleCurrency()}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs font-bold transition-all",
+                      currency === 'SC' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    SC
+                  </button>
+                </div>
 
-            {/* Balance Display */}
-            <div className="hidden sm:flex items-center gap-2 bg-muted/50 px-4 py-1.5 rounded-full border border-border">
-              <Coins className={cn("w-4 h-4", currency === 'GC' ? "text-secondary" : "text-primary")} />
-              <span className="font-mono font-bold">
-                {currency === 'GC' 
-                  ? wallet?.goldCoins.toLocaleString() 
-                  : wallet?.sweepsCoins.toFixed(2)}
-              </span>
-            </div>
+                {/* Balance Display */}
+                <div className="hidden sm:flex items-center gap-2 bg-muted/50 px-4 py-1.5 rounded-full border border-border">
+                  <Coins className={cn("w-4 h-4", currency === 'GC' ? "text-secondary" : "text-primary")} />
+                  <span className="font-mono font-bold">
+                    {currency === 'GC'
+                      ? wallet?.goldCoins.toLocaleString()
+                      : wallet?.sweepsCoins.toFixed(2)}
+                  </span>
+                </div>
 
-            <Button asChild variant="default" className="hidden sm:flex">
-              <Link to="/store">GET COINS</Link>
-            </Button>
+                <Button asChild variant="default" className="hidden sm:flex">
+                  <Link to="/store">GET COINS</Link>
+                </Button>
 
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <User className="w-5 h-5" />
-            </Button>
+                {/* User Menu */}
+                <div className="flex items-center gap-2">
+                  <Button asChild variant="ghost" size="sm">
+                    <Link to="/profile">{user?.username}</Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full"
+                    onClick={logout}
+                  >
+                    <LogOut className="w-5 h-5" />
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Button asChild variant="outline">
+                  <Link to="/login">Login</Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/register">Register</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>

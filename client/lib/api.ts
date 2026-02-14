@@ -1,300 +1,404 @@
-/**
- * Central API client for all backend requests
- * Handles authentication headers, error handling, and response parsing
- */
+import { PlayerProfile, AuthResponse, StorePack, Wallet, Transaction, GameInfo, PokerTable, BingoGame, SportsEvent, Achievement, LeaderboardEntry, AIEmployee } from '@shared/api';
 
-function getAuthToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('auth_token');
-  }
-  return null;
-}
+const API_BASE = '/api';
 
-function getHeaders(includeAuth: boolean = true): HeadersInit {
+// Helper function to make API calls
+async function apiCall<T>(
+  endpoint: string,
+  options?: RequestInit
+): Promise<T> {
+  const url = `${API_BASE}${endpoint}`;
+  const token = localStorage.getItem('auth_token');
+  
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
+    ...options?.headers,
   };
 
-  if (includeAuth) {
-    const token = getAuthToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
-  return headers;
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'API request failed');
+  }
+
+  return response.json();
 }
 
-export class ApiClient {
-  private static baseURL = '/api';
-
-  static async request<T>(
-    endpoint: string,
-    options: RequestInit & { authenticated?: boolean } = {}
-  ): Promise<T> {
-    const { authenticated = true, ...fetchOptions } = options;
-    const url = `${this.baseURL}${endpoint}`;
-
-    const response = await fetch(url, {
-      ...fetchOptions,
-      headers: getHeaders(authenticated),
+// ===== AUTHENTICATION =====
+export const auth = {
+  register: async (username: string, name: string, email: string, password: string) => {
+    const data = await apiCall<AuthResponse>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, name, email, password }),
     });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        window.location.href = '/auth/login';
-        throw new Error('Session expired');
-      }
-      throw new Error(`API Error: ${response.status}`);
+    if (data.token) {
+      localStorage.setItem('auth_token', data.token);
     }
+    return data;
+  },
 
-    return response.json();
-  }
-
-  // ===== GAMES =====
-  static async getGames() {
-    return this.request('/games', { authenticated: false });
-  }
-
-  static async getGameById(id: string | number) {
-    return this.request(`/games/${id}`, { authenticated: false });
-  }
-
-  // ===== SLOTS =====
-  static async getSlotsConfig() {
-    return this.request('/slots/config', { authenticated: false });
-  }
-
-  static async spinSlots(gameId: number, betAmount: number) {
-    return this.request('/slots/spin', {
+  login: async (username: string, password: string) => {
+    const data = await apiCall<AuthResponse>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ game_id: gameId, bet_amount: betAmount })
+      body: JSON.stringify({ username, password }),
     });
-  }
+    if (data.token) {
+      localStorage.setItem('auth_token', data.token);
+    }
+    return data;
+  },
 
-  // ===== POKER =====
-  static async getPokerTables() {
-    return this.request('/poker/tables', { authenticated: false });
-  }
-
-  static async joinPokerTable(tableId: number, buyIn: number) {
-    return this.request('/poker/join', {
+  adminLogin: async (email: string, password: string) => {
+    const data = await apiCall<any>('/auth/admin/login', {
       method: 'POST',
-      body: JSON.stringify({ table_id: tableId, buy_in: buyIn })
+      body: JSON.stringify({ email, password }),
     });
-  }
+    if (data.token) {
+      localStorage.setItem('admin_token', data.token);
+    }
+    return data;
+  },
 
-  static async pokerFold(tableId: number) {
-    return this.request('/poker/fold', {
-      method: 'POST',
-      body: JSON.stringify({ table_id: tableId })
-    });
-  }
+  logout: async () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('admin_token');
+    return { success: true };
+  },
 
-  static async pokerCashOut(tableId: number, cashOutAmount: number) {
-    return this.request('/poker/cash-out', {
-      method: 'POST',
-      body: JSON.stringify({ table_id: tableId, cash_out_amount: cashOutAmount })
-    });
-  }
+  getProfile: async () => {
+    return apiCall<{ success: boolean; data: PlayerProfile }>('/auth/profile');
+  },
 
-  // ===== BINGO =====
-  static async getBingoRooms() {
-    return this.request('/bingo/rooms', { authenticated: false });
-  }
-
-  static async buyBingoTicket(gameId: number) {
-    return this.request('/bingo/buy', {
-      method: 'POST',
-      body: JSON.stringify({ game_id: gameId, count: 1 })
-    });
-  }
-
-  static async markBingoNumber(gameId: number, number: number) {
-    return this.request('/bingo/mark', {
-      method: 'POST',
-      body: JSON.stringify({ game_id: gameId, number })
-    });
-  }
-
-  static async reportBingoWin(gameId: number, pattern: string) {
-    return this.request('/bingo/win', {
-      method: 'POST',
-      body: JSON.stringify({ game_id: gameId, pattern })
-    });
-  }
-
-  // ===== SPORTSBOOK =====
-  static async getLiveGames() {
-    return this.request('/sportsbook/games', { authenticated: false });
-  }
-
-  static async placeSportsBet(eventId: number, betType: string, amount: number, odds: number) {
-    return this.request('/sportsbook/bet', {
-      method: 'POST',
-      body: JSON.stringify({ event_id: eventId, bet_type: betType, amount, odds })
-    });
-  }
-
-  static async placeParlay(bets: Array<{ eventId: number; odds: number }>, amount: number) {
-    return this.request('/sportsbook/parlay', {
-      method: 'POST',
-      body: JSON.stringify({ bets, amount })
-    });
-  }
-
-  // ===== STORE =====
-  static async getStorePacks() {
-    return this.request('/store/packs', { authenticated: false });
-  }
-
-  static async purchasePack(packId: number, paymentMethod: string = 'stripe') {
-    return this.request('/store/purchase', {
-      method: 'POST',
-      body: JSON.stringify({ packId, payment_method: paymentMethod })
-    });
-  }
-
-  static async getPurchaseHistory(limit: number = 20) {
-    return this.request(`/store/history?limit=${limit}`);
-  }
-
-  // ===== WALLET =====
-  static async getWallet() {
-    return this.request('/wallet');
-  }
-
-  static async getWalletTransactions(limit: number = 50) {
-    return this.request(`/wallet/transactions?limit=${limit}`);
-  }
-
-  static async updateWallet(currency: string, amount: number, type: string, description: string) {
-    return this.request('/wallet/update', {
-      method: 'POST',
-      body: JSON.stringify({ currency, amount, type, description })
-    });
-  }
-
-  // ===== ACHIEVEMENTS =====
-  static async getAchievements() {
-    return this.request('/achievements', { authenticated: false });
-  }
-
-  static async getPlayerAchievements() {
-    return this.request('/achievements/my-achievements');
-  }
-
-  static async checkAchievements() {
-    return this.request('/achievements/check', {
-      method: 'POST',
-      body: JSON.stringify({})
-    });
-  }
-
-  // ===== LEADERBOARD =====
-  static async getLeaderboard(type: string = 'all_time', period: string = 'all') {
-    return this.request(
-      `/leaderboards?type=${type}&period=${period}`,
-      { authenticated: false }
-    );
-  }
-
-  static async getPlayerRank() {
-    return this.request('/leaderboards/my-rank');
-  }
-
-  // ===== PROFILE & AUTH =====
-  static async getProfile() {
-    return this.request('/auth/profile');
-  }
-
-  static async updateProfile(updates: { name?: string; email?: string; password?: string }) {
-    return this.request('/auth/profile', {
+  updateProfile: async (updates: Partial<PlayerProfile>) => {
+    return apiCall<{ success: boolean; data: PlayerProfile }>('/auth/profile', {
       method: 'PUT',
-      body: JSON.stringify(updates)
+      body: JSON.stringify(updates),
     });
-  }
+  },
+};
 
-  // ===== ADMIN =====
-  static async getAdminStats() {
-    return this.request('/admin/stats');
-  }
+// ===== WALLET =====
+export const wallet = {
+  getBalance: async () => {
+    return apiCall<{ success: boolean; data: Wallet }>('/wallet');
+  },
 
-  static async getAdminPlayers(limit: number = 20, offset: number = 0) {
-    return this.request(`/admin/players?limit=${limit}&offset=${offset}`);
-  }
+  getTransactions: async () => {
+    return apiCall<{ success: boolean; data: Transaction[] }>('/wallet/transactions');
+  },
 
-  static async getAdminPlayer(playerId: number) {
-    return this.request(`/admin/players/${playerId}`);
-  }
-
-  static async updateAdminPlayerBalance(playerId: number, gc: number, sc: number) {
-    return this.request('/admin/players/balance', {
+  updateBalance: async (gcAmount: number, scAmount: number) => {
+    return apiCall<{ success: boolean }>('/wallet/update', {
       method: 'POST',
-      body: JSON.stringify({ playerId, gc, sc })
+      body: JSON.stringify({ gc_amount: gcAmount, sc_amount: scAmount }),
     });
-  }
+  },
+};
 
-  static async getAdminGames() {
-    return this.request('/admin/games');
-  }
+// ===== STORE =====
+export const store = {
+  getPacks: async () => {
+    return apiCall<{ success: boolean; data: StorePack[] }>('/store/packs');
+  },
 
-  static async updateGameRTP(gameId: number, rtp: number) {
-    return this.request('/admin/games/rtp', {
+  purchase: async (packId: number, paymentMethod: string, paymentToken?: string) => {
+    return apiCall<{ success: boolean; data: any }>('/store/purchase', {
       method: 'POST',
-      body: JSON.stringify({ game_id: gameId, rtp })
+      body: JSON.stringify({ pack_id: packId, payment_method: paymentMethod, payment_token: paymentToken }),
     });
-  }
+  },
 
-  static async toggleGame(gameId: number, enabled: boolean) {
-    return this.request('/admin/games/toggle', {
+  getPurchaseHistory: async () => {
+    return apiCall<{ success: boolean; data: any[] }>('/store/history');
+  },
+};
+
+// ===== GAMES =====
+export const games = {
+  getGames: async () => {
+    return apiCall<{ success: boolean; data: GameInfo[] }>('/games');
+  },
+
+  getGameById: async (id: number) => {
+    return apiCall<{ success: boolean; data: GameInfo }>(`/games/${id}`);
+  },
+};
+
+// ===== SLOTS =====
+export const slots = {
+  spin: async (gameId: number, betAmount: number) => {
+    return apiCall<any>('/slots/spin', {
       method: 'POST',
-      body: JSON.stringify({ game_id: gameId, enabled })
+      body: JSON.stringify({ game_id: gameId, bet_amount: betAmount }),
     });
-  }
+  },
 
-  static async getAdminBonuses() {
-    return this.request('/admin/bonuses');
-  }
+  getConfig: async () => {
+    return apiCall<any>('/slots/config');
+  },
 
-  static async createBonus(bonusData: any) {
-    return this.request('/admin/bonuses/create', {
+  updateConfig: async (config: any) => {
+    return apiCall<any>('/slots/config/update', {
       method: 'POST',
-      body: JSON.stringify(bonusData)
+      body: JSON.stringify(config),
     });
-  }
+  },
+};
 
-  static async getAdminTransactions(limit: number = 50) {
-    return this.request(`/admin/transactions?limit=${limit}`);
-  }
+// ===== POKER =====
+export const poker = {
+  getTables: async () => {
+    return apiCall<{ success: boolean; data: PokerTable[] }>('/poker/tables');
+  },
 
-  static async getAdminSecurityAlerts(limit: number = 20) {
-    return this.request(`/admin/alerts?limit=${limit}`);
-  }
-
-  static async getAdminKYC(playerId: number) {
-    return this.request(`/admin/kyc/${playerId}`);
-  }
-
-  static async approveKYC(playerId: number, level: string) {
-    return this.request('/admin/kyc/approve', {
+  joinTable: async (tableId: number, buyIn: number) => {
+    return apiCall<{ success: boolean; data: any }>('/poker/join', {
       method: 'POST',
-      body: JSON.stringify({ playerId, level })
+      body: JSON.stringify({ table_id: tableId, buy_in: buyIn }),
     });
-  }
+  },
 
-  static async getAdminPokerTables() {
-    return this.request('/admin/poker/tables');
-  }
+  fold: async (sessionId: number) => {
+    return apiCall<{ success: boolean }>('/poker/fold', {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId }),
+    });
+  },
 
-  static async getAdminBingoGames() {
-    return this.request('/admin/bingo/games');
-  }
+  cashOut: async (sessionId: number) => {
+    return apiCall<{ success: boolean; data: any }>('/poker/cash-out', {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId }),
+    });
+  },
 
-  static async getAdminSportsEvents() {
-    return this.request('/admin/sports/events');
-  }
-}
+  getConfig: async () => {
+    return apiCall<any>('/poker/config');
+  },
 
-export default ApiClient;
+  updateConfig: async (config: any) => {
+    return apiCall<any>('/poker/config/update', {
+      method: 'POST',
+      body: JSON.stringify(config),
+    });
+  },
+};
+
+// ===== BINGO =====
+export const bingo = {
+  getRooms: async () => {
+    return apiCall<{ success: boolean; data: BingoGame[] }>('/bingo/rooms');
+  },
+
+  buyTicket: async (gameId: number) => {
+    return apiCall<{ success: boolean; data: any }>('/bingo/buy', {
+      method: 'POST',
+      body: JSON.stringify({ game_id: gameId }),
+    });
+  },
+
+  markNumber: async (ticketId: number, number: number) => {
+    return apiCall<{ success: boolean }>('/bingo/mark', {
+      method: 'POST',
+      body: JSON.stringify({ ticket_id: ticketId, number }),
+    });
+  },
+
+  win: async (ticketId: number) => {
+    return apiCall<{ success: boolean; data: any }>('/bingo/win', {
+      method: 'POST',
+      body: JSON.stringify({ ticket_id: ticketId }),
+    });
+  },
+
+  getConfig: async () => {
+    return apiCall<any>('/bingo/config');
+  },
+
+  updateConfig: async (config: any) => {
+    return apiCall<any>('/bingo/config/update', {
+      method: 'POST',
+      body: JSON.stringify(config),
+    });
+  },
+};
+
+// ===== SPORTSBOOK =====
+export const sportsbook = {
+  getLiveGames: async () => {
+    return apiCall<{ success: boolean; data: SportsEvent[] }>('/sportsbook/games');
+  },
+
+  placeParlay: async (eventIds: number[], amounts: number[], odds: number[]) => {
+    return apiCall<{ success: boolean; data: any }>('/sportsbook/parlay', {
+      method: 'POST',
+      body: JSON.stringify({ event_ids: eventIds, amounts, odds }),
+    });
+  },
+
+  placeBet: async (eventId: number, amount: number, odds: number) => {
+    return apiCall<{ success: boolean; data: any }>('/sportsbook/bet', {
+      method: 'POST',
+      body: JSON.stringify({ event_id: eventId, amount, odds }),
+    });
+  },
+
+  getConfig: async () => {
+    return apiCall<any>('/sportsbook/config');
+  },
+
+  updateConfig: async (config: any) => {
+    return apiCall<any>('/sportsbook/config/update', {
+      method: 'POST',
+      body: JSON.stringify(config),
+    });
+  },
+};
+
+// ===== LEADERBOARDS =====
+export const leaderboards = {
+  getLeaderboard: async () => {
+    return apiCall<{ success: boolean; data: LeaderboardEntry[] }>('/leaderboards');
+  },
+
+  getMyRank: async () => {
+    return apiCall<{ success: boolean; data: LeaderboardEntry }>('/leaderboards/my-rank');
+  },
+
+  update: async () => {
+    return apiCall<{ success: boolean }>('/leaderboards/update', {
+      method: 'POST',
+    });
+  },
+};
+
+// ===== ACHIEVEMENTS =====
+export const achievements = {
+  getAll: async () => {
+    return apiCall<{ success: boolean; data: Achievement[] }>('/achievements');
+  },
+
+  getMyAchievements: async () => {
+    return apiCall<{ success: boolean; data: Achievement[] }>('/achievements/my-achievements');
+  },
+
+  check: async () => {
+    return apiCall<{ success: boolean; data: any }>('/achievements/check', {
+      method: 'POST',
+    });
+  },
+
+  award: async (playerId: number, achievementId: number) => {
+    return apiCall<{ success: boolean }>('/achievements/award', {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId, achievement_id: achievementId }),
+    });
+  },
+
+  getStats: async () => {
+    return apiCall<{ success: boolean; data: any }>('/achievements/stats');
+  },
+};
+
+// ===== ADMIN =====
+export const admin = {
+  getDashboardStats: async () => {
+    return apiCall<{ success: boolean; data: any }>('/admin/dashboard/stats');
+  },
+
+  getPlayers: async (page = 1, limit = 20) => {
+    return apiCall<{ success: boolean; data: any }>(`/admin/players?page=${page}&limit=${limit}`);
+  },
+
+  getPlayer: async (playerId: number) => {
+    return apiCall<{ success: boolean; data: any }>(`/admin/players/${playerId}`);
+  },
+
+  updatePlayerBalance: async (playerId: number, gc: number, sc: number) => {
+    return apiCall<{ success: boolean }>('/admin/players/balance', {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId, gc_balance: gc, sc_balance: sc }),
+    });
+  },
+
+  updatePlayerStatus: async (playerId: number, status: string) => {
+    return apiCall<{ success: boolean }>('/admin/players/status', {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId, status }),
+    });
+  },
+
+  getGames: async () => {
+    return apiCall<{ success: boolean; data: any }>('/admin/games');
+  },
+
+  updateGameRTP: async (gameId: number, rtp: number) => {
+    return apiCall<{ success: boolean }>('/admin/games/rtp', {
+      method: 'POST',
+      body: JSON.stringify({ game_id: gameId, rtp }),
+    });
+  },
+
+  toggleGame: async (gameId: number, enabled: boolean) => {
+    return apiCall<{ success: boolean }>('/admin/games/toggle', {
+      method: 'POST',
+      body: JSON.stringify({ game_id: gameId, enabled }),
+    });
+  },
+
+  getBonuses: async () => {
+    return apiCall<{ success: boolean; data: any }>('/admin/bonuses');
+  },
+
+  createBonus: async (bonusData: any) => {
+    return apiCall<{ success: boolean }>('/admin/bonuses/create', {
+      method: 'POST',
+      body: JSON.stringify(bonusData),
+    });
+  },
+
+  getTransactions: async () => {
+    return apiCall<{ success: boolean; data: any }>('/admin/transactions');
+  },
+
+  getAlerts: async () => {
+    return apiCall<{ success: boolean; data: any }>('/admin/alerts');
+  },
+
+  getAIEmployees: async () => {
+    return apiCall<{ success: boolean; data: AIEmployee[] }>('/admin/ai-employees');
+  },
+
+  assignAIDuty: async (aiId: string, duty: string) => {
+    return apiCall<{ success: boolean }>('/admin/ai-duty', {
+      method: 'POST',
+      body: JSON.stringify({ ai_id: aiId, duty }),
+    });
+  },
+
+  updateAIStatus: async (aiId: string, status: string) => {
+    return apiCall<{ success: boolean }>('/admin/ai-status', {
+      method: 'POST',
+      body: JSON.stringify({ ai_id: aiId, status }),
+    });
+  },
+
+  setMaintenanceMode: async (enabled: boolean) => {
+    return apiCall<{ success: boolean }>('/admin/maintenance', {
+      method: 'POST',
+      body: JSON.stringify({ enabled }),
+    });
+  },
+
+  getSystemHealth: async () => {
+    return apiCall<{ success: boolean; data: any }>('/admin/health');
+  },
+};
