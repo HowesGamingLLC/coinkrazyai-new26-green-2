@@ -10,8 +10,8 @@ export const useWallet = () => {
   }, []);
 
   const wallet = {
-    goldCoins: user?.gc_balance ?? 0,
-    sweepsCoins: user?.sc_balance ?? 0,
+    goldCoins: Number(user?.gc_balance ?? 0),
+    sweepsCoins: Number(user?.sc_balance ?? 0),
   };
 
   return {

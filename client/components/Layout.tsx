@@ -76,8 +76,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <Coins className={cn("w-4 h-4", currency === 'GC' ? "text-secondary" : "text-primary")} />
                   <span className="font-mono font-bold">
                     {currency === 'GC'
-                      ? wallet?.goldCoins.toLocaleString()
-                      : wallet?.sweepsCoins.toFixed(2)}
+                      ? Number(wallet?.goldCoins ?? 0).toLocaleString()
+                      : Number(wallet?.sweepsCoins ?? 0).toFixed(2)}
                   </span>
                 </div>
 
