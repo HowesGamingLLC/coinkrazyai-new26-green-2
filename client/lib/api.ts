@@ -2,14 +2,44 @@ import { PlayerProfile, AuthResponse, StorePack, Wallet, Transaction, GameInfo, 
 
 const API_BASE = '/api';
 
-// Helper function to make API calls
+// Helper function to make API calls (player)
 async function apiCall<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
   const token = localStorage.getItem('auth_token');
-  
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...options?.headers,
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'API request failed');
+  }
+
+  return response.json();
+}
+
+// Helper function for admin API calls
+async function adminApiCall<T>(
+  endpoint: string,
+  options?: RequestInit
+): Promise<T> {
+  const url = `${API_BASE}${endpoint}`;
+  const token = localStorage.getItem('admin_token');
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options?.headers,
@@ -311,94 +341,94 @@ export const achievements = {
 // ===== ADMIN =====
 export const admin = {
   getDashboardStats: async () => {
-    return apiCall<{ success: boolean; data: any }>('/admin/dashboard/stats');
+    return adminApiCall<{ success: boolean; data: any }>('/admin/dashboard/stats');
   },
 
   getPlayers: async (page = 1, limit = 20) => {
-    return apiCall<{ success: boolean; data: any }>(`/admin/players?page=${page}&limit=${limit}`);
+    return adminApiCall<{ success: boolean; data: any }>(`/admin/players?page=${page}&limit=${limit}`);
   },
 
   getPlayer: async (playerId: number) => {
-    return apiCall<{ success: boolean; data: any }>(`/admin/players/${playerId}`);
+    return adminApiCall<{ success: boolean; data: any }>(`/admin/players/${playerId}`);
   },
 
   updatePlayerBalance: async (playerId: number, gc: number, sc: number) => {
-    return apiCall<{ success: boolean }>('/admin/players/balance', {
+    return adminApiCall<{ success: boolean }>('/admin/players/balance', {
       method: 'POST',
       body: JSON.stringify({ player_id: playerId, gc_balance: gc, sc_balance: sc }),
     });
   },
 
   updatePlayerStatus: async (playerId: number, status: string) => {
-    return apiCall<{ success: boolean }>('/admin/players/status', {
+    return adminApiCall<{ success: boolean }>('/admin/players/status', {
       method: 'POST',
       body: JSON.stringify({ player_id: playerId, status }),
     });
   },
 
   getGames: async () => {
-    return apiCall<{ success: boolean; data: any }>('/admin/games');
+    return adminApiCall<{ success: boolean; data: any }>('/admin/games');
   },
 
   updateGameRTP: async (gameId: number, rtp: number) => {
-    return apiCall<{ success: boolean }>('/admin/games/rtp', {
+    return adminApiCall<{ success: boolean }>('/admin/games/rtp', {
       method: 'POST',
       body: JSON.stringify({ game_id: gameId, rtp }),
     });
   },
 
   toggleGame: async (gameId: number, enabled: boolean) => {
-    return apiCall<{ success: boolean }>('/admin/games/toggle', {
+    return adminApiCall<{ success: boolean }>('/admin/games/toggle', {
       method: 'POST',
       body: JSON.stringify({ game_id: gameId, enabled }),
     });
   },
 
   getBonuses: async () => {
-    return apiCall<{ success: boolean; data: any }>('/admin/bonuses');
+    return adminApiCall<{ success: boolean; data: any }>('/admin/bonuses');
   },
 
   createBonus: async (bonusData: any) => {
-    return apiCall<{ success: boolean }>('/admin/bonuses/create', {
+    return adminApiCall<{ success: boolean }>('/admin/bonuses/create', {
       method: 'POST',
       body: JSON.stringify(bonusData),
     });
   },
 
   getTransactions: async () => {
-    return apiCall<{ success: boolean; data: any }>('/admin/transactions');
+    return adminApiCall<{ success: boolean; data: any }>('/admin/transactions');
   },
 
   getAlerts: async () => {
-    return apiCall<{ success: boolean; data: any }>('/admin/alerts');
+    return adminApiCall<{ success: boolean; data: any }>('/admin/alerts');
   },
 
   getAIEmployees: async () => {
-    return apiCall<{ success: boolean; data: AIEmployee[] }>('/admin/ai-employees');
+    return adminApiCall<{ success: boolean; data: AIEmployee[] }>('/admin/ai-employees');
   },
 
   assignAIDuty: async (aiId: string, duty: string) => {
-    return apiCall<{ success: boolean }>('/admin/ai-duty', {
+    return adminApiCall<{ success: boolean }>('/admin/ai-duty', {
       method: 'POST',
       body: JSON.stringify({ ai_id: aiId, duty }),
     });
   },
 
   updateAIStatus: async (aiId: string, status: string) => {
-    return apiCall<{ success: boolean }>('/admin/ai-status', {
+    return adminApiCall<{ success: boolean }>('/admin/ai-status', {
       method: 'POST',
       body: JSON.stringify({ ai_id: aiId, status }),
     });
   },
 
   setMaintenanceMode: async (enabled: boolean) => {
-    return apiCall<{ success: boolean }>('/admin/maintenance', {
+    return adminApiCall<{ success: boolean }>('/admin/maintenance', {
       method: 'POST',
       body: JSON.stringify({ enabled }),
     });
   },
 
   getSystemHealth: async () => {
-    return apiCall<{ success: boolean; data: any }>('/admin/health');
+    return adminApiCall<{ success: boolean; data: any }>('/admin/health');
   },
 };
