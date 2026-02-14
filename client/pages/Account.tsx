@@ -119,18 +119,26 @@ export default function Account() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-bold mb-2 block">Game Speed</label>
-                <select className="w-full px-3 py-2 rounded-lg border border-border bg-background">
-                  <option>Slow</option>
-                  <option selected>Normal</option>
-                  <option>Fast</option>
+                <select
+                  value={settings.gameSpeed}
+                  onChange={(e) => setSettings({...settings, gameSpeed: e.target.value})}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                >
+                  <option value="slow">Slow</option>
+                  <option value="normal">Normal</option>
+                  <option value="fast">Fast</option>
                 </select>
               </div>
               <div>
                 <label className="text-sm font-bold mb-2 block">Theme</label>
-                <select className="w-full px-3 py-2 rounded-lg border border-border bg-background">
-                  <option>Light</option>
-                  <option selected>Dark</option>
-                  <option>Auto</option>
+                <select
+                  value={settings.theme}
+                  onChange={(e) => setSettings({...settings, theme: e.target.value})}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                >
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                  <option value="auto">Auto</option>
                 </select>
               </div>
             </div>
