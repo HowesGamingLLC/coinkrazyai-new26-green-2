@@ -184,7 +184,7 @@ const Wallet = () => {
                       ${tx.gc_amount ? Number(tx.gc_amount).toFixed(2) : Number(tx.sc_amount ?? 0).toFixed(2)}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Balance: ${Number(tx.gc_balance_after ?? 0).toFixed(2)}
+                      Balance: ${tx.gc_amount ? Number(tx.gc_balance_after ?? 0).toFixed(2) : Number(tx.sc_balance_after ?? 0).toFixed(2)}
                     </p>
                   </div>
                 </div>
