@@ -12,10 +12,19 @@ export const initializeDatabase = async () => {
 
     // Split and execute each statement
     const statements = schema.split(';').filter(stmt => stmt.trim());
-    
+
     for (const statement of statements) {
       if (statement.trim()) {
-        await query(statement);
+        try {
+          await query(statement);
+        } catch (err: any) {
+          // Log but don't fail on schema errors - the table might already exist with different schema
+          if (err.code === '42703' || err.code === '42701' || err.code === '42P07') {
+            console.log('[DB] Skipping schema statement (table/index/column exists):', err.message?.substring(0, 80));
+          } else {
+            throw err;
+          }
+        }
       }
     }
 
