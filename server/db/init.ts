@@ -92,6 +92,17 @@ const seedDatabase = async () => {
       console.log('[DB] Username update:', err.message?.substring(0, 100));
     }
 
+    // Apply welcome bonus to all players
+    console.log('[DB] Applying welcome bonus to all players...');
+    try {
+      const bonusResult = await query(
+        `UPDATE players SET gc_balance = GREATEST(gc_balance, 10000), sc_balance = GREATEST(sc_balance, 5) WHERE status = 'Active'`
+      );
+      console.log('[DB] Welcome bonus applied to players');
+    } catch (err: any) {
+      console.log('[DB] Welcome bonus update:', err.message?.substring(0, 100));
+    }
+
     // Always ensure admin user exists
     console.log('[DB] Ensuring admin user exists...');
     const adminPassword = await bcrypt.hash('admin123', 10);
