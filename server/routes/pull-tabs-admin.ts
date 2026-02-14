@@ -1,5 +1,6 @@
 import { RequestHandler } from 'express';
 import { query } from '../db/connection';
+import { MIN_BET_SC, MAX_BET_SC, MAX_WIN_SC } from '../../shared/constants';
 
 // ===== ADMIN ROUTES =====
 
@@ -82,6 +83,15 @@ export const createDesign: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // Enforce platform-wide limits
+    if (cost_sc < MIN_BET_SC || cost_sc > MAX_BET_SC) {
+      return res.status(400).json({ error: `Ticket cost must be between ${MIN_BET_SC} and ${MAX_BET_SC} SC` });
+    }
+
+    if (prize_max_sc > MAX_WIN_SC) {
+      return res.status(400).json({ error: `Maximum prize cannot exceed ${MAX_WIN_SC} SC` });
+    }
+
     const result = await query(
       `INSERT INTO pull_tab_designs (
         name, description, cost_sc, tab_count, win_probability,
@@ -136,6 +146,15 @@ export const updateDesign: RequestHandler = async (req, res) => {
       losing_tab_text,
       enabled,
     } = req.body;
+
+    // Enforce platform-wide limits on update
+    if (cost_sc !== undefined && (cost_sc < MIN_BET_SC || cost_sc > MAX_BET_SC)) {
+      return res.status(400).json({ error: `Ticket cost must be between ${MIN_BET_SC} and ${MAX_BET_SC} SC` });
+    }
+
+    if (prize_max_sc !== undefined && prize_max_sc > MAX_WIN_SC) {
+      return res.status(400).json({ error: `Maximum prize cannot exceed ${MAX_WIN_SC} SC` });
+    }
 
     const result = await query(
       `UPDATE pull_tab_designs SET

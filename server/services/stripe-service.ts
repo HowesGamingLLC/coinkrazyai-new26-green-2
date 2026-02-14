@@ -27,7 +27,6 @@ export class StripeService {
       const intent = await stripeClient.paymentIntents.create({
         amount: Math.round(amount * 100),
         currency,
-        payment_method_types: ['card'],
         metadata: {
           playerId: String(playerId),
           ...metadata,
@@ -133,7 +132,6 @@ export class StripeService {
     try {
       const stripeClient = getStripe();
       const session = await stripeClient.checkout.sessions.create({
-        payment_method_types: ['card'],
         line_items: [
           {
             price_data: {

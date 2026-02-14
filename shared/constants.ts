@@ -12,3 +12,6 @@ export const MAX_WIN_SC = 20.00;
 export const MIN_BET_GC = 100; // Example default
 export const MAX_BET_GC = 1000000; // Example default
 export const MAX_WIN_GC = 20000000; // Example default
+
+// Payment Configuration
+export const GOOGLE_PAY_MERCHANT_ID = "4118-9661-9446";

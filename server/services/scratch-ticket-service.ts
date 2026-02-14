@@ -1,6 +1,7 @@
 import { query, getClient } from '../db/connection';
 import { WalletService } from './wallet-service';
 import { NotificationService } from './notification-service';
+import { MIN_BET_SC, MAX_BET_SC, MAX_WIN_SC } from '../../shared/constants';
 
 interface ScratchTicketSlot {
   index: number;
@@ -47,10 +48,15 @@ export class ScratchTicketService {
     if (isWinningTicket) {
       // Generate one winning prize slot and rest are LOSS
       const winningSlotIndex = Math.floor(Math.random() * slotCount);
-      const prizeAmount = Math.floor(
+      let prizeAmount = Math.floor(
         Math.random() * (design.prize_max_sc - design.prize_min_sc + 1) + design.prize_min_sc
       );
-      
+
+      // Apply platform-wide max win cap
+      if (prizeAmount > MAX_WIN_SC) {
+        prizeAmount = MAX_WIN_SC;
+      }
+
       for (let i = 0; i < slotCount; i++) {
         slots.push({
           index: i,
@@ -100,6 +106,14 @@ export class ScratchTicketService {
       }
 
       const design = designResult.rows[0] as ScratchTicketDesign;
+
+      // Enforce platform-wide bet limits
+      if (design.cost_sc < MIN_BET_SC || design.cost_sc > MAX_BET_SC) {
+        return {
+          success: false,
+          error: `Ticket cost must be between ${MIN_BET_SC} and ${MAX_BET_SC} SC`
+        };
+      }
 
       // Get player's current balances
       const playerResult = await query(
@@ -333,6 +347,11 @@ export class ScratchTicketService {
         }
       }
 
+      // Apply platform-wide max win cap (double check)
+      if (prizeAmount > MAX_WIN_SC) {
+        prizeAmount = MAX_WIN_SC;
+      }
+
       // No winning slot = no prize
       if (prizeAmount === 0 || winningSlotIndex === -1) {
         return { success: false, error: 'No prize on this ticket' };
@@ -407,12 +426,6 @@ export class ScratchTicketService {
         WalletService.notifyWalletUpdate(playerId, {
           goldCoins: currentGcBalance,
           sweepsCoins: newScBalance
-        } as any);
-
-        // Notify wallet update via socket
-        WalletService.notifyWalletUpdate(playerId, {
-          goldCoins: 0,
-          sweepsCoins: newBalance
         } as any);
 
         return { success: true, prizeAmount };

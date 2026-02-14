@@ -1,5 +1,6 @@
 import { RequestHandler } from 'express';
 import { query } from '../db/connection';
+import { MIN_BET_SC, MAX_BET_SC, MAX_WIN_SC } from '../../shared/constants';
 
 // ===== ADMIN ROUTES =====
 
@@ -74,8 +75,16 @@ export const createDesign: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: 'Slot count must be between 6 and 9' });
     }
 
-    if (prize_min_sc < 1 || prize_max_sc > 10 || prize_min_sc > prize_max_sc) {
-      return res.status(400).json({ error: 'Prize range must be between 1 and 10 SC' });
+    if (cost_sc < MIN_BET_SC || cost_sc > MAX_BET_SC) {
+      return res.status(400).json({ error: `Ticket cost must be between ${MIN_BET_SC} and ${MAX_BET_SC} SC` });
+    }
+
+    if (prize_max_sc > MAX_WIN_SC) {
+      return res.status(400).json({ error: `Maximum prize cannot exceed ${MAX_WIN_SC} SC` });
+    }
+
+    if (prize_min_sc < 0.01 || prize_min_sc > prize_max_sc) {
+      return res.status(400).json({ error: 'Invalid prize range' });
     }
 
     const result = await query(
@@ -141,8 +150,12 @@ export const updateDesign: RequestHandler = async (req, res) => {
       values.push(description);
     }
     if (cost_sc !== undefined) {
+      const parsedCost = parseFloat(cost_sc);
+      if (parsedCost < MIN_BET_SC || parsedCost > MAX_BET_SC) {
+        return res.status(400).json({ error: `Ticket cost must be between ${MIN_BET_SC} and ${MAX_BET_SC} SC` });
+      }
       updates.push(`cost_sc = $${paramIndex++}`);
-      values.push(parseFloat(cost_sc));
+      values.push(parsedCost);
     }
     if (slot_count !== undefined) {
       if (slot_count < 6 || slot_count > 9) {
@@ -160,8 +173,12 @@ export const updateDesign: RequestHandler = async (req, res) => {
       values.push(parseFloat(prize_min_sc));
     }
     if (prize_max_sc !== undefined) {
+      const parsedMaxPrize = parseFloat(prize_max_sc);
+      if (parsedMaxPrize > MAX_WIN_SC) {
+        return res.status(400).json({ error: `Maximum prize cannot exceed ${MAX_WIN_SC} SC` });
+      }
       updates.push(`prize_max_sc = $${paramIndex++}`);
-      values.push(parseFloat(prize_max_sc));
+      values.push(parsedMaxPrize);
     }
     if (image_url !== undefined) {
       updates.push(`image_url = $${paramIndex++}`);

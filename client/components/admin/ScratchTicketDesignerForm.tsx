@@ -8,6 +8,8 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminApiCall } from '@/lib/api';
 
+import { MIN_BET_SC, MAX_BET_SC, MAX_WIN_SC } from '@shared/constants';
+
 interface TicketDesign {
   id: number;
   name: string;
@@ -34,11 +36,11 @@ export const DesignForm: React.FC<DesignFormProps> = ({ design, onClose, onSucce
   const [formData, setFormData] = useState({
     name: design?.name || '',
     description: design?.description || '',
-    cost_sc: design?.cost_sc || 1,
+    cost_sc: design?.cost_sc || MIN_BET_SC,
     slot_count: design?.slot_count || 6,
     win_probability: design?.win_probability || 16.67,
-    prize_min_sc: design?.prize_min_sc || 1,
-    prize_max_sc: design?.prize_max_sc || 10,
+    prize_min_sc: design?.prize_min_sc || 0.01,
+    prize_max_sc: design?.prize_max_sc || MAX_WIN_SC,
     image_url: design?.image_url || '',
     background_color: design?.background_color || '#FFD700',
   });
@@ -60,16 +62,16 @@ export const DesignForm: React.FC<DesignFormProps> = ({ design, onClose, onSucce
       toast.error('Design name is required');
       return false;
     }
-    if (formData.cost_sc < 1) {
-      toast.error('Cost must be at least 1 SC');
+    if (formData.cost_sc < MIN_BET_SC || formData.cost_sc > MAX_BET_SC) {
+      toast.error(`Cost must be between ${MIN_BET_SC} and ${MAX_BET_SC} SC`);
       return false;
     }
     if (formData.slot_count < 6 || formData.slot_count > 9) {
       toast.error('Slot count must be between 6 and 9');
       return false;
     }
-    if (formData.prize_min_sc < 1 || formData.prize_max_sc > 10) {
-      toast.error('Prize range must be between 1 and 10 SC');
+    if (formData.prize_min_sc < 0.01 || formData.prize_max_sc > MAX_WIN_SC) {
+      toast.error(`Prize range must be between 0.01 and ${MAX_WIN_SC} SC`);
       return false;
     }
     if (formData.prize_min_sc > formData.prize_max_sc) {
@@ -167,7 +169,8 @@ export const DesignForm: React.FC<DesignFormProps> = ({ design, onClose, onSucce
                   id="cost_sc"
                   name="cost_sc"
                   type="number"
-                  min="1"
+                  min={MIN_BET_SC}
+                  max={MAX_BET_SC}
                   step="0.01"
                   value={formData.cost_sc}
                   onChange={handleChange}
@@ -220,9 +223,9 @@ export const DesignForm: React.FC<DesignFormProps> = ({ design, onClose, onSucce
                   id="prize_min_sc"
                   name="prize_min_sc"
                   type="number"
-                  min="1"
-                  max="10"
-                  step="1"
+                  min="0.01"
+                  max={MAX_WIN_SC}
+                  step="0.01"
                   value={formData.prize_min_sc}
                   onChange={handleChange}
                   required
@@ -235,9 +238,9 @@ export const DesignForm: React.FC<DesignFormProps> = ({ design, onClose, onSucce
                   id="prize_max_sc"
                   name="prize_max_sc"
                   type="number"
-                  min="1"
-                  max="10"
-                  step="1"
+                  min="0.01"
+                  max={MAX_WIN_SC}
+                  step="0.01"
                   value={formData.prize_max_sc}
                   onChange={handleChange}
                   required

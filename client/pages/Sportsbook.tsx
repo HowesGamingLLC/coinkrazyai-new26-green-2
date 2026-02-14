@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { SportsEvent } from '@shared/api';
+import { MIN_BET_SC, MAX_BET_SC } from '@shared/constants';
 
 const Sportsbook = () => {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
@@ -41,8 +42,13 @@ const Sportsbook = () => {
   }, [isAuthenticated, authLoading, navigate]);
 
   const handlePlaceBet = async (eventId: number, odds: number) => {
-    if (betAmount < 1) {
-      toast.error('Bet amount must be at least $1');
+    if (betAmount < MIN_BET_SC) {
+      toast.error(`Bet amount must be at least ${MIN_BET_SC} SC`);
+      return;
+    }
+
+    if (betAmount > MAX_BET_SC) {
+      toast.error(`Bet amount cannot exceed ${MAX_BET_SC} SC`);
       return;
     }
 
@@ -114,7 +120,9 @@ const Sportsbook = () => {
                 <div className="space-y-2">
                   <input
                     type="number"
-                    min="1"
+                    min={MIN_BET_SC}
+                    max={MAX_BET_SC}
+                    step="0.01"
                     value={betAmount}
                     onChange={(e) => setBetAmount(Number(e.target.value))}
                     placeholder="Bet amount"
@@ -143,7 +151,7 @@ const Sportsbook = () => {
                 <Button
                   onClick={() => {
                     setSelectedEvent(event.id);
-                    setBetAmount(10);
+                    setBetAmount(MAX_BET_SC);
                   }}
                   className="w-full"
                   disabled={event.locked}

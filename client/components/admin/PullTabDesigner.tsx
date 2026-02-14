@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { adminV2 } from '@/lib/api';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
+import { MIN_BET_SC, MAX_BET_SC, MAX_WIN_SC } from '@shared/constants';
+
 interface PullTabDesign {
   id: number;
   name: string;
@@ -43,11 +45,11 @@ interface FormData {
 const initialFormData: FormData = {
   name: '',
   description: '',
-  cost_sc: 5,
+  cost_sc: MIN_BET_SC,
   tab_count: 3,
   win_probability: 20,
-  prize_min_sc: 1,
-  prize_max_sc: 20,
+  prize_min_sc: 0.01,
+  prize_max_sc: MAX_WIN_SC,
   image_url: '',
   background_color: '#FF6B35',
   winning_tab_text: 'WINNER!',
@@ -215,8 +217,10 @@ export function PullTabDesigner() {
                       type="number"
                       value={formData.cost_sc}
                       onChange={e => setFormData({ ...formData, cost_sc: parseFloat(e.target.value) })}
-                      placeholder="5"
-                      min="1"
+                      placeholder="0.01"
+                      min={MIN_BET_SC}
+                      max={MAX_BET_SC}
+                      step="0.01"
                     />
                   </div>
                 </div>
@@ -261,7 +265,8 @@ export function PullTabDesigner() {
                       type="number"
                       value={formData.prize_min_sc}
                       onChange={e => setFormData({ ...formData, prize_min_sc: parseFloat(e.target.value) })}
-                      min="1"
+                      min="0.01"
+                      step="0.01"
                     />
                   </div>
                   <div>
@@ -270,7 +275,9 @@ export function PullTabDesigner() {
                       type="number"
                       value={formData.prize_max_sc}
                       onChange={e => setFormData({ ...formData, prize_max_sc: parseFloat(e.target.value) })}
-                      min="1"
+                      min="0.01"
+                      max={MAX_WIN_SC}
+                      step="0.01"
                     />
                   </div>
                 </div>
