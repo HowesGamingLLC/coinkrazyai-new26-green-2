@@ -17,11 +17,27 @@ import {
   LogOut,
   Save,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  LayoutDashboard,
+  Shield,
+  TrendingUp,
+  Lock,
+  MessageSquare,
+  Gift,
+  Trophy,
+  CreditCard,
+  Check,
+  Zap,
+  Users2,
+  Database,
+  FileText,
+  Key,
+  Upload,
+  Bell,
+  Link2
 } from 'lucide-react';
 
-// --- Sub-components ---
-
+// --- Stats Card ---
 const StatsCard = ({ icon: Icon, label, value, color }: any) => (
   <Card className="border-border">
     <CardContent className="p-6 flex items-center gap-4">
@@ -36,71 +52,136 @@ const StatsCard = ({ icon: Icon, label, value, color }: any) => (
   </Card>
 );
 
-const AICard = ({ name, role, status, tasks, onAssign }: any) => {
-  const [newDuty, setNewDuty] = useState('');
-  
+// --- Admin Section Placeholder ---
+const AdminSection = ({ title, description, icon: Icon }: any) => (
+  <Card className="border-border">
+    <CardHeader>
+      <div className="flex items-center gap-4 mb-4">
+        <div className="p-3 bg-primary/10 rounded-lg">
+          <Icon className="w-6 h-6 text-primary" />
+        </div>
+        <div>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </div>
+      </div>
+    </CardHeader>
+    <CardContent>
+      <div className="flex items-center justify-center h-48 text-muted-foreground">
+        <p className="text-center">
+          <span className="font-bold">{title}</span> management interface coming soon...
+        </p>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+// --- Sidebar Navigation ---
+const AdminSideMenu = ({ activeSection, onSelectSection }: any) => {
+  const sections = [
+    {
+      title: "CORE MANAGEMENT",
+      items: [
+        { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { id: "players", label: "Player Management", icon: Users2 },
+        { id: "kyc", label: "KYC Settings", icon: Shield },
+        { id: "wallet", label: "Wallet Management", icon: Coins }
+      ]
+    },
+    {
+      title: "FINANCIAL",
+      items: [
+        { id: "rain", label: "Make it Rain", icon: Gift },
+        { id: "bonuses", label: "Bonus Management", icon: Zap },
+        { id: "jackpot", label: "Jackpot Management", icon: Trophy },
+        { id: "banking", label: "Banking & Payments", icon: CreditCard },
+        { id: "redemption", label: "Redemption Approvals", icon: Check }
+      ]
+    },
+    {
+      title: "GAMES & SPORTS",
+      items: [
+        { id: "library", label: "Game Library", icon: Gamepad2 },
+        { id: "ingestion", label: "Game Ingestion", icon: Upload },
+        { id: "ai-builder", label: "AI Game Builder", icon: Bot },
+        { id: "poker", label: "Poker Management", icon: Gamepad2 },
+        { id: "bingo", label: "Bingo Management", icon: Gamepad2 },
+        { id: "caller", label: "Caller Management", icon: MessageSquare },
+        { id: "sportsbook", label: "Sportsbook", icon: TrendingUp },
+        { id: "sports-settings", label: "Sports Settings", icon: Settings }
+      ]
+    },
+    {
+      title: "OPERATIONS",
+      items: [
+        { id: "security", label: "Security Management", icon: Lock },
+        { id: "content", label: "Content Management", icon: FileText },
+        { id: "casino-settings", label: "Casino Settings", icon: Settings },
+        { id: "social", label: "Social Management", icon: MessageSquare },
+        { id: "retention", label: "Player Retention", icon: Users }
+      ]
+    },
+    {
+      title: "ADVANCED",
+      items: [
+        { id: "analytics", label: "Analytics & Reporting", icon: BarChart3 },
+        { id: "vip", label: "VIP Management", icon: Gift },
+        { id: "fraud", label: "Fraud Detection", icon: ShieldAlert },
+        { id: "affiliate", label: "Affiliate Management", icon: Link2 },
+        { id: "tickets", label: "Support & Tickets", icon: MessageSquare },
+        { id: "logs", label: "System Logs", icon: FileText },
+        { id: "api", label: "API Management", icon: Key },
+        { id: "database", label: "Database & Backups", icon: Database },
+        { id: "performance", label: "Performance", icon: Zap },
+        { id: "notifications", label: "Notifications", icon: Bell },
+        { id: "compliance", label: "Compliance", icon: Check },
+        { id: "advanced-settings", label: "Advanced Settings", icon: Settings }
+      ]
+    }
+  ];
+
   return (
-    <Card className="border-border hover:border-primary/30 transition-colors">
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-xl font-bold">{name}</CardTitle>
-            <CardDescription>{role}</CardDescription>
+    <div className="w-72 bg-muted/30 border-r border-border overflow-y-auto max-h-[calc(100vh-200px)]">
+      {sections.map((section) => (
+        <div key={section.title}>
+          <div className="px-4 py-3 text-xs font-black text-muted-foreground uppercase tracking-wider sticky top-0 bg-muted/50 border-b border-border/50">
+            {section.title}
           </div>
-          <Badge className={cn(
-            status === 'Active' ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500',
-            'border-none'
-          )}>
-            {status}
-          </Badge>
+          <div className="space-y-1 p-2">
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onSelectSection(item.id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors",
+                    isActive 
+                      ? "bg-primary text-primary-foreground" 
+                      : "text-foreground hover:bg-muted/50"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <p className="text-xs font-bold text-muted-foreground uppercase">Current Tasks</p>
-          <ul className="text-sm space-y-1">
-            {tasks.map((t: string) => (
-              <li key={t} className="flex items-center gap-2">
-                <div className="w-1 h-1 rounded-full bg-primary" />
-                {t}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="space-y-2 pt-2">
-          <Input 
-            placeholder="New duty..." 
-            value={newDuty} 
-            onChange={(e) => setNewDuty(e.target.value)}
-            className="text-xs h-8 bg-muted/50"
-          />
-          <Button 
-            className="w-full h-8 text-xs font-bold" 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              if (newDuty) {
-                onAssign(name, newDuty);
-                setNewDuty('');
-              }
-            }}
-          >
-            Assign Duty
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      ))}
+    </div>
   );
 };
 
 // --- Main Admin Component ---
-
 const Admin = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [stats, setStats] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeSection, setActiveSection] = useState('dashboard');
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -151,84 +232,6 @@ const Admin = () => {
     setIsLoggedIn(false);
   };
 
-  const handleUpdateGame = async (gameId: string, rtp: string) => {
-    setIsSaving(true);
-    try {
-      const token = localStorage.getItem('adminToken');
-      const res = await fetch('/api/admin/game-config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ gameId: gameId.toLowerCase(), config: { rtp: parseFloat(rtp) } })
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast({ title: "Config Updated", description: data.message || "Game configuration updated" });
-        fetchStats();
-      } else {
-        toast({ title: "Update Failed", description: data.error, variant: "destructive" });
-      }
-    } catch (e) {
-      toast({ title: "Update Failed", description: "Something went wrong", variant: "destructive" });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleUpdatePack = async (packId: string, price: string, gc: string, sc: string) => {
-    setIsSaving(true);
-    try {
-      const res = await fetch('/api/admin/store-pack', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packId, packData: { price, gc, sc } })
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast({ title: "Pack Updated", description: data.message });
-      }
-    } catch (e) {
-      toast({ title: "Update Failed", variant: "destructive" });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleAssignDuty = async (aiName: string, duty: string) => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      // Map AI name to ID
-      const aiIdMap: Record<string, string> = {
-        'LuckyAI': 'ai-1',
-        'SecurityAI': 'ai-2',
-        'SlotsAI': 'ai-3',
-        'JoseyAI': 'ai-4',
-        'SocialAI': 'ai-5',
-        'PromotionsAI': 'ai-6'
-      };
-
-      const res = await fetch('/api/admin/ai-duty', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ aiId: aiIdMap[aiName], duty })
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast({ title: "Duty Assigned", description: data.message || "AI duty assigned successfully" });
-        fetchStats();
-      } else {
-        toast({ title: "Assignment Failed", description: data.error, variant: "destructive" });
-      }
-    } catch (e) {
-      toast({ title: "Assignment Failed", description: "Something went wrong", variant: "destructive" });
-    }
-  };
-
   if (!isLoggedIn) {
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
@@ -271,7 +274,7 @@ const Admin = () => {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-black tracking-tighter">ADMIN <span className="text-primary">COMMAND CENTER</span></h1>
@@ -282,265 +285,104 @@ const Admin = () => {
         </Button>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard icon={Users} label="Total Players" value={stats?.overview?.totalPlayers || '...'} color="text-blue-400" />
-        <StatsCard icon={Gamepad2} label="Active Tables" value={stats?.overview?.activeTables || '...'} color="text-green-400" />
-        <StatsCard icon={Coins} label="GC Volume" value={`${Math.floor(stats?.overview?.totalGCVolume || 0)} GC`} color="text-yellow-400" />
-        <StatsCard icon={ShieldAlert} label="System Health" value={stats?.overview?.systemHealth || 'Optimal'} color="text-primary" />
-      </div>
+      <div className="flex gap-6">
+        {/* Sidebar Navigation */}
+        <AdminSideMenu activeSection={activeSection} onSelectSection={setActiveSection} />
 
-      <Tabs defaultValue="ai" className="space-y-6">
-        <TabsList className="bg-muted border border-border p-1">
-          <TabsTrigger value="ai" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Bot className="w-4 h-4 mr-2" /> AI Employees
-          </TabsTrigger>
-          <TabsTrigger value="games" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Gamepad2 className="w-4 h-4 mr-2" /> Game Control
-          </TabsTrigger>
-          <TabsTrigger value="economy" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Coins className="w-4 h-4 mr-2" /> Store & Economy
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <BarChart3 className="w-4 h-4 mr-2" /> Analytics
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="ai" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {stats?.aiStatus?.map((ai: any) => (
-              <AICard
-                key={ai.id}
-                name={ai.name}
-                role={ai.role}
-                status={ai.status.charAt(0).toUpperCase() + ai.status.slice(1)}
-                tasks={ai.duties || []}
-                onAssign={handleAssignDuty}
-              />
-            )) || (
-              <>
-                <AICard name="LuckyAI" role="Manager" status="Active" tasks={['Managing Employees']} onAssign={handleAssignDuty} />
-                <AICard name="SecurityAI" role="Fraud/KYC" status="Monitoring" tasks={['Analyzing Transactions']} onAssign={handleAssignDuty} />
-                <AICard name="SlotsAI" role="RTP Monitor" status="Active" tasks={['Adjusting Odds']} onAssign={handleAssignDuty} />
-                <AICard name="JoseyAI" role="Poker Watch" status="Idle" tasks={['Anti-Collusion']} onAssign={handleAssignDuty} />
-                <AICard name="SocialAI" role="Chat Mod" status="Active" tasks={['Moderating Chat']} onAssign={handleAssignDuty} />
-                <AICard name="PromotionsAI" role="Bonus Desk" status="Active" tasks={['Assigning SC Bonuses']} onAssign={handleAssignDuty} />
-              </>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="games">
-          <Card className="border-border">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle>Game Management</CardTitle>
-                <CardDescription>Configure RTP, table limits, and room settings.</CardDescription>
+        {/* Main Content Area */}
+        <div className="flex-1 space-y-6 overflow-y-auto pr-4">
+          {activeSection === 'dashboard' && (
+            <>
+              {/* Quick Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatsCard icon={Users} label="Total Players" value={stats?.overview?.totalPlayers || '1.5K'} color="text-blue-400" />
+                <StatsCard icon={Gamepad2} label="Active Tables" value={stats?.overview?.activeTables || '24'} color="text-green-400" />
+                <StatsCard icon={Coins} label="GC Volume" value={`${Math.floor(stats?.overview?.totalGCVolume || 0)} GC`} color="text-yellow-400" />
+                <StatsCard icon={ShieldAlert} label="System Health" value={stats?.overview?.systemHealth || 'Optimal'} color="text-primary" />
               </div>
-              <Button size="sm" className="font-bold">
-                <Settings className="w-4 h-4 mr-2" /> Add New Game
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {['Slots', 'Poker', 'Bingo', 'Sportsbook'].map((game) => (
-                  <GameConfigRow key={game} game={game} onUpdate={handleUpdateGame} isSaving={isSaving} />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="economy">
-          <Card className="border-border">
-            <CardHeader>
-              <CardTitle>GC Store & Square Settings</CardTitle>
-              <CardDescription>Manage pack prices and SC bonuses.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-4 gap-4 text-xs font-bold text-muted-foreground uppercase px-4">
-                  <span>Pack Name</span>
-                  <span>Price ($)</span>
-                  <span>GC Amount</span>
-                  <span>SC Bonus</span>
-                </div>
-                {[
-                  { id: 'starter', name: 'Starter Pack', price: 4.99, gc: 5000, sc: 5 },
-                  { id: 'pro', name: 'Pro Pack', price: 9.99, gc: 12000, sc: 12 },
-                  { id: 'high-roller', name: 'High Roller', price: 49.99, gc: 65000, sc: 65 },
-                ].map((pack) => (
-                  <PackConfigRow key={pack.id} pack={pack} onUpdate={handleUpdatePack} isSaving={isSaving} />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              {/* Dashboard Overview */}
+              <Tabs defaultValue="overview" className="space-y-6">
+                <TabsList className="bg-muted border border-border p-1">
+                  <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    Overview
+                  </TabsTrigger>
+                  <TabsTrigger value="ai" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    AI Employees
+                  </TabsTrigger>
+                  <TabsTrigger value="games" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    Game Control
+                  </TabsTrigger>
+                </TabsList>
 
-        <TabsContent value="analytics">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card className="border-border">
-                <CardHeader><CardTitle>Revenue (7d)</CardTitle></CardHeader>
-                <CardContent className="h-64 flex items-end justify-around gap-2 pt-8">
-                  {stats?.revenueData?.map((h: number, i: number) => (
-                    <div key={i} className="bg-primary w-full rounded-t-lg transition-all hover:opacity-80 cursor-pointer group relative" style={{ height: `${h}%` }}>
-                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground px-2 py-1 rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        Day {i + 1}: {h}%
-                      </div>
-                    </div>
-                  )) || [40, 60, 45, 90, 85, 100, 75].map((h, i) => (
-                    <div key={i} className="bg-primary w-full rounded-t-lg" style={{ height: `${h}%` }} />
-                  ))}
-                </CardContent>
-              </Card>
+                <TabsContent value="overview" className="space-y-6">
+                  <Card className="border-border">
+                    <CardHeader>
+                      <CardTitle>Platform Activity</CardTitle>
+                      <CardDescription>Real-time platform metrics and performance</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-64 flex items-end justify-around gap-2 pt-8">
+                      {[40, 60, 45, 90, 85, 100, 75].map((h, i) => (
+                        <div key={i} className="bg-primary w-full rounded-t-lg transition-all hover:opacity-80 cursor-pointer" style={{ height: `${h}%` }} />
+                      ))}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-              <Card className="border-border">
-                <CardHeader><CardTitle>Recent Transactions</CardTitle></CardHeader>
-                <CardContent className="p-0">
-                  <div className="divide-y divide-border">
-                    {stats?.recentTransactions?.map((tx: any) => (
-                      <div key={tx.id} className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold",
-                            tx.type === 'Purchase' ? 'bg-green-500/10 text-green-500' : 'bg-blue-500/10 text-blue-500'
-                          )}>
-                            {tx.user[0]}
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold">{tx.user}</p>
-                            <p className="text-[10px] text-muted-foreground uppercase">{tx.type} • {tx.time}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={cn("text-sm font-black", tx.currency === 'SC' ? 'text-primary' : 'text-foreground')}>
-                            {tx.amount}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold">{tx.currency}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                <TabsContent value="ai" className="text-muted-foreground">
+                  <AdminSection title="AI Employees" description="Manage AI agents and their duties" icon={Bot} />
+                </TabsContent>
 
-            <div className="space-y-6">
-              <Card className="border-border">
-                <CardHeader><CardTitle>User Activity</CardTitle></CardHeader>
-                <CardContent className="h-64 flex flex-col items-center justify-center gap-6">
-                  <div className="w-48 h-48 rounded-full border-[15px] border-primary border-r-transparent animate-spin-slow flex items-center justify-center relative">
-                    <div className="absolute inset-0 border-[15px] border-muted rounded-full -z-10" />
-                    <div className="text-center">
-                      <span className="text-3xl font-black block">84%</span>
-                      <span className="text-[10px] text-muted-foreground font-bold uppercase">Retention</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 text-xs font-bold">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-primary" />
-                      <span>Retained</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-muted" />
-                      <span>Churned</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                <TabsContent value="games" className="text-muted-foreground">
+                  <AdminSection title="Game Control" description="Configure game settings and RTP" icon={Gamepad2} />
+                </TabsContent>
+              </Tabs>
+            </>
+          )}
 
-              <Card className="border-border bg-muted/30">
-                <CardHeader><CardTitle className="text-sm">Platform Health</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-muted-foreground">Server Uptime</span>
-                    <span className="font-bold">99.98%</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-muted-foreground">Socket Connections</span>
-                    <span className="font-bold">142 Active</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-muted-foreground">DB Latency</span>
-                    <span className="font-bold">14ms</span>
-                  </div>
-                  <div className="pt-2">
-                    <Badge className="w-full justify-center bg-primary/20 text-primary border-none">
-                      <CheckCircle2 className="w-3 h-3 mr-2" /> ALL SYSTEMS GO
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-};
+          {/* Core Management Sections */}
+          {activeSection === 'players' && <AdminSection title="Player Management" description="Manage player accounts, profiles, and activities" icon={Users2} />}
+          {activeSection === 'kyc' && <AdminSection title="KYC Settings" description="Configure Know Your Customer verification" icon={Shield} />}
+          {activeSection === 'wallet' && <AdminSection title="Wallet Management" description="Manage player wallets and balances" icon={Coins} />}
 
-// --- Helper Config Rows ---
+          {/* Financial Sections */}
+          {activeSection === 'rain' && <AdminSection title="Make it Rain" description="Distribute rewards and promotions" icon={Gift} />}
+          {activeSection === 'bonuses' && <AdminSection title="Bonus Management" description="Create and manage player bonuses" icon={Zap} />}
+          {activeSection === 'jackpot' && <AdminSection title="Jackpot Management" description="Configure and monitor progressive jackpots" icon={Trophy} />}
+          {activeSection === 'banking' && <AdminSection title="Banking & Payments" description="Manage payment methods and transactions" icon={CreditCard} />}
+          {activeSection === 'redemption' && <AdminSection title="Redemption Approvals" description="Approve withdrawal requests" icon={Check} />}
 
-const GameConfigRow = ({ game, onUpdate, isSaving }: any) => {
-  const [rtp, setRtp] = useState('96.5');
-  
-  return (
-    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-border">
-      <div className="flex items-center gap-4">
-        <div className="p-2 bg-primary/10 rounded-lg">
-          <Gamepad2 className="w-5 h-5 text-primary" />
+          {/* Games & Sports Sections */}
+          {activeSection === 'library' && <AdminSection title="Game Library" description="Manage available games and versions" icon={Gamepad2} />}
+          {activeSection === 'ingestion' && <AdminSection title="Game Ingestion" description="Import and update games from providers" icon={Upload} />}
+          {activeSection === 'ai-builder' && <AdminSection title="AI Game Builder" description="Create new games with AI assistance" icon={Bot} />}
+          {activeSection === 'poker' && <AdminSection title="Poker Management" description="Configure poker tables and rules" icon={Gamepad2} />}
+          {activeSection === 'bingo' && <AdminSection title="Bingo Management" description="Manage bingo games and patterns" icon={Gamepad2} />}
+          {activeSection === 'caller' && <AdminSection title="Caller Management" description="Configure bingo callers" icon={MessageSquare} />}
+          {activeSection === 'sportsbook' && <AdminSection title="Sportsbook" description="Manage sports betting options" icon={TrendingUp} />}
+          {activeSection === 'sports-settings' && <AdminSection title="Sports Settings" description="Configure sports betting rules" icon={Settings} />}
+
+          {/* Operations Sections */}
+          {activeSection === 'security' && <AdminSection title="Security Management" description="Configure security policies and controls" icon={Lock} />}
+          {activeSection === 'content' && <AdminSection title="Content Management" description="Manage website and game content" icon={FileText} />}
+          {activeSection === 'casino-settings' && <AdminSection title="Casino Settings" description="Global casino configuration" icon={Settings} />}
+          {activeSection === 'social' && <AdminSection title="Social Management" description="Manage social features and chat" icon={MessageSquare} />}
+          {activeSection === 'retention' && <AdminSection title="Player Retention" description="Configure retention strategies and campaigns" icon={Users} />}
+
+          {/* Advanced Sections */}
+          {activeSection === 'analytics' && <AdminSection title="Analytics & Reporting" description="View detailed analytics and generate reports" icon={BarChart3} />}
+          {activeSection === 'vip' && <AdminSection title="VIP Management" description="Manage VIP tiers and benefits" icon={Gift} />}
+          {activeSection === 'fraud' && <AdminSection title="Fraud Detection" description="Monitor and prevent fraudulent activity" icon={ShieldAlert} />}
+          {activeSection === 'affiliate' && <AdminSection title="Affiliate Management" description="Manage affiliate programs and payouts" icon={Link2} />}
+          {activeSection === 'tickets' && <AdminSection title="Support & Tickets" description="Manage customer support tickets" icon={MessageSquare} />}
+          {activeSection === 'logs' && <AdminSection title="System Logs" description="View system activity and audit logs" icon={FileText} />}
+          {activeSection === 'api' && <AdminSection title="API Management" description="Manage API keys and integrations" icon={Key} />}
+          {activeSection === 'database' && <AdminSection title="Database & Backups" description="Manage database and create backups" icon={Database} />}
+          {activeSection === 'performance' && <AdminSection title="Performance" description="Monitor system performance metrics" icon={Zap} />}
+          {activeSection === 'notifications' && <AdminSection title="Notifications" description="Configure notification settings" icon={Bell} />}
+          {activeSection === 'compliance' && <AdminSection title="Compliance" description="Manage compliance requirements and audits" icon={Check} />}
+          {activeSection === 'advanced-settings' && <AdminSection title="Advanced Settings" description="Configure advanced system settings" icon={Settings} />}
         </div>
-        <div>
-          <h4 className="font-bold">{game}</h4>
-          <p className="text-xs text-muted-foreground">Status: Operational</p>
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <div className="flex items-center gap-2 px-3 bg-background border border-border rounded-md">
-          <span className="text-xs font-bold text-muted-foreground">RTP:</span>
-          <Input 
-            value={rtp} 
-            onChange={(e) => setRtp(e.target.value)}
-            className="w-16 h-8 border-none bg-transparent p-0 text-sm font-bold" 
-          />
-          <span className="text-xs font-bold text-muted-foreground">%</span>
-        </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => onUpdate(game, rtp)}
-          disabled={isSaving}
-          className="h-10"
-        >
-          {isSaving ? "..." : <Save className="w-4 h-4" />}
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-const PackConfigRow = ({ pack, onUpdate, isSaving }: any) => {
-  const [price, setPrice] = useState(pack.price.toString());
-  const [gc, setGc] = useState(pack.gc.toString());
-  const [sc, setSc] = useState(pack.sc.toString());
-
-  return (
-    <div className="grid grid-cols-4 gap-4 items-center p-4 bg-muted/50 rounded-xl border border-border">
-      <span className="font-bold">{pack.name}</span>
-      <Input value={price} onChange={(e) => setPrice(e.target.value)} className="bg-background h-10 font-mono text-sm" />
-      <Input value={gc} onChange={(e) => setGc(e.target.value)} className="bg-background h-10 font-mono text-sm" />
-      <div className="flex gap-2">
-        <Input value={sc} onChange={(e) => setSc(e.target.value)} className="bg-background h-10 font-mono text-sm flex-1" />
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => onUpdate(pack.id, price, gc, sc)}
-          disabled={isSaving}
-          className="h-10"
-        >
-          {isSaving ? "..." : <Save className="w-4 h-4" />}
-        </Button>
       </div>
     </div>
   );
