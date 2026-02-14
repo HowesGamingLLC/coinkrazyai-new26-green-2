@@ -593,10 +593,14 @@ const StoreSettingsForm: React.FC<StoreSettingsFormProps> = ({ onSave }) => {
         </div>
         <div>
           <label className="text-sm font-semibold">Currency</label>
-          <select className="w-full px-3 py-2 border rounded-md text-sm" value={formData.currency}>
-            <option>USD</option>
-            <option>EUR</option>
-            <option>GBP</option>
+          <select
+            className="w-full px-3 py-2 border rounded-md text-sm"
+            value={formData.currency}
+            onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+          >
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
           </select>
         </div>
       </div>
