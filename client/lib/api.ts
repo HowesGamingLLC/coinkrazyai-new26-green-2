@@ -33,7 +33,7 @@ export async function apiCall<T>(
 }
 
 // Helper function for admin API calls
-async function adminApiCall<T>(
+export async function adminApiCall<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> {
