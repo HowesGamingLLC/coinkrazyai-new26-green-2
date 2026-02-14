@@ -464,8 +464,8 @@ const AdminGamesSports = () => {
                       } else {
                         toast.error(res.error || 'Failed to start crawl');
                       }
-                    } catch (error) {
-                      toast.error('Failed to connect to crawler');
+                    } catch (error: any) {
+                      toast.error(error.message || 'Failed to connect to crawler');
                     }
                   }} className="space-y-2">
                     <Input name="crawlUrl" placeholder="Enter URL to crawl (e.g., https://games.com/slots)" type="url" required />

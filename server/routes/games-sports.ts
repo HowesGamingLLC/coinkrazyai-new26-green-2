@@ -304,31 +304,45 @@ export const crawlSlots: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: 'URL is required' });
     }
 
+    // Basic URL validation
+    try {
+      new URL(url);
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid URL format' });
+    }
+
     console.log(`[Crawler] Starting crawl for: ${url}`);
 
     // Fetch HTML with a standard User-Agent to avoid simple blocks
     const response = await axios.get(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
       },
-      timeout: 15000,
-      validateStatus: () => true // Allow any status to handle errors manually
+      timeout: 10000,
+      maxRedirects: 5,
+      validateStatus: (status) => status < 500 // Don't throw on 4xx, only on 5xx or connection errors
     });
 
     if (response.status !== 200) {
-      return res.status(response.status).json({ error: `Site returned status ${response.status}` });
+      console.warn(`[Crawler] Site returned status ${response.status} for ${url}`);
+      return res.status(400).json({ error: `Target site returned status ${response.status}. It might be blocking automated access.` });
     }
 
     const html = response.data;
-    if (typeof html !== 'string') {
+    if (!html || typeof html !== 'string') {
       return res.status(400).json({ error: 'Could not retrieve text content from the URL' });
     }
 
     // Extract Title (Game Name)
     const titleMatch = html.match(/<title>(.*?)<\/title>/i);
     let name = titleMatch ? titleMatch[1].trim() : 'Crawled Game';
+
     // Clean up name: remove common separators and "Slot", "Online", etc if they are suffixes
-    name = name.split(/[|:-]/)[0].trim();
+    if (name.includes('|')) name = name.split('|')[0].trim();
+    if (name.includes('-')) name = name.split('-')[0].trim();
+    if (name.includes(':')) name = name.split(':')[0].trim();
 
     // Extract RTP (Return to Player)
     // Common pattern in slot review sites: "RTP: 96.5%"
@@ -358,11 +372,15 @@ export const crawlSlots: RequestHandler = async (req, res) => {
     const game = dbResult.rows[0];
 
     // Notify admin channel
-    await SlackService.notifyAdminAction(
-      req.user?.email || 'admin',
-      'Slots Crawl Successful',
-      `Imported "${name}" (RTP: ${rtp}%, Volatility: ${volatility}) from ${url}`
-    );
+    try {
+      await SlackService.notifyAdminAction(
+        req.user?.email || 'admin',
+        'Slots Crawl Successful',
+        `Imported "${name}" (RTP: ${rtp}%, Volatility: ${volatility}) from ${url}`
+      );
+    } catch (slackErr) {
+      console.error('[Crawler] Failed to send Slack notification:', slackErr);
+    }
 
     res.json({
       success: true,
@@ -370,7 +388,8 @@ export const crawlSlots: RequestHandler = async (req, res) => {
       data: game
     });
   } catch (error: any) {
-    console.error('Crawl slots error:', error.message);
-    res.status(500).json({ error: `Crawler failed: ${error.message}` });
+    console.error('[Crawler] Error:', error.message);
+    const message = error.code === 'ECONNABORTED' ? 'Request timed out' : error.message;
+    res.status(500).json({ error: `Crawler failed: ${message}` });
   }
 };
