@@ -165,7 +165,7 @@ export const createMakeItRainCampaign: RequestHandler = async (req, res) => {
     const result = await query(
       `INSERT INTO make_it_rain_campaigns (name, description, total_amount, target_players, start_date, end_date, created_by) 
       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [name, description, totalAmount, targetPlayers, startDate, endDate, req.user?.id]
+      [name, description, totalAmount, targetPlayers, startDate, endDate, req.user?.playerId]
     );
 
     res.json(result.rows[0]);
@@ -254,7 +254,7 @@ export const approveRedemption: RequestHandler = async (req, res) => {
     // Update request
     await query(
       'UPDATE redemption_requests SET status = $1, approved_by = $2, approved_at = CURRENT_TIMESTAMP WHERE id = $3',
-      ['approved', req.user?.id, requestId]
+      ['approved', req.user?.playerId, requestId]
     );
 
     // Deduct from player balance

@@ -39,7 +39,7 @@ export const resolveSecurityAlert: RequestHandler = async (req, res) => {
     // Log action
     await query(
       'INSERT INTO system_logs (admin_id, action, resource_type, resource_id) VALUES ($1, $2, $3, $4)',
-      [req.user?.id, `Resolved security alert: ${resolution}`, 'security_alert', alertId]
+      [req.user?.playerId, `Resolved security alert: ${resolution}`, 'security_alert', alertId]
     );
 
     res.json({ success: true });
@@ -77,7 +77,7 @@ export const createCMSPage: RequestHandler = async (req, res) => {
     const result = await query(
       `INSERT INTO cms_pages (title, slug, content, page_type, meta_description, featured_image, created_by) 
       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [title, slug, content, pageType, metaDescription, featuredImage, req.user?.id]
+      [title, slug, content, pageType, metaDescription, featuredImage, req.user?.playerId]
     );
 
     res.json(result.rows[0]);
@@ -136,7 +136,7 @@ export const createCMSBanner: RequestHandler = async (req, res) => {
     const result = await query(
       `INSERT INTO cms_banners (title, image_url, link_url, placement, start_date, end_date, display_order, created_by) 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [title, imageUrl, linkUrl, placement, startDate, endDate, displayOrder, req.user?.id]
+      [title, imageUrl, linkUrl, placement, startDate, endDate, displayOrder, req.user?.playerId]
     );
 
     res.json(result.rows[0]);
@@ -180,7 +180,7 @@ export const updateCasinoSettings: RequestHandler = async (req, res) => {
         `INSERT INTO casino_settings (setting_key, setting_value, data_type, updated_by, updated_at) 
         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
         ON CONFLICT (setting_key) DO UPDATE SET setting_value = $2, data_type = $3, updated_by = $4, updated_at = CURRENT_TIMESTAMP`,
-        [key, String(value), dataType, req.user?.id]
+        [key, String(value), dataType, req.user?.playerId]
       );
     }
 
@@ -245,7 +245,7 @@ export const createRetentionCampaign: RequestHandler = async (req, res) => {
     const result = await query(
       `INSERT INTO retention_campaigns (name, trigger_event, description, reward_type, reward_amount, created_by) 
       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [name, triggerEvent, description, rewardType, rewardAmount, req.user?.id]
+      [name, triggerEvent, description, rewardType, rewardAmount, req.user?.playerId]
     );
 
     res.json(result.rows[0]);

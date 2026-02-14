@@ -3,14 +3,15 @@ import * as dbQueries from '../db/queries';
 import { query } from '../db/connection';
 
 export const handlePlayCasinoGame: RequestHandler = async (req, res) => {
-  const { game_id, bet_amount } = req.body;
-  const playerId = (req as any).user?.id;
+  const { game_id, bet_amount: raw_bet_amount } = req.body;
+  const playerId = (req as any).user?.playerId;
+  const bet_amount = parseFloat(raw_bet_amount);
 
   if (!playerId) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
-  if (!game_id || !bet_amount || bet_amount <= 0) {
+  if (!game_id || isNaN(bet_amount) || bet_amount <= 0) {
     return res.status(400).json({ error: 'Invalid game_id or bet_amount' });
   }
 
@@ -113,7 +114,7 @@ export const handlePlayCasinoGame: RequestHandler = async (req, res) => {
 };
 
 export const handleGetSpinHistory: RequestHandler = async (req, res) => {
-  const playerId = (req as any).user?.id;
+  const playerId = (req as any).user?.playerId;
   const limit = parseInt(req.query.limit as string) || 20;
   const offset = parseInt(req.query.offset as string) || 0;
 
@@ -154,7 +155,7 @@ export const handleGetSpinHistory: RequestHandler = async (req, res) => {
 };
 
 export const handleGetSpinStats: RequestHandler = async (req, res) => {
-  const playerId = (req as any).user?.id;
+  const playerId = (req as any).user?.playerId;
 
   if (!playerId) {
     return res.status(401).json({ error: 'Not authenticated' });

@@ -134,7 +134,7 @@ export const updatePlayerStatus: RequestHandler = async (req, res) => {
     // Log to system logs
     await query(
       'INSERT INTO system_logs (admin_id, player_id, action, resource_type, new_values) VALUES ($1, $2, $3, $4, $5)',
-      [req.user?.id, playerId, `Status changed to ${status}`, 'player', JSON.stringify({ status, reason })]
+      [req.user?.playerId, playerId, `Status changed to ${status}`, 'player', JSON.stringify({ status, reason })]
     );
 
     // Notify via Slack
@@ -405,7 +405,7 @@ export const updatePlayerStatusByUsername: RequestHandler = async (req, res) => 
     // Log to system logs
     await query(
       'INSERT INTO system_logs (admin_id, player_id, action, resource_type, new_values) VALUES ($1, $2, $3, $4, $5)',
-      [req.user?.id, playerId, `Status changed to ${status}`, 'player', JSON.stringify({ status, reason })]
+      [req.user?.playerId, playerId, `Status changed to ${status}`, 'player', JSON.stringify({ status, reason })]
     );
 
     // Notify via Slack

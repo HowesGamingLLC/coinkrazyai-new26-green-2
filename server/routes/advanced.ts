@@ -126,7 +126,7 @@ export const resolveFraudFlag: RequestHandler = async (req, res) => {
 
     const result = await query(
       'UPDATE fraud_flags SET status = $1, resolved_by = $2, resolved_at = CURRENT_TIMESTAMP, resolution_notes = $3 WHERE id = $4 RETURNING *',
-      ['resolved', req.user?.id, resolution, flagId]
+      ['resolved', req.user?.playerId, resolution, flagId]
     );
 
     res.json({ success: true });
@@ -184,7 +184,7 @@ export const approveAffiliatePartner: RequestHandler = async (req, res) => {
     // Update partner status
     await query('UPDATE affiliate_partners SET status = $1, approved_by = $2, approved_at = CURRENT_TIMESTAMP WHERE id = $3', [
       'approved',
-      req.user?.id,
+      req.user?.playerId,
       partnerId,
     ]);
 
@@ -380,7 +380,7 @@ export const createAPIKey: RequestHandler = async (req, res) => {
     const result = await query(
       `INSERT INTO api_keys (key_name, key_hash, admin_id, permissions, rate_limit) 
       VALUES ($1, $2, $3, $4, $5) RETURNING id, key_name, created_at`,
-      [keyName, keyHash, req.user?.id, JSON.stringify(permissions || []), rateLimit || 1000]
+      [keyName, keyHash, req.user?.playerId, JSON.stringify(permissions || []), rateLimit || 1000]
     );
 
     res.json({
@@ -474,7 +474,7 @@ export const verifyAMLCheck: RequestHandler = async (req, res) => {
 
     const result = await query(
       'UPDATE aml_checks SET status = $1, risk_level = $2, verified_by = $3, verified_at = CURRENT_TIMESTAMP WHERE id = $4 RETURNING *',
-      [status, riskLevel, req.user?.id, checkId]
+      [status, riskLevel, req.user?.playerId, checkId]
     );
 
     res.json({ success: true });

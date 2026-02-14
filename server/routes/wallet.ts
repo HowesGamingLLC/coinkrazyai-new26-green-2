@@ -49,20 +49,30 @@ export const handleUpdateWallet: RequestHandler = async (req, res) => {
       });
     }
 
-    const { currency, amount, type = 'transfer', description } = req.body;
+    let { currency, amount, type = 'transfer', description, gc_amount, sc_amount } = req.body;
 
-    if (!currency || amount === undefined || !type) {
+    // Support both formats: {currency, amount} or {gc_amount, sc_amount}
+    let finalGcAmount = 0;
+    let finalScAmount = 0;
+
+    if (gc_amount !== undefined || sc_amount !== undefined) {
+      finalGcAmount = parseFloat(gc_amount || 0);
+      finalScAmount = parseFloat(sc_amount || 0);
+    } else if (currency && amount !== undefined) {
+      if (currency.toUpperCase() === 'GC') finalGcAmount = parseFloat(amount);
+      if (currency.toUpperCase() === 'SC') finalScAmount = parseFloat(amount);
+    } else {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields'
+        error: 'Missing required fields (currency/amount or gc_amount/sc_amount)'
       });
     }
 
-    // Validate amount
-    if (amount === 0) {
+    // Validate amounts
+    if (finalGcAmount === 0 && finalScAmount === 0) {
       return res.status(400).json({
         success: false,
-        error: 'Amount cannot be zero'
+        error: 'Update amounts cannot both be zero'
       });
     }
 
@@ -75,32 +85,28 @@ export const handleUpdateWallet: RequestHandler = async (req, res) => {
     }
 
     const current = player.rows[0];
-    const gcAmount = currency.toUpperCase() === 'GC' ? amount : 0;
-    const scAmount = currency.toUpperCase() === 'SC' ? amount : 0;
 
-    // Check for insufficient balance on losses/bets
-    if (amount < 0) {
-      if (currency.toUpperCase() === 'GC' && current.gc_balance + amount < 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'Insufficient gold coins'
-        });
-      }
-      if (currency.toUpperCase() === 'SC' && current.sc_balance + amount < 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'Insufficient sweeps coins'
-        });
-      }
+    // Check for insufficient balance
+    if (finalGcAmount < 0 && parseFloat(current.gc_balance) + finalGcAmount < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Insufficient gold coins'
+      });
+    }
+    if (finalScAmount < 0 && parseFloat(current.sc_balance) + finalScAmount < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Insufficient sweeps coins'
+      });
     }
 
     // Record transaction in wallet ledger
-    const transactionDesc = description || `${type} - ${currency} ${amount > 0 ? '+' : ''}${amount}`;
+    const transactionDesc = description || `${type} - update`;
     const ledger = await dbQueries.recordWalletTransaction(
       req.user.playerId,
       type,
-      gcAmount,
-      scAmount,
+      finalGcAmount,
+      finalScAmount,
       transactionDesc
     );
 

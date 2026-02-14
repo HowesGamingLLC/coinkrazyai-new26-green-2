@@ -103,7 +103,7 @@ export const createDesign: RequestHandler = async (req, res) => {
         parseFloat(prize_max_sc) || 10,
         image_url || null,
         background_color || '#FFD700',
-        req.user?.id || null,
+        req.user?.playerId || null,
       ]
     );
 
