@@ -25,6 +25,7 @@ import Leaderboards from "./pages/Leaderboards";
 import Achievements from "./pages/Achievements";
 import Support from "./pages/Support";
 import Games from "./pages/Games";
+import Casino from "./pages/Casino";
 import ScratchTickets from "./pages/ScratchTickets";
 import PullTabs from "./pages/PullTabs";
 
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/games" element={<Games />} />
+              <Route path="/casino" element={<Casino />} />
               <Route path="/store" element={<Store />} />
               <Route path="/slots" element={<Slots />} />
               <Route path="/poker" element={<Poker />} />

@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
 import { useWallet } from '@/hooks/use-wallet';
-import { Coins, User, Home, Gamepad2, ShoppingCart, BarChart3, MessageSquare, Trophy, Award, Headphones, Settings, Zap, LogOut, Ticket } from 'lucide-react';
+import { Coins, User, Home, Gamepad2, ShoppingCart, BarChart3, MessageSquare, Trophy, Award, Headphones, Settings, Zap, LogOut, Ticket, Dice5 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LayoutProps {
@@ -18,6 +18,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navItems = [
     { label: 'Home', path: '/', icon: Home },
     { label: 'Games', path: '/games', icon: Gamepad2 },
+    { label: 'Casino', path: '/casino', icon: Dice5 },
     { label: 'Slots', path: '/slots', icon: Zap },
     { label: 'Poker', path: '/poker', icon: Coins },
     { label: 'Bingo', path: '/bingo', icon: Gamepad2 },
