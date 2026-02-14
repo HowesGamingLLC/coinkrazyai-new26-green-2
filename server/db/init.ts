@@ -33,6 +33,30 @@ export const initializeDatabase = async () => {
 
     console.log('[DB] Schema initialized successfully');
 
+    // Add description column to games table if it doesn't exist
+    try {
+      await query(`ALTER TABLE games ADD COLUMN description TEXT`);
+      console.log('[DB] Added description column to games table');
+    } catch (err: any) {
+      if (err.code === '42701') {
+        console.log('[DB] Description column already exists in games');
+      } else {
+        console.log('[DB] Schema check for games.description:', err.message?.substring(0, 100));
+      }
+    }
+
+    // Add image_url column to games table if it doesn't exist
+    try {
+      await query(`ALTER TABLE games ADD COLUMN image_url VARCHAR(500)`);
+      console.log('[DB] Added image_url column to games table');
+    } catch (err: any) {
+      if (err.code === '42701') {
+        console.log('[DB] image_url column already exists in games');
+      } else {
+        console.log('[DB] Schema check for games.image_url:', err.message?.substring(0, 100));
+      }
+    }
+
     // Seed data if tables are empty
     await seedDatabase();
   } catch (error) {
@@ -152,16 +176,16 @@ const seedDatabase = async () => {
 
       // Seed games
       const games = [
-        ['Mega Spin Slots', 'Slots', 'Internal', 96.5, 'Medium', true],
-        ['Diamond Poker Pro', 'Poker', 'Internal', 98.2, 'Low', true],
-        ['Bingo Bonanza', 'Bingo', 'Internal', 94.8, 'High', true],
-        ['Fruit Frenzy', 'Slots', 'Internal', 95.0, 'Medium', false],
+        ['Mega Spin Slots', 'Slots', 'Internal', 96.5, 'Medium', 'Classic 5-reel slot game with high payouts.', true],
+        ['Diamond Poker Pro', 'Poker', 'Internal', 98.2, 'Low', 'Professional poker experience with high stakes.', true],
+        ['Bingo Bonanza', 'Bingo', 'Internal', 94.8, 'High', 'Fast-paced bingo action with multiple rooms.', true],
+        ['Fruit Frenzy', 'Slots', 'Internal', 95.0, 'Medium', 'Colorful fruit-themed slot machine.', false],
       ];
 
       for (const game of games) {
         await query(
-          `INSERT INTO games (name, category, provider, rtp, volatility, enabled) 
-           VALUES ($1, $2, $3, $4, $5, $6)`,
+          `INSERT INTO games (name, category, provider, rtp, volatility, description, enabled)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           game
         );
       }
