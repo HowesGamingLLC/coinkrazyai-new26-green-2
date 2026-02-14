@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
+  const { login, adminLogin, isLoading } = useAuth();
   const [isAdminLogin, setIsAdminLogin] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
@@ -32,16 +32,16 @@ const Login = () => {
 
     try {
       if (isAdminLogin) {
-        // Admin login - would need to be implemented
+        // Admin login
         const email = formData.email;
         const password = formData.password;
         if (!email || !password) {
           setError('Email and password required');
           return;
         }
-        // Call admin login endpoint
-        toast.success('Admin login coming soon');
-        return;
+        await adminLogin(email, password);
+        toast.success('Admin logged in successfully!');
+        navigate('/admin');
       } else {
         // Player login
         const { username, password } = formData;
