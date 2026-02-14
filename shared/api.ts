@@ -49,6 +49,7 @@ export interface GCPack {
   price_usd: number;
   gold_coins: number;
   sweeps_coins: number;
+  bonus_sc: number;
   bonus_percentage: number;
   is_popular: boolean;
   is_best_value: boolean;
@@ -56,7 +57,7 @@ export interface GCPack {
 
 export interface StorePack extends GCPack {
   enabled: boolean;
-  position: number;
+  display_order: number;
 }
 
 export interface PurchaseRequest {

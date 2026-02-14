@@ -57,6 +57,31 @@ export const initializeDatabase = async () => {
       }
     }
 
+    // Add bonus_sc column to store_packs table if it doesn't exist
+    try {
+      await query(`ALTER TABLE store_packs ADD COLUMN bonus_sc DECIMAL(15, 2) DEFAULT 0`);
+      console.log('[DB] Added bonus_sc column to store_packs table');
+    } catch (err: any) {
+      if (err.code === '42701') {
+        console.log('[DB] bonus_sc column already exists in store_packs');
+      } else {
+        console.log('[DB] Schema check for store_packs.bonus_sc:', err.message?.substring(0, 100));
+      }
+    }
+
+    // Rename position to display_order in store_packs table if it exists
+    try {
+      await query(`ALTER TABLE store_packs RENAME COLUMN position TO display_order`);
+      console.log('[DB] Renamed position to display_order in store_packs');
+    } catch (err: any) {
+      if (err.code === '42703') {
+        // Column position doesn't exist, might already be renamed or not exist at all
+        console.log('[DB] Column position does not exist in store_packs (maybe already renamed)');
+      } else {
+        console.log('[DB] Schema check for store_packs.position rename:', err.message?.substring(0, 100));
+      }
+    }
+
     // Seed data if tables are empty
     await seedDatabase();
   } catch (error) {

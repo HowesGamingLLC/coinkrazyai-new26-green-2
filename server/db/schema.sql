@@ -126,6 +126,7 @@ CREATE TABLE IF NOT EXISTS store_packs (
   price_usd DECIMAL(8, 2) NOT NULL,
   gold_coins INTEGER NOT NULL,
   sweeps_coins INTEGER DEFAULT 0,
+  bonus_sc DECIMAL(15, 2) DEFAULT 0,
   bonus_percentage DECIMAL(5, 2) DEFAULT 0,
   is_popular BOOLEAN DEFAULT FALSE,
   is_best_value BOOLEAN DEFAULT FALSE,
