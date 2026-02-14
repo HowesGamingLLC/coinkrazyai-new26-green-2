@@ -42,6 +42,42 @@ export const initializeDatabase = async () => {
 
 const seedDatabase = async () => {
   try {
+    // Add username column to players table if it doesn't exist
+    console.log('[DB] Checking players table schema...');
+    try {
+      await query(`ALTER TABLE players ADD COLUMN username VARCHAR(255) UNIQUE`);
+      console.log('[DB] Added username column to players table');
+    } catch (err: any) {
+      if (err.code === '42701') {
+        // Column already exists
+        console.log('[DB] Username column already exists');
+      } else {
+        console.log('[DB] Schema check:', err.message?.substring(0, 100));
+      }
+    }
+
+    // Update existing players to have usernames if they don't
+    console.log('[DB] Ensuring players have usernames...');
+    try {
+      const playersWithoutUsername = await query(
+        `SELECT id, name FROM players WHERE username IS NULL LIMIT 100`
+      );
+
+      for (const player of playersWithoutUsername.rows) {
+        const username = player.name.toLowerCase().replace(/\s+/g, '') + player.id;
+        await query(
+          `UPDATE players SET username = $1 WHERE id = $2`,
+          [username, player.id]
+        );
+      }
+
+      if (playersWithoutUsername.rows.length > 0) {
+        console.log(`[DB] Updated ${playersWithoutUsername.rows.length} players with usernames`);
+      }
+    } catch (err: any) {
+      console.log('[DB] Username update:', err.message?.substring(0, 100));
+    }
+
     // Always ensure admin user exists
     console.log('[DB] Ensuring admin user exists...');
     const adminPassword = await bcrypt.hash('admin123', 10);
