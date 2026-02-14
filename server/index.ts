@@ -148,7 +148,8 @@ import {
   createSportsEvent,
   updateSportsEvent,
   getSportsbookStats,
-  ingestGameData
+  ingestGameData,
+  crawlSlots
 } from "./routes/games-sports";
 import {
   listSecurityAlerts,
@@ -458,6 +459,7 @@ export function createServer() {
   app.put("/api/admin/v2/games/:gameId", verifyAdmin, updateGame);
   app.delete("/api/admin/v2/games/:gameId", verifyAdmin, deleteGame);
   app.post("/api/admin/v2/games/:gameId/ingest", verifyAdmin, ingestGameData);
+  app.post("/api/admin/v2/games/crawl", verifyAdmin, crawlSlots);
 
   // Poker
   app.get("/api/admin/v2/poker/tables", verifyAdmin, listPokerTables);
