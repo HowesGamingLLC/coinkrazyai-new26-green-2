@@ -43,14 +43,18 @@ import {
   handleGetConfig as getPokerConfig,
   handleUpdateConfig as updatePokerConfig
 } from "./routes/poker";
-import { 
-  handleGetBingoRooms, 
+import {
+  handleGetBingoRooms,
   handleBuyBingoTicket,
   handleMarkNumber,
   handleBingoWin,
   handleGetConfig as getBingoConfig,
   handleUpdateConfig as updateBingoConfig
 } from "./routes/bingo";
+import {
+  handleGetGames,
+  handleGetGameById
+} from "./routes/games";
 import {
   handleGetLiveGames,
   handlePlaceParlay,
@@ -139,6 +143,10 @@ export function createServer() {
   app.post("/api/sportsbook/bet", verifyPlayer, handleSingleBet);
   app.get("/api/sportsbook/config", getSportsbookConfig);
   app.post("/api/sportsbook/config/update", verifyAdmin, updateSportsbookConfig);
+
+  // ===== GAMES ROUTES =====
+  app.get("/api/games", handleGetGames);
+  app.get("/api/games/:id", handleGetGameById);
 
   // ===== ADMIN ROUTES =====
   app.post("/api/admin/login", handleAdminLogin);
