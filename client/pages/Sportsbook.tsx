@@ -1,57 +1,103 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, TrendingUp, Search, Ticket, Zap, Info } from 'lucide-react';
+import { Trophy, TrendingUp, Loader } from 'lucide-react';
 import { useWallet } from '@/hooks/use-wallet';
 import { toast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { SportsEvent } from '@shared/api';
+import ApiClient from '@/lib/api';
 
 const Sportsbook = () => {
-  const [games, setGames] = useState<any[]>([]);
+  const [games, setGames] = useState<SportsEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [betSlip, setBetSlip] = useState<any[]>([]);
+  const [betSlip, setBetSlip] = useState<Array<{ eventId: number; event: SportsEvent; pick: string; odds: number }>>([]);
   const [wager, setWager] = useState(10);
-  const { wallet, currency } = useWallet();
+  const [isPlacingBet, setIsPlacingBet] = useState(false);
+  const { wallet, refreshWallet } = useWallet();
 
   useEffect(() => {
-    fetch('/api/sportsbook/games')
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) setGames(res.data);
-      })
-      .finally(() => setIsLoading(false));
+    const fetchGames = async () => {
+      try {
+        const res = await ApiClient.getLiveGames();
+        if (res.success && res.data) {
+          setGames(res.data);
+        } else {
+          toast({ title: 'Error', description: 'Failed to load games', variant: 'destructive' });
+        }
+      } catch (error) {
+        console.error('Failed to fetch games:', error);
+        toast({ title: 'Error', description: 'Failed to load games', variant: 'destructive' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchGames();
   }, []);
 
-  const addToSlip = (game: any, pick: string) => {
-    if (betSlip.find(p => p.gameId === game.id)) {
-      setBetSlip(betSlip.map(p => p.gameId === game.id ? { ...p, pick } : p));
+  const addToSlip = (game: SportsEvent, pick: string, odds: number) => {
+    if (betSlip.find(p => p.eventId === game.id)) {
+      setBetSlip(betSlip.map(p => (p.eventId === game.id ? { eventId: game.id, event: game, pick, odds } : p)));
     } else {
-      setBetSlip([...betSlip, { gameId: game.id, game, pick }]);
+      setBetSlip([...betSlip, { eventId: game.id, event: game, pick, odds }]);
     }
+    toast({ title: 'Added to Slip', description: `${pick} on ${game.event_name}` });
+  };
+
+  const removeFromSlip = (eventId: number) => {
+    setBetSlip(betSlip.filter(p => p.eventId !== eventId));
+  };
+
+  const calculateParlay = () => {
+    if (betSlip.length === 0) return 0;
+    return betSlip.reduce((acc, b) => acc * b.odds, wager);
   };
 
   const handlePlaceBet = async () => {
-    if (currency !== 'SC') {
-      toast({ title: "SC Only", description: "Sportsbook betting is exclusive to Sweeps Coins.", variant: "destructive" });
-      return;
-    }
-    
-    if (betSlip.length < 3) {
-      toast({ title: "Parlay Required", description: "Minimum 3 picks for a parlay bet.", variant: "destructive" });
+    if (!wallet || wallet.sweepsCoins < wager) {
+      toast({
+        title: 'Insufficient Balance',
+        description: `You need ${wager} SC`,
+        variant: 'destructive'
+      });
       return;
     }
 
-    const res = await fetch('/api/sportsbook/parlay', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ picks: betSlip, bet: wager })
-    });
-    const data = await res.json();
-    
-    if (data.success) {
-      toast({ title: "Bet Placed!", description: `Potential Payout: ${data.data.potentialPayout} SC` });
-      setBetSlip([]);
+    if (betSlip.length === 0) {
+      toast({ title: 'Error', description: 'Add picks to your bet slip', variant: 'destructive' });
+      return;
+    }
+
+    setIsPlacingBet(true);
+    try {
+      const bets = betSlip.map(b => ({ eventId: b.eventId, odds: b.odds }));
+      const res = await ApiClient.placeParlay(bets, wager);
+
+      if (res.success) {
+        toast({
+          title: 'Bet Placed!',
+          description: `Potential payout: ${calculateParlay().toFixed(2)} SC`,
+          className: 'bg-primary text-primary-foreground font-bold'
+        });
+        setBetSlip([]);
+        refreshWallet();
+      } else {
+        toast({
+          title: 'Error',
+          description: res.error || 'Failed to place bet',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Place bet error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to place bet',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsPlacingBet(false);
     }
   };
 

@@ -2,43 +2,154 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, Coins, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
+import { Users, Coins, ArrowRight, ShieldCheck, Loader } from 'lucide-react';
 import { useWallet } from '@/hooks/use-wallet';
 import { toast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { PokerTable } from '@shared/api';
+import ApiClient from '@/lib/api';
+import { io } from 'socket.io-client';
 
 const Poker = () => {
-  const [tables, setTables] = useState<any[]>([]);
+  const [tables, setTables] = useState<PokerTable[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedTable, setSelectedTable] = useState<any>(null);
-  const { wallet, currency } = useWallet();
+  const [selectedTable, setSelectedTable] = useState<PokerTable | null>(null);
+  const [joinBuyIn, setJoinBuyIn] = useState<number>(0);
+  const [isJoining, setIsJoining] = useState(false);
+  const { wallet, refreshWallet } = useWallet();
 
   useEffect(() => {
-    fetch('/api/poker/tables')
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) setTables(res.data);
-      })
-      .finally(() => setIsLoading(false));
+    const fetchTables = async () => {
+      try {
+        const res = await ApiClient.getPokerTables();
+        if (res.success && res.data) {
+          setTables(res.data);
+        } else {
+          toast({ title: 'Error', description: 'Failed to load poker tables', variant: 'destructive' });
+        }
+      } catch (error) {
+        console.error('Failed to fetch poker tables:', error);
+        toast({ title: 'Error', description: 'Failed to load tables', variant: 'destructive' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTables();
   }, []);
 
-  const handleJoin = async (table: any) => {
-    if (currency !== 'SC') {
-      toast({ title: "SC Only", description: "Poker is exclusive to Sweeps Coins.", variant: "destructive" });
-      return;
-    }
-    
-    if (!wallet || wallet.sweepsCoins < table.minBuyIn) {
-      toast({ title: "Insufficient Balance", description: `Minimum buy-in is ${table.minBuyIn} SC.`, variant: "destructive" });
+  const handleJoinTable = async (table: PokerTable) => {
+    setSelectedTable(table);
+    setJoinBuyIn(table.buy_in_min);
+  };
+
+  const handleConfirmJoin = async (table: PokerTable, buyIn: number) => {
+    if (!wallet) {
+      toast({ title: 'Error', description: 'Wallet not loaded', variant: 'destructive' });
       return;
     }
 
-    setSelectedTable(table);
-    toast({ title: "Table Joined", description: `You are now playing at ${table.name}` });
+    if (wallet.sweepsCoins < buyIn) {
+      toast({
+        title: 'Insufficient Balance',
+        description: `You need ${buyIn} SC. You have ${wallet.sweepsCoins}`,
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsJoining(true);
+    try {
+      const res = await ApiClient.joinPokerTable(table.id, buyIn);
+
+      if (res.success) {
+        toast({
+          title: 'Joined Table!',
+          description: `Welcome to ${table.name}. Good luck!`
+        });
+
+        // Connect to socket.io
+        const socket = io();
+        socket.emit('poker:join_table', {
+          tableId: table.id,
+          playerId: wallet.id,
+          buyIn
+        });
+
+        refreshWallet();
+        // Show actual poker game here
+        setSelectedTable(null);
+      } else {
+        toast({
+          title: 'Error',
+          description: res.error || 'Failed to join table',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Join table error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to join table',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsJoining(false);
+    }
   };
 
   if (selectedTable) {
-    return <PokerTable table={selectedTable} onLeave={() => setSelectedTable(null)} />;
+    return (
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-black">{selectedTable.name}</h2>
+          <Button variant="outline" onClick={() => setSelectedTable(null)}>
+            Back to Lobby
+          </Button>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Join Table</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">Buy-In Amount (SC)</p>
+              <input
+                type="number"
+                min={selectedTable.buy_in_min}
+                max={selectedTable.buy_in_max}
+                value={joinBuyIn}
+                onChange={(e) => setJoinBuyIn(parseInt(e.target.value))}
+                className="w-full px-4 py-2 border border-border rounded-lg bg-muted/30"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Minimum: {selectedTable.buy_in_min} SC | Maximum: {selectedTable.buy_in_max} SC
+              </p>
+            </div>
+
+            <Button
+              onClick={() => handleConfirmJoin(selectedTable, joinBuyIn)}
+              disabled={isJoining || !wallet || wallet.sweepsCoins < joinBuyIn}
+              className="w-full h-12 font-bold"
+            >
+              {isJoining ? <Loader className="w-5 h-5 animate-spin mr-2" /> : null}
+              Join Table
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader className="w-12 h-12 text-primary animate-spin" />
+          <p className="text-muted-foreground">Loading poker tables...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -46,10 +157,12 @@ const Poker = () => {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
           <Badge className="bg-primary/20 text-primary border-none">
-            <ShieldCheck className="w-3 h-3 mr-1" /> JoseyAI Anti-Collusion Active
+            <ShieldCheck className="w-3 h-3 mr-1" /> AI Anti-Collusion Active
           </Badge>
           <h1 className="text-4xl md:text-6xl font-black tracking-tighter">POKER <span className="text-primary">LOBBY</span></h1>
-          <p className="text-muted-foreground font-medium text-lg">Real-money Texas Hold'em. SC tables only.</p>
+          <p className="text-muted-foreground font-medium text-lg">
+            {tables.length} tables available • Real-money Texas Hold'em
+          </p>
         </div>
       </div>
 
@@ -58,43 +171,51 @@ const Poker = () => {
           <div className="flex items-center justify-between px-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">
             <span>Table Name</span>
             <div className="flex gap-12 mr-12">
-              <span>Stakes (SC)</span>
+              <span>Buy-In Range</span>
               <span>Players</span>
             </div>
           </div>
-          
+
           <div className="space-y-3">
-            {isLoading ? (
-              [1, 2, 3].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-2xl" />)
-            ) : (
+            {tables.length > 0 ? (
               tables.map((table) => (
-                <Card 
-                  key={table.id} 
+                <Card
+                  key={table.id}
                   className="group hover:border-primary/50 transition-all cursor-pointer border-border/50 bg-muted/20"
-                  onClick={() => handleJoin(table)}
+                  onClick={() => handleJoinTable(table)}
                 >
                   <CardContent className="p-0">
                     <div className="flex items-center justify-between p-6">
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 flex-1">
                         <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center group-hover:bg-primary/10 transition-colors">
                           <Coins className="text-muted-foreground group-hover:text-primary" />
                         </div>
                         <div>
                           <h3 className="font-bold text-lg">{table.name}</h3>
-                          <p className="text-xs text-muted-foreground uppercase font-bold tracking-tighter">Texas Hold'em</p>
+                          <p className="text-xs text-muted-foreground uppercase font-bold tracking-tighter">
+                            {table.stakes}
+                          </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-12">
                         <div className="text-right">
-                          <p className="font-mono font-bold">{table.minBuyIn} / {table.maxBuyIn}</p>
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Buy-In</p>
+                          <p className="font-mono font-bold text-sm">
+                            {table.buy_in_min} - {table.buy_in_max}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold">SC</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-bold">{table.players}/{table.maxPlayers}</span>
+                          <span className="font-bold text-sm">
+                            {table.current_players}/{table.max_players}
+                          </span>
                         </div>
-                        <Button size="icon" variant="ghost" className="rounded-full group-hover:bg-primary group-hover:text-primary-foreground">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="rounded-full group-hover:bg-primary group-hover:text-primary-foreground"
+                        >
                           <ArrowRight className="w-5 h-5" />
                         </Button>
                       </div>
@@ -102,6 +223,12 @@ const Poker = () => {
                   </CardContent>
                 </Card>
               ))
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">No tables available at this time</p>
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>
