@@ -3,7 +3,7 @@ import { casinoGames, CASINO_MIN_BET, CASINO_MAX_BET } from '@/data/casinoGames'
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { X, AlertCircle, Loader } from 'lucide-react';
-import { wallet } from '@/lib/api';
+import { casino } from '@/lib/api';
 
 interface GamePlayerModalProps {
   gameId: string;
@@ -32,33 +32,26 @@ export function GamePlayerModal({ gameId, onClose }: GamePlayerModalProps) {
 
     setIsLoading(true);
     setError(null);
+    setTransactionStatus('pending');
 
-    try {
-      console.log('[Casino] Starting game with bet amount:', betAmount);
-      setTransactionStatus('pending');
+    // Start game immediately
+    setHasStarted(true);
 
-      // Start the game immediately
-      setHasStarted(true);
-
-      // Process wallet deduction in background
-      wallet.updateBalance(0, -betAmount)
-        .then((response) => {
-          console.log('[Casino] Wallet transaction successful:', response);
-          setTransactionStatus('success');
-        })
-        .catch((err: any) => {
-          console.error('[Casino] Wallet transaction failed:', err);
-          setTransactionStatus('failed');
-          // Show error but don't interrupt game
-          const errorMsg = err?.message || 'Failed to deduct SC from wallet';
-          console.warn('[Casino]', errorMsg);
-        });
-    } catch (err: any) {
-      const errorMessage = err?.message || 'An error occurred. Please try again.';
-      console.error('[Casino] Error starting game:', err);
-      setError(errorMessage);
-      setIsLoading(false);
-    }
+    // Process transaction in background (non-blocking)
+    casino.playGame(game.id, betAmount)
+      .then((response) => {
+        console.log('[Casino] Game transaction successful:', response);
+        setTransactionStatus('success');
+      })
+      .catch((err: any) => {
+        console.error('[Casino] Game transaction failed:', err);
+        setTransactionStatus('failed');
+        const errorMsg = err?.message || 'Failed to process transaction';
+        console.warn('[Casino] Transaction error:', errorMsg);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
 
   return (

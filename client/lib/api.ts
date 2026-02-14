@@ -26,12 +26,15 @@ export async function apiCall<T>(
   });
 
   if (!response.ok) {
+    let errorMessage = `API request failed with status ${response.status}`;
     try {
       const error = await response.json();
-      throw new Error(error.error || 'API request failed');
+      errorMessage = error.error || error.message || errorMessage;
+      console.error(`[API Error] ${url}:`, { status: response.status, error });
     } catch (e) {
-      throw new Error(`API request failed with status ${response.status}`);
+      console.error(`[API Error] ${url}: Failed to parse error response, status: ${response.status}`);
     }
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -60,12 +63,15 @@ export async function adminApiCall<T>(
   });
 
   if (!response.ok) {
+    let errorMessage = `API request failed with status ${response.status}`;
     try {
       const error = await response.json();
-      throw new Error(error.error || 'API request failed');
+      errorMessage = error.error || error.message || errorMessage;
+      console.error(`[API Error] ${url}:`, { status: response.status, error });
     } catch (e) {
-      throw new Error(`API request failed with status ${response.status}`);
+      console.error(`[API Error] ${url}: Failed to parse error response, status: ${response.status}`);
     }
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -135,9 +141,11 @@ export const wallet = {
   },
 
   updateBalance: async (gcAmount: number, scAmount: number) => {
+    const payload = { gc_amount: gcAmount, sc_amount: scAmount };
+    console.log('[Wallet] Sending updateBalance request:', payload);
     return apiCall<{ success: boolean }>('/wallet/update', {
       method: 'POST',
-      body: JSON.stringify({ gc_amount: gcAmount, sc_amount: scAmount }),
+      body: JSON.stringify(payload),
     });
   },
 };
@@ -161,6 +169,37 @@ export const store = {
 
   getPaymentMethods: async () => {
     return apiCall<{ success: boolean; data: any[] }>('/store/payment-methods');
+  },
+};
+
+// ===== CASINO =====
+export const casino = {
+  playGame: async (gameId: string, betAmount: number) => {
+    const payload = { game_id: gameId, bet_amount: betAmount };
+    console.log('[Casino API] Playing game:', payload);
+
+    try {
+      // Try the dedicated casino endpoint first
+      return await apiCall<{ success: boolean; data: any }>('/casino/play', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      console.warn('[Casino API] Primary endpoint failed, trying alternative...');
+      // Fallback: Try deducting from wallet directly
+      try {
+        return await apiCall<{ success: boolean; data: any }>('/wallet/update', {
+          method: 'POST',
+          body: JSON.stringify({
+            gc_amount: 0,
+            sc_amount: -betAmount
+          }),
+        });
+      } catch (walletErr) {
+        console.error('[Casino API] Both endpoints failed:', { primary: err, fallback: walletErr });
+        throw err; // Throw the original error
+      }
+    }
   },
 };
 
