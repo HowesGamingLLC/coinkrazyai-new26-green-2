@@ -5,9 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { useWallet } from '@/hooks/use-wallet';
 import { toast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Coins, Trophy, Info } from 'lucide-react';
+import { Zap, Coins, Trophy, Info, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CoinAnimation } from '@/components/CoinAnimation';
+import ApiClient from '@/lib/api';
 
 const SYMBOL_MAP: Record<string, string> = {
   cherry: '🍒',
@@ -20,7 +21,7 @@ const SYMBOL_MAP: Record<string, string> = {
 };
 
 const Slots = () => {
-  const { wallet, currency } = useWallet();
+  const { wallet, currency, refreshWallet } = useWallet();
   const [bet, setBet] = useState(10);
   const [isSpinning, setIsSpinning] = useState(false);
   const [reels, setReels] = useState([
@@ -30,14 +31,33 @@ const Slots = () => {
   ]);
   const [winnings, setWinnings] = useState(0);
   const [showWinAnimation, setShowWinAnimation] = useState(false);
+  const [config, setConfig] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const res = await ApiClient.getSlotsConfig();
+        if (res.success) {
+          setConfig(res.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch slots config:', error);
+      }
+    };
+    fetchConfig();
+  }, []);
 
   const handleSpin = async () => {
     if (isSpinning) return;
-    
+    if (!wallet) {
+      toast({ title: "Error", description: "Wallet not loaded", variant: "destructive" });
+      return;
+    }
+
     // Check balance
-    const balance = currency === 'GC' ? wallet?.goldCoins : wallet?.sweepsCoins;
-    if (!balance || balance < bet) {
-      toast({ title: "Insufficient Balance", description: `You need more ${currency} to play.`, variant: "destructive" });
+    const balance = currency === 'GC' ? wallet.goldCoins : wallet.sweepsCoins;
+    if (balance < bet) {
+      toast({ title: "Insufficient Balance", description: `You need ${bet} ${currency}. You have ${balance}.`, variant: "destructive" });
       return;
     }
 
@@ -46,32 +66,49 @@ const Slots = () => {
     setShowWinAnimation(false);
 
     try {
-      const res = await fetch('/api/slots/spin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bet, currency })
-      });
-      const data = await res.json();
+      const res = await ApiClient.spinSlots(1, bet);
+      const data = res;
 
       if (data.success) {
         // Simulate reel spinning delay
         setTimeout(() => {
-          setReels(data.data.reels);
+          if (data.data?.symbols) {
+            const symbols = data.data.symbols.split(',');
+            setReels([
+              [symbols[0], symbols[3], symbols[6]],
+              [symbols[1], symbols[4], symbols[7]],
+              [symbols[2], symbols[5], symbols[8]]
+            ]);
+          }
           setIsSpinning(false);
-          if (data.data.winnings > 0) {
+
+          if (data.data?.winnings > 0) {
             setWinnings(data.data.winnings);
             setShowWinAnimation(true);
-            toast({ 
-              title: "BIG WIN!", 
+            toast({
+              title: "🎉 BIG WIN!",
               description: `You won ${data.data.winnings} ${currency}!`,
               className: "bg-primary text-primary-foreground font-bold"
             });
+          } else {
+            toast({
+              title: "No Win",
+              description: "Better luck next time!",
+              variant: "default"
+            });
           }
-        }, 1000);
+
+          // Refresh wallet after a short delay
+          setTimeout(refreshWallet, 500);
+        }, 2000);
+      } else {
+        setIsSpinning(false);
+        toast({ title: "Error", description: data.error || "Spin failed", variant: "destructive" });
       }
     } catch (e) {
       setIsSpinning(false);
       toast({ title: "Error", description: "Spin failed. Try again.", variant: "destructive" });
+      console.error('Spin error:', e);
     }
   };
 
