@@ -383,6 +383,23 @@ export const adminV2 = {
     getTransactions: async (playerId: number, page = 1, limit = 50) => {
       return adminApiCall<any>(`/admin/v2/players/${playerId}/transactions?page=${page}&limit=${limit}`);
     },
+
+    // Username-based operations
+    updateStatusByUsername: async (username: string, status: string, reason?: string) => {
+      return adminApiCall<any>(`/admin/v2/players/username/${encodeURIComponent(username)}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status, reason }),
+      });
+    },
+    updateBalanceByUsername: async (username: string, gcAmount: number, scAmount: number, reason?: string) => {
+      return adminApiCall<any>(`/admin/v2/players/username/${encodeURIComponent(username)}/balance`, {
+        method: 'PUT',
+        body: JSON.stringify({ gcAmount, scAmount, reason }),
+      });
+    },
+    getTransactionsByUsername: async (username: string, page = 1, limit = 50) => {
+      return adminApiCall<any>(`/admin/v2/players/username/${encodeURIComponent(username)}/transactions?page=${page}&limit=${limit}`);
+    },
   },
 
   // KYC

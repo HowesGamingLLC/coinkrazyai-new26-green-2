@@ -20,18 +20,18 @@ interface Transaction {
 const AdminWallet = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedPlayerId, setSelectedPlayerId] = useState('');
+  const [selectedUsername, setSelectedUsername] = useState('');
   const [totalGCCirculation, setTotalGCCirculation] = useState(0);
   const [totalSCCirculation, setTotalSCCirculation] = useState(0);
 
-  const fetchTransactions = async (playerId: string) => {
-    if (!playerId) {
+  const fetchTransactions = async (username: string) => {
+    if (!username) {
       setTransactions([]);
       return;
     }
     try {
       setIsLoading(true);
-      const response = await adminV2.players.getTransactions(parseInt(playerId), 1, 50);
+      const response = await adminV2.players.getTransactionsByUsername(username, 1, 50);
       setTransactions(response.transactions || []);
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
@@ -42,8 +42,8 @@ const AdminWallet = () => {
   };
 
   useEffect(() => {
-    fetchTransactions(selectedPlayerId);
-  }, [selectedPlayerId]);
+    fetchTransactions(selectedUsername);
+  }, [selectedUsername]);
 
   return (
     <div className="space-y-6">
@@ -85,12 +85,11 @@ const AdminWallet = () => {
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Input
-              placeholder="Enter player ID..."
-              value={selectedPlayerId}
-              onChange={(e) => setSelectedPlayerId(e.target.value)}
-              type="number"
+              placeholder="Enter username..."
+              value={selectedUsername}
+              onChange={(e) => setSelectedUsername(e.target.value)}
             />
-            <Button onClick={() => setSelectedPlayerId('')}>Clear</Button>
+            <Button onClick={() => setSelectedUsername('')}>Clear</Button>
           </div>
 
           {isLoading ? (
@@ -126,7 +125,7 @@ const AdminWallet = () => {
             </div>
           ) : (
             <p className="text-center py-8 text-muted-foreground">
-              {selectedPlayerId ? 'No transactions found for this player' : 'Enter a player ID to view transactions'}
+              {selectedUsername ? 'No transactions found for this player' : 'Enter a username to view transactions'}
             </p>
           )}
         </CardContent>
@@ -144,10 +143,10 @@ const AdminWallet = () => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
               try {
-                const playerId = parseInt(formData.get('playerId') as string);
+                const username = formData.get('username') as string;
                 const gc = parseFloat(formData.get('gcAmount') as string);
                 const sc = parseFloat(formData.get('scAmount') as string);
-                await adminV2.players.updateBalance(playerId, gc, sc, 'Admin fund addition');
+                await adminV2.players.updateBalanceByUsername(username, gc, sc, 'Admin fund addition');
                 toast.success('Funds added successfully');
                 (e.target as HTMLFormElement).reset();
               } catch (error) {
@@ -156,7 +155,7 @@ const AdminWallet = () => {
             }} className="p-4 border rounded-lg">
               <h4 className="font-semibold mb-3">Add Funds</h4>
               <div className="space-y-2">
-                <Input name="playerId" placeholder="Player ID" type="number" required />
+                <Input name="username" placeholder="Username" required />
                 <Input name="gcAmount" placeholder="GC Amount" type="number" step="0.01" required />
                 <Input name="scAmount" placeholder="SC Amount" type="number" step="0.01" required />
                 <Button className="w-full" type="submit">Add Funds</Button>
@@ -167,10 +166,10 @@ const AdminWallet = () => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
               try {
-                const playerId = parseInt(formData.get('playerId') as string);
+                const username = formData.get('username') as string;
                 const gc = -parseFloat(formData.get('gcAmount') as string);
                 const sc = -parseFloat(formData.get('scAmount') as string);
-                await adminV2.players.updateBalance(playerId, gc, sc, 'Admin fund removal');
+                await adminV2.players.updateBalanceByUsername(username, gc, sc, 'Admin fund removal');
                 toast.success('Funds removed successfully');
                 (e.target as HTMLFormElement).reset();
               } catch (error) {
@@ -179,7 +178,7 @@ const AdminWallet = () => {
             }} className="p-4 border rounded-lg">
               <h4 className="font-semibold mb-3">Remove Funds</h4>
               <div className="space-y-2">
-                <Input name="playerId" placeholder="Player ID" type="number" required />
+                <Input name="username" placeholder="Username" required />
                 <Input name="gcAmount" placeholder="GC Amount" type="number" step="0.01" required />
                 <Input name="scAmount" placeholder="SC Amount" type="number" step="0.01" required />
                 <Button variant="destructive" className="w-full" type="submit">Remove Funds</Button>
@@ -192,8 +191,8 @@ const AdminWallet = () => {
             }} className="p-4 border rounded-lg">
               <h4 className="font-semibold mb-3">Transfer Between Players</h4>
               <div className="space-y-2">
-                <Input placeholder="From Player ID" type="number" required />
-                <Input placeholder="To Player ID" type="number" required />
+                <Input placeholder="From Username" required />
+                <Input placeholder="To Username" required />
                 <Input placeholder="GC Amount" type="number" required />
                 <Button className="w-full" type="submit">Transfer</Button>
               </div>
@@ -205,7 +204,7 @@ const AdminWallet = () => {
             }} className="p-4 border rounded-lg">
               <h4 className="font-semibold mb-3">Reset Wallet</h4>
               <div className="space-y-2">
-                <Input placeholder="Player ID" type="number" required />
+                <Input placeholder="Username" required />
                 <select className="w-full px-3 py-2 border rounded-md text-sm">
                   <option>Select action...</option>
                   <option>Reset to Zero</option>
