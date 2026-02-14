@@ -466,3 +466,479 @@ CREATE INDEX IF NOT EXISTS idx_kyc_documents_player_id ON kyc_documents(player_i
 CREATE INDEX IF NOT EXISTS idx_security_alerts_player_id ON security_alerts(player_id);
 CREATE INDEX IF NOT EXISTS idx_bingo_tickets_player_id ON bingo_tickets(player_id);
 CREATE INDEX IF NOT EXISTS idx_poker_sessions_player_id ON poker_sessions(player_id);
+
+-- ===== JACKPOT MANAGEMENT =====
+CREATE TABLE IF NOT EXISTS jackpots (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  game_id INTEGER REFERENCES games(id),
+  current_amount DECIMAL(15, 2) NOT NULL,
+  base_amount DECIMAL(15, 2) NOT NULL,
+  max_amount DECIMAL(15, 2),
+  increment_percentage DECIMAL(5, 2) DEFAULT 0.1,
+  status VARCHAR(50) DEFAULT 'active',
+  last_won_by INTEGER REFERENCES players(id),
+  last_won_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS jackpot_wins (
+  id SERIAL PRIMARY KEY,
+  jackpot_id INTEGER NOT NULL REFERENCES jackpots(id),
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  amount_won DECIMAL(15, 2) NOT NULL,
+  game_session_id VARCHAR(255),
+  won_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_jackpot_wins_jackpot_id ON jackpot_wins(jackpot_id);
+CREATE INDEX IF NOT EXISTS idx_jackpot_wins_player_id ON jackpot_wins(player_id);
+
+-- ===== MAKE IT RAIN CAMPAIGNS =====
+CREATE TABLE IF NOT EXISTS make_it_rain_campaigns (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  total_amount DECIMAL(15, 2) NOT NULL,
+  amount_distributed DECIMAL(15, 2) DEFAULT 0,
+  target_players INTEGER,
+  players_participating INTEGER DEFAULT 0,
+  start_date TIMESTAMP NOT NULL,
+  end_date TIMESTAMP NOT NULL,
+  status VARCHAR(50) DEFAULT 'scheduled',
+  created_by INTEGER REFERENCES admin_users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS make_it_rain_rewards (
+  id SERIAL PRIMARY KEY,
+  campaign_id INTEGER NOT NULL REFERENCES make_it_rain_campaigns(id),
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  amount DECIMAL(15, 2) NOT NULL,
+  status VARCHAR(50) DEFAULT 'pending',
+  claimed_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_make_it_rain_rewards_campaign_id ON make_it_rain_rewards(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_make_it_rain_rewards_player_id ON make_it_rain_rewards(player_id);
+
+-- ===== VIP MANAGEMENT =====
+CREATE TABLE IF NOT EXISTS vip_tiers (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  level INTEGER NOT NULL,
+  min_wagered DECIMAL(15, 2),
+  monthly_cashback_percentage DECIMAL(5, 2),
+  reload_bonus_percentage DECIMAL(5, 2),
+  birthday_bonus DECIMAL(15, 2),
+  priority_support BOOLEAN DEFAULT TRUE,
+  exclusive_games BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS player_vip (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL UNIQUE REFERENCES players(id) ON DELETE CASCADE,
+  vip_tier_id INTEGER REFERENCES vip_tiers(id),
+  vip_points DECIMAL(15, 2) DEFAULT 0,
+  month_wagered DECIMAL(15, 2) DEFAULT 0,
+  promoted_at TIMESTAMP,
+  last_cashback_date TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_vip_player_id ON player_vip(player_id);
+
+-- ===== REDEMPTION APPROVALS =====
+CREATE TABLE IF NOT EXISTS redemption_requests (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  amount DECIMAL(15, 2) NOT NULL,
+  method VARCHAR(50) NOT NULL,
+  bank_details JSONB,
+  crypto_wallet VARCHAR(255),
+  status VARCHAR(50) DEFAULT 'pending',
+  submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  approved_by INTEGER REFERENCES admin_users(id),
+  approved_at TIMESTAMP,
+  rejected_reason TEXT,
+  processed_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_redemption_requests_player_id ON redemption_requests(player_id);
+CREATE INDEX IF NOT EXISTS idx_redemption_requests_status ON redemption_requests(status);
+
+-- ===== FRAUD DETECTION =====
+CREATE TABLE IF NOT EXISTS fraud_patterns (
+  id SERIAL PRIMARY KEY,
+  pattern_name VARCHAR(255) NOT NULL,
+  description TEXT,
+  rule_type VARCHAR(100),
+  threshold_value DECIMAL(15, 2),
+  enabled BOOLEAN DEFAULT TRUE,
+  action VARCHAR(50) DEFAULT 'flag',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS fraud_flags (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  pattern_id INTEGER REFERENCES fraud_patterns(id),
+  description TEXT,
+  severity VARCHAR(50) DEFAULT 'low',
+  status VARCHAR(50) DEFAULT 'open',
+  resolved_by INTEGER REFERENCES admin_users(id),
+  resolved_at TIMESTAMP,
+  resolution_notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_fraud_flags_player_id ON fraud_flags(player_id);
+CREATE INDEX IF NOT EXISTS idx_fraud_flags_status ON fraud_flags(status);
+
+-- ===== AFFILIATE MANAGEMENT =====
+CREATE TABLE IF NOT EXISTS affiliate_partners (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  phone VARCHAR(20),
+  website VARCHAR(500),
+  status VARCHAR(50) DEFAULT 'pending',
+  commission_percentage DECIMAL(5, 2) DEFAULT 20.0,
+  total_referrals INTEGER DEFAULT 0,
+  total_commissions DECIMAL(15, 2) DEFAULT 0,
+  last_payment_date TIMESTAMP,
+  approved_by INTEGER REFERENCES admin_users(id),
+  approved_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS affiliate_links (
+  id SERIAL PRIMARY KEY,
+  affiliate_id INTEGER NOT NULL REFERENCES affiliate_partners(id),
+  unique_code VARCHAR(100) UNIQUE NOT NULL,
+  link_url VARCHAR(500),
+  clicks INTEGER DEFAULT 0,
+  conversions INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS affiliate_referrals (
+  id SERIAL PRIMARY KEY,
+  affiliate_id INTEGER NOT NULL REFERENCES affiliate_partners(id),
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  referred_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  first_deposit DECIMAL(15, 2),
+  total_wagered DECIMAL(15, 2) DEFAULT 0,
+  commission_earned DECIMAL(15, 2) DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_affiliate_links_affiliate_id ON affiliate_links(affiliate_id);
+CREATE INDEX IF NOT EXISTS idx_affiliate_referrals_affiliate_id ON affiliate_referrals(affiliate_id);
+
+-- ===== SUPPORT & TICKETS =====
+CREATE TABLE IF NOT EXISTS support_tickets (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  subject VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,
+  category VARCHAR(100),
+  priority VARCHAR(50) DEFAULT 'normal',
+  status VARCHAR(50) DEFAULT 'open',
+  assigned_to INTEGER REFERENCES admin_users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  resolved_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS ticket_messages (
+  id SERIAL PRIMARY KEY,
+  ticket_id INTEGER NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+  sender_type VARCHAR(50) NOT NULL,
+  sender_id INTEGER,
+  message TEXT NOT NULL,
+  attachments JSONB,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_support_tickets_player_id ON support_tickets(player_id);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket_id ON ticket_messages(ticket_id);
+
+-- ===== SYSTEM LOGS =====
+CREATE TABLE IF NOT EXISTS system_logs (
+  id SERIAL PRIMARY KEY,
+  admin_id INTEGER REFERENCES admin_users(id),
+  player_id INTEGER REFERENCES players(id),
+  action VARCHAR(255) NOT NULL,
+  resource_type VARCHAR(100),
+  resource_id INTEGER,
+  old_values JSONB,
+  new_values JSONB,
+  ip_address VARCHAR(50),
+  user_agent TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_system_logs_admin_id ON system_logs(admin_id);
+CREATE INDEX IF NOT EXISTS idx_system_logs_action ON system_logs(action);
+CREATE INDEX IF NOT EXISTS idx_system_logs_created_at ON system_logs(created_at);
+
+-- ===== API MANAGEMENT =====
+CREATE TABLE IF NOT EXISTS api_keys (
+  id SERIAL PRIMARY KEY,
+  key_name VARCHAR(255) NOT NULL,
+  key_hash VARCHAR(255) NOT NULL UNIQUE,
+  admin_id INTEGER NOT NULL REFERENCES admin_users(id),
+  permissions JSONB DEFAULT '[]',
+  rate_limit INTEGER DEFAULT 1000,
+  status VARCHAR(50) DEFAULT 'active',
+  last_used_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS api_usage (
+  id SERIAL PRIMARY KEY,
+  api_key_id INTEGER NOT NULL REFERENCES api_keys(id),
+  endpoint VARCHAR(255),
+  method VARCHAR(10),
+  response_code INTEGER,
+  response_time_ms INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_api_keys_admin_id ON api_keys(admin_id);
+CREATE INDEX IF NOT EXISTS idx_api_usage_api_key_id ON api_usage(api_key_id);
+CREATE INDEX IF NOT EXISTS idx_api_usage_created_at ON api_usage(created_at);
+
+-- ===== CONTENT MANAGEMENT =====
+CREATE TABLE IF NOT EXISTS cms_pages (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) UNIQUE NOT NULL,
+  content TEXT,
+  page_type VARCHAR(100),
+  status VARCHAR(50) DEFAULT 'draft',
+  featured_image VARCHAR(500),
+  meta_description TEXT,
+  published_at TIMESTAMP,
+  created_by INTEGER REFERENCES admin_users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS cms_banners (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  image_url VARCHAR(500),
+  link_url VARCHAR(500),
+  placement VARCHAR(100),
+  start_date TIMESTAMP,
+  end_date TIMESTAMP,
+  enabled BOOLEAN DEFAULT TRUE,
+  display_order INTEGER,
+  created_by INTEGER REFERENCES admin_users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS cms_promotions (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  code VARCHAR(100) UNIQUE,
+  discount_percentage DECIMAL(5, 2),
+  discount_amount DECIMAL(15, 2),
+  max_uses INTEGER,
+  usage_count INTEGER DEFAULT 0,
+  start_date TIMESTAMP,
+  end_date TIMESTAMP,
+  enabled BOOLEAN DEFAULT TRUE,
+  created_by INTEGER REFERENCES admin_users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_cms_pages_slug ON cms_pages(slug);
+CREATE INDEX IF NOT EXISTS idx_cms_banners_placement ON cms_banners(placement);
+
+-- ===== CASINO SETTINGS =====
+CREATE TABLE IF NOT EXISTS casino_settings (
+  id SERIAL PRIMARY KEY,
+  setting_key VARCHAR(255) UNIQUE NOT NULL,
+  setting_value TEXT,
+  data_type VARCHAR(50),
+  description TEXT,
+  updated_by INTEGER REFERENCES admin_users(id),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===== SOCIAL MANAGEMENT =====
+CREATE TABLE IF NOT EXISTS social_messages (
+  id SERIAL PRIMARY KEY,
+  sender_id INTEGER NOT NULL REFERENCES players(id),
+  recipient_id INTEGER NOT NULL REFERENCES players(id),
+  message TEXT NOT NULL,
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS social_friends (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  friend_id INTEGER NOT NULL REFERENCES players(id),
+  status VARCHAR(50) DEFAULT 'pending',
+  requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  accepted_at TIMESTAMP,
+  UNIQUE(player_id, friend_id)
+);
+
+CREATE TABLE IF NOT EXISTS social_groups (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  creator_id INTEGER NOT NULL REFERENCES players(id),
+  member_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS social_group_members (
+  id SERIAL PRIMARY KEY,
+  group_id INTEGER NOT NULL REFERENCES social_groups(id) ON DELETE CASCADE,
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(group_id, player_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_social_messages_sender_id ON social_messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_social_messages_recipient_id ON social_messages(recipient_id);
+CREATE INDEX IF NOT EXISTS idx_social_friends_player_id ON social_friends(player_id);
+CREATE INDEX IF NOT EXISTS idx_social_group_members_group_id ON social_group_members(group_id);
+
+-- ===== PLAYER RETENTION =====
+CREATE TABLE IF NOT EXISTS retention_campaigns (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  trigger_event VARCHAR(100),
+  description TEXT,
+  reward_type VARCHAR(100),
+  reward_amount DECIMAL(15, 2),
+  enabled BOOLEAN DEFAULT TRUE,
+  created_by INTEGER REFERENCES admin_users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS retention_campaign_recipients (
+  id SERIAL PRIMARY KEY,
+  campaign_id INTEGER NOT NULL REFERENCES retention_campaigns(id),
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  status VARCHAR(50) DEFAULT 'pending',
+  sent_at TIMESTAMP,
+  claimed_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_retention_campaign_recipients_campaign_id ON retention_campaign_recipients(campaign_id);
+
+-- ===== COMPLIANCE =====
+CREATE TABLE IF NOT EXISTS compliance_logs (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER REFERENCES players(id),
+  compliance_rule VARCHAR(255) NOT NULL,
+  status VARCHAR(50),
+  details JSONB,
+  verified_at TIMESTAMP,
+  verified_by INTEGER REFERENCES admin_users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS aml_checks (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  check_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  status VARCHAR(50),
+  risk_level VARCHAR(50),
+  verification_documents JSONB,
+  verified_by INTEGER REFERENCES admin_users(id),
+  verified_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_compliance_logs_player_id ON compliance_logs(player_id);
+CREATE INDEX IF NOT EXISTS idx_aml_checks_player_id ON aml_checks(player_id);
+
+-- ===== NOTIFICATIONS =====
+CREATE TABLE IF NOT EXISTS notification_templates (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  type VARCHAR(100),
+  subject VARCHAR(255),
+  template TEXT NOT NULL,
+  variables JSONB,
+  enabled BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  template_id INTEGER REFERENCES notification_templates(id),
+  title VARCHAR(255),
+  message TEXT NOT NULL,
+  type VARCHAR(100),
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  read_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_player_id ON notifications(player_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
+
+-- ===== ANALYTICS EVENTS =====
+CREATE TABLE IF NOT EXISTS analytics_events (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER REFERENCES players(id),
+  event_type VARCHAR(100) NOT NULL,
+  game_id INTEGER REFERENCES games(id),
+  event_data JSONB,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_events_player_id ON analytics_events(player_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_event_type ON analytics_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_created_at ON analytics_events(created_at);
+
+-- ===== BACKUP & DATABASE MANAGEMENT =====
+CREATE TABLE IF NOT EXISTS database_backups (
+  id SERIAL PRIMARY KEY,
+  backup_name VARCHAR(255) NOT NULL,
+  backup_type VARCHAR(50),
+  backup_size BIGINT,
+  status VARCHAR(50),
+  backup_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_by INTEGER REFERENCES admin_users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===== PERFORMANCE METRICS =====
+CREATE TABLE IF NOT EXISTS performance_metrics (
+  id SERIAL PRIMARY KEY,
+  metric_name VARCHAR(255) NOT NULL,
+  metric_value DECIMAL(15, 2),
+  unit VARCHAR(50),
+  recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_performance_metrics_metric_name ON performance_metrics(metric_name);
+CREATE INDEX IF NOT EXISTS idx_performance_metrics_recorded_at ON performance_metrics(recorded_at);

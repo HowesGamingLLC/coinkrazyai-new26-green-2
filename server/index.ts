@@ -77,6 +77,104 @@ import {
 import * as adminDb from "./routes/admin-db";
 import { AIService } from "./services/ai-service";
 
+// ===== NEW COMPREHENSIVE ADMIN ROUTES =====
+import {
+  getAdminDashboardStats,
+  getDailyMetrics,
+  getSystemHealth,
+  getRevenueAnalytics,
+  getPlayerDemographics
+} from "./routes/dashboard";
+import {
+  listPlayers,
+  getPlayerDetails,
+  updatePlayerStatus,
+  updatePlayerBalance,
+  getPlayerTransactions,
+  submitKYC,
+  approveKYC,
+  rejectKYC
+} from "./routes/player-management";
+import {
+  listBonuses,
+  createBonus,
+  updateBonus,
+  deleteBonus,
+  listJackpots,
+  createJackpot,
+  updateJackpotAmount,
+  recordJackpotWin,
+  listMakeItRainCampaigns,
+  createMakeItRainCampaign,
+  distributeMakeItRainRewards,
+  listRedemptionRequests,
+  approveRedemption,
+  rejectRedemption
+} from "./routes/financial";
+import {
+  listGames,
+  createGame,
+  updateGame,
+  deleteGame,
+  listPokerTables,
+  createPokerTable,
+  updatePokerTable,
+  getPokerStats,
+  listBingoGames,
+  createBingoGame,
+  updateBingoGame,
+  getBingoStats,
+  listSportsEvents,
+  createSportsEvent,
+  updateSportsEvent,
+  getSportsbookStats,
+  ingestGameData
+} from "./routes/games-sports";
+import {
+  listSecurityAlerts,
+  resolveSecurityAlert,
+  listCMSPages,
+  createCMSPage,
+  updateCMSPage,
+  deleteCMSPage,
+  listCMSBanners,
+  createCMSBanner,
+  getCasinoSettings,
+  updateCasinoSettings,
+  listSocialGroups,
+  getSocialGroupMembers,
+  listRetentionCampaigns,
+  createRetentionCampaign,
+  updateRetentionCampaign
+} from "./routes/operations";
+import {
+  listVIPTiers,
+  createVIPTier,
+  promotePlayerToVIP,
+  getVIPPlayers,
+  listFraudPatterns,
+  createFraudPattern,
+  listFraudFlags,
+  resolveFraudFlag,
+  listAffiliatePartners,
+  createAffiliatePartner,
+  approveAffiliatePartner,
+  getAffiliateStats,
+  listSupportTickets,
+  getTicketMessages,
+  assignTicket,
+  closeTicket,
+  listSystemLogs,
+  listAPIKeys,
+  createAPIKey,
+  revokeAPIKey,
+  listNotificationTemplates,
+  createNotificationTemplate,
+  listComplianceLogs,
+  listAMLChecks,
+  verifyAMLCheck
+} from "./routes/advanced";
+
 export function createServer() {
   const app = express();
 
@@ -211,6 +309,141 @@ export function createServer() {
   app.post("/api/achievements/award", verifyAdmin, handleAwardAchievement);
   app.post("/api/achievements/check", verifyPlayer, handleCheckAchievements);
   app.get("/api/achievements/stats", handleGetAchievementStats);
+
+  // ===== COMPREHENSIVE ADMIN DASHBOARD ROUTES =====
+  app.get("/api/admin/v2/dashboard/stats", verifyAdmin, getAdminDashboardStats);
+  app.get("/api/admin/v2/dashboard/metrics", verifyAdmin, getDailyMetrics);
+  app.get("/api/admin/v2/dashboard/health", verifyAdmin, getSystemHealth);
+  app.get("/api/admin/v2/dashboard/revenue", verifyAdmin, getRevenueAnalytics);
+  app.get("/api/admin/v2/dashboard/demographics", verifyAdmin, getPlayerDemographics);
+
+  // ===== PLAYER MANAGEMENT ROUTES =====
+  app.get("/api/admin/v2/players", verifyAdmin, listPlayers);
+  app.get("/api/admin/v2/players/:playerId", verifyAdmin, getPlayerDetails);
+  app.put("/api/admin/v2/players/:playerId/status", verifyAdmin, updatePlayerStatus);
+  app.put("/api/admin/v2/players/:playerId/balance", verifyAdmin, updatePlayerBalance);
+  app.get("/api/admin/v2/players/:playerId/transactions", verifyAdmin, getPlayerTransactions);
+  app.post("/api/admin/v2/kyc/submit", verifyAdmin, submitKYC);
+  app.post("/api/admin/v2/kyc/:documentId/approve", verifyAdmin, approveKYC);
+  app.post("/api/admin/v2/kyc/:documentId/reject", verifyAdmin, rejectKYC);
+
+  // ===== FINANCIAL ROUTES =====
+  // Bonuses
+  app.get("/api/admin/v2/bonuses", verifyAdmin, listBonuses);
+  app.post("/api/admin/v2/bonuses", verifyAdmin, createBonus);
+  app.put("/api/admin/v2/bonuses/:bonusId", verifyAdmin, updateBonus);
+  app.delete("/api/admin/v2/bonuses/:bonusId", verifyAdmin, deleteBonus);
+
+  // Jackpots
+  app.get("/api/admin/v2/jackpots", verifyAdmin, listJackpots);
+  app.post("/api/admin/v2/jackpots", verifyAdmin, createJackpot);
+  app.put("/api/admin/v2/jackpots/:jackpotId", verifyAdmin, updateJackpotAmount);
+  app.post("/api/admin/v2/jackpots/win", verifyAdmin, recordJackpotWin);
+
+  // Make It Rain
+  app.get("/api/admin/v2/make-it-rain", verifyAdmin, listMakeItRainCampaigns);
+  app.post("/api/admin/v2/make-it-rain", verifyAdmin, createMakeItRainCampaign);
+  app.post("/api/admin/v2/make-it-rain/:campaignId/distribute", verifyAdmin, distributeMakeItRainRewards);
+
+  // Redemptions
+  app.get("/api/admin/v2/redemptions", verifyAdmin, listRedemptionRequests);
+  app.post("/api/admin/v2/redemptions/:requestId/approve", verifyAdmin, approveRedemption);
+  app.post("/api/admin/v2/redemptions/:requestId/reject", verifyAdmin, rejectRedemption);
+
+  // ===== GAMES & SPORTS ROUTES =====
+  // Games
+  app.get("/api/admin/v2/games", verifyAdmin, listGames);
+  app.post("/api/admin/v2/games", verifyAdmin, createGame);
+  app.put("/api/admin/v2/games/:gameId", verifyAdmin, updateGame);
+  app.delete("/api/admin/v2/games/:gameId", verifyAdmin, deleteGame);
+  app.post("/api/admin/v2/games/:gameId/ingest", verifyAdmin, ingestGameData);
+
+  // Poker
+  app.get("/api/admin/v2/poker/tables", verifyAdmin, listPokerTables);
+  app.post("/api/admin/v2/poker/tables", verifyAdmin, createPokerTable);
+  app.put("/api/admin/v2/poker/tables/:tableId", verifyAdmin, updatePokerTable);
+  app.get("/api/admin/v2/poker/stats", verifyAdmin, getPokerStats);
+
+  // Bingo
+  app.get("/api/admin/v2/bingo/games", verifyAdmin, listBingoGames);
+  app.post("/api/admin/v2/bingo/games", verifyAdmin, createBingoGame);
+  app.put("/api/admin/v2/bingo/games/:gameId", verifyAdmin, updateBingoGame);
+  app.get("/api/admin/v2/bingo/stats", verifyAdmin, getBingoStats);
+
+  // Sportsbook
+  app.get("/api/admin/v2/sportsbook/events", verifyAdmin, listSportsEvents);
+  app.post("/api/admin/v2/sportsbook/events", verifyAdmin, createSportsEvent);
+  app.put("/api/admin/v2/sportsbook/events/:eventId", verifyAdmin, updateSportsEvent);
+  app.get("/api/admin/v2/sportsbook/stats", verifyAdmin, getSportsbookStats);
+
+  // ===== OPERATIONS ROUTES =====
+  // Security
+  app.get("/api/admin/v2/security/alerts", verifyAdmin, listSecurityAlerts);
+  app.post("/api/admin/v2/security/alerts/:alertId/resolve", verifyAdmin, resolveSecurityAlert);
+
+  // Content Management
+  app.get("/api/admin/v2/cms/pages", verifyAdmin, listCMSPages);
+  app.post("/api/admin/v2/cms/pages", verifyAdmin, createCMSPage);
+  app.put("/api/admin/v2/cms/pages/:pageId", verifyAdmin, updateCMSPage);
+  app.delete("/api/admin/v2/cms/pages/:pageId", verifyAdmin, deleteCMSPage);
+
+  app.get("/api/admin/v2/cms/banners", verifyAdmin, listCMSBanners);
+  app.post("/api/admin/v2/cms/banners", verifyAdmin, createCMSBanner);
+
+  // Casino Settings
+  app.get("/api/admin/v2/casino/settings", verifyAdmin, getCasinoSettings);
+  app.put("/api/admin/v2/casino/settings", verifyAdmin, updateCasinoSettings);
+
+  // Social
+  app.get("/api/admin/v2/social/groups", verifyAdmin, listSocialGroups);
+  app.get("/api/admin/v2/social/groups/:groupId/members", verifyAdmin, getSocialGroupMembers);
+
+  // Player Retention
+  app.get("/api/admin/v2/retention/campaigns", verifyAdmin, listRetentionCampaigns);
+  app.post("/api/admin/v2/retention/campaigns", verifyAdmin, createRetentionCampaign);
+  app.put("/api/admin/v2/retention/campaigns/:campaignId", verifyAdmin, updateRetentionCampaign);
+
+  // ===== ADVANCED ROUTES =====
+  // VIP Management
+  app.get("/api/admin/v2/vip/tiers", verifyAdmin, listVIPTiers);
+  app.post("/api/admin/v2/vip/tiers", verifyAdmin, createVIPTier);
+  app.post("/api/admin/v2/vip/promote", verifyAdmin, promotePlayerToVIP);
+  app.get("/api/admin/v2/vip/players", verifyAdmin, getVIPPlayers);
+
+  // Fraud Detection
+  app.get("/api/admin/v2/fraud/patterns", verifyAdmin, listFraudPatterns);
+  app.post("/api/admin/v2/fraud/patterns", verifyAdmin, createFraudPattern);
+  app.get("/api/admin/v2/fraud/flags", verifyAdmin, listFraudFlags);
+  app.post("/api/admin/v2/fraud/flags/:flagId/resolve", verifyAdmin, resolveFraudFlag);
+
+  // Affiliate Management
+  app.get("/api/admin/v2/affiliates", verifyAdmin, listAffiliatePartners);
+  app.post("/api/admin/v2/affiliates", verifyAdmin, createAffiliatePartner);
+  app.post("/api/admin/v2/affiliates/:partnerId/approve", verifyAdmin, approveAffiliatePartner);
+  app.get("/api/admin/v2/affiliates/:partnerId/stats", verifyAdmin, getAffiliateStats);
+
+  // Support & Tickets
+  app.get("/api/admin/v2/support/tickets", verifyAdmin, listSupportTickets);
+  app.get("/api/admin/v2/support/tickets/:ticketId/messages", verifyAdmin, getTicketMessages);
+  app.post("/api/admin/v2/support/tickets/:ticketId/assign", verifyAdmin, assignTicket);
+  app.post("/api/admin/v2/support/tickets/:ticketId/close", verifyAdmin, closeTicket);
+
+  // System Logs
+  app.get("/api/admin/v2/system/logs", verifyAdmin, listSystemLogs);
+
+  // API Management
+  app.get("/api/admin/v2/api/keys", verifyAdmin, listAPIKeys);
+  app.post("/api/admin/v2/api/keys", verifyAdmin, createAPIKey);
+  app.post("/api/admin/v2/api/keys/:keyId/revoke", verifyAdmin, revokeAPIKey);
+
+  // Notifications
+  app.get("/api/admin/v2/notifications/templates", verifyAdmin, listNotificationTemplates);
+  app.post("/api/admin/v2/notifications/templates", verifyAdmin, createNotificationTemplate);
+
+  // Compliance
+  app.get("/api/admin/v2/compliance/logs", verifyAdmin, listComplianceLogs);
+  app.get("/api/admin/v2/compliance/aml-checks", verifyAdmin, listAMLChecks);
+  app.post("/api/admin/v2/compliance/aml-checks/:checkId/verify", verifyAdmin, verifyAMLCheck);
 
   // ===== EXAMPLE ROUTES =====
   app.get("/api/ping", (_req, res) => {

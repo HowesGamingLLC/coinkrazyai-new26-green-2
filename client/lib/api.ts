@@ -338,7 +338,484 @@ export const achievements = {
   },
 };
 
-// ===== ADMIN =====
+// ===== ADMIN V2 - NEW COMPREHENSIVE ENDPOINTS =====
+export const adminV2 = {
+  // Dashboard
+  dashboard: {
+    getStats: async () => {
+      return adminApiCall<any>('/admin/v2/dashboard/stats');
+    },
+    getMetrics: async (days = 30) => {
+      return adminApiCall<any>(`/admin/v2/dashboard/metrics?days=${days}`);
+    },
+    getHealth: async () => {
+      return adminApiCall<any>('/admin/v2/dashboard/health');
+    },
+    getRevenue: async (timeframe = 'month') => {
+      return adminApiCall<any>(`/admin/v2/dashboard/revenue?timeframe=${timeframe}`);
+    },
+    getDemographics: async () => {
+      return adminApiCall<any>('/admin/v2/dashboard/demographics');
+    },
+  },
+
+  // Players
+  players: {
+    list: async (page = 1, limit = 20, search = '', status = '', kycLevel = '') => {
+      const params = new URLSearchParams({ page: String(page), limit: String(limit), search, status, kycLevel });
+      return adminApiCall<any>(`/admin/v2/players?${params}`);
+    },
+    get: async (playerId: number) => {
+      return adminApiCall<any>(`/admin/v2/players/${playerId}`);
+    },
+    updateStatus: async (playerId: number, status: string, reason?: string) => {
+      return adminApiCall<any>(`/admin/v2/players/${playerId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status, reason }),
+      });
+    },
+    updateBalance: async (playerId: number, gcAmount: number, scAmount: number, reason?: string) => {
+      return adminApiCall<any>(`/admin/v2/players/${playerId}/balance`, {
+        method: 'PUT',
+        body: JSON.stringify({ gcAmount, scAmount, reason }),
+      });
+    },
+    getTransactions: async (playerId: number, page = 1, limit = 50) => {
+      return adminApiCall<any>(`/admin/v2/players/${playerId}/transactions?page=${page}&limit=${limit}`);
+    },
+  },
+
+  // KYC
+  kyc: {
+    submit: async (playerId: number, documentType: string, documentUrl: string) => {
+      return adminApiCall<any>('/admin/v2/kyc/submit', {
+        method: 'POST',
+        body: JSON.stringify({ playerId, documentType, documentUrl }),
+      });
+    },
+    approve: async (documentId: number, notes?: string) => {
+      return adminApiCall<any>(`/admin/v2/kyc/${documentId}/approve`, {
+        method: 'POST',
+        body: JSON.stringify({ notes }),
+      });
+    },
+    reject: async (documentId: number, reason: string) => {
+      return adminApiCall<any>(`/admin/v2/kyc/${documentId}/reject`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      });
+    },
+  },
+
+  // Financial
+  bonuses: {
+    list: async () => {
+      return adminApiCall<any>('/admin/v2/bonuses');
+    },
+    create: async (bonus: any) => {
+      return adminApiCall<any>('/admin/v2/bonuses', {
+        method: 'POST',
+        body: JSON.stringify(bonus),
+      });
+    },
+    update: async (bonusId: number, bonus: any) => {
+      return adminApiCall<any>(`/admin/v2/bonuses/${bonusId}`, {
+        method: 'PUT',
+        body: JSON.stringify(bonus),
+      });
+    },
+    delete: async (bonusId: number) => {
+      return adminApiCall<any>(`/admin/v2/bonuses/${bonusId}`, {
+        method: 'DELETE',
+      });
+    },
+  },
+
+  jackpots: {
+    list: async () => {
+      return adminApiCall<any>('/admin/v2/jackpots');
+    },
+    create: async (jackpot: any) => {
+      return adminApiCall<any>('/admin/v2/jackpots', {
+        method: 'POST',
+        body: JSON.stringify(jackpot),
+      });
+    },
+    update: async (jackpotId: number, newAmount: number) => {
+      return adminApiCall<any>(`/admin/v2/jackpots/${jackpotId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ newAmount }),
+      });
+    },
+    recordWin: async (jackpotId: number, playerId: number, amountWon: number) => {
+      return adminApiCall<any>('/admin/v2/jackpots/win', {
+        method: 'POST',
+        body: JSON.stringify({ jackpotId, playerId, amountWon }),
+      });
+    },
+  },
+
+  makeItRain: {
+    list: async () => {
+      return adminApiCall<any>('/admin/v2/make-it-rain');
+    },
+    create: async (campaign: any) => {
+      return adminApiCall<any>('/admin/v2/make-it-rain', {
+        method: 'POST',
+        body: JSON.stringify(campaign),
+      });
+    },
+    distribute: async (campaignId: number, playerIds: number[], amountPerPlayer: number) => {
+      return adminApiCall<any>(`/admin/v2/make-it-rain/${campaignId}/distribute`, {
+        method: 'POST',
+        body: JSON.stringify({ playerIds, amountPerPlayer }),
+      });
+    },
+  },
+
+  redemptions: {
+    list: async (status?: string) => {
+      const params = status ? `?status=${status}` : '';
+      return adminApiCall<any>(`/admin/v2/redemptions${params}`);
+    },
+    approve: async (requestId: number, notes?: string) => {
+      return adminApiCall<any>(`/admin/v2/redemptions/${requestId}/approve`, {
+        method: 'POST',
+        body: JSON.stringify({ notes }),
+      });
+    },
+    reject: async (requestId: number, reason: string) => {
+      return adminApiCall<any>(`/admin/v2/redemptions/${requestId}/reject`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      });
+    },
+  },
+
+  // Games & Sports
+  games: {
+    list: async (category?: string) => {
+      const params = category ? `?category=${category}` : '';
+      return adminApiCall<any>(`/admin/v2/games${params}`);
+    },
+    create: async (game: any) => {
+      return adminApiCall<any>('/admin/v2/games', {
+        method: 'POST',
+        body: JSON.stringify(game),
+      });
+    },
+    update: async (gameId: number, game: any) => {
+      return adminApiCall<any>(`/admin/v2/games/${gameId}`, {
+        method: 'PUT',
+        body: JSON.stringify(game),
+      });
+    },
+    delete: async (gameId: number) => {
+      return adminApiCall<any>(`/admin/v2/games/${gameId}`, {
+        method: 'DELETE',
+      });
+    },
+    ingestData: async (gameId: number, data: any) => {
+      return adminApiCall<any>(`/admin/v2/games/${gameId}/ingest`, {
+        method: 'POST',
+        body: JSON.stringify({ gameId, data }),
+      });
+    },
+  },
+
+  poker: {
+    listTables: async () => {
+      return adminApiCall<any>('/admin/v2/poker/tables');
+    },
+    createTable: async (table: any) => {
+      return adminApiCall<any>('/admin/v2/poker/tables', {
+        method: 'POST',
+        body: JSON.stringify(table),
+      });
+    },
+    updateTable: async (tableId: number, table: any) => {
+      return adminApiCall<any>(`/admin/v2/poker/tables/${tableId}`, {
+        method: 'PUT',
+        body: JSON.stringify(table),
+      });
+    },
+    getStats: async () => {
+      return adminApiCall<any>('/admin/v2/poker/stats');
+    },
+  },
+
+  bingo: {
+    listGames: async () => {
+      return adminApiCall<any>('/admin/v2/bingo/games');
+    },
+    createGame: async (game: any) => {
+      return adminApiCall<any>('/admin/v2/bingo/games', {
+        method: 'POST',
+        body: JSON.stringify(game),
+      });
+    },
+    updateGame: async (gameId: number, game: any) => {
+      return adminApiCall<any>(`/admin/v2/bingo/games/${gameId}`, {
+        method: 'PUT',
+        body: JSON.stringify(game),
+      });
+    },
+    getStats: async () => {
+      return adminApiCall<any>('/admin/v2/bingo/stats');
+    },
+  },
+
+  sportsbook: {
+    listEvents: async (status?: string) => {
+      const params = status ? `?status=${status}` : '';
+      return adminApiCall<any>(`/admin/v2/sportsbook/events${params}`);
+    },
+    createEvent: async (event: any) => {
+      return adminApiCall<any>('/admin/v2/sportsbook/events', {
+        method: 'POST',
+        body: JSON.stringify(event),
+      });
+    },
+    updateEvent: async (eventId: number, event: any) => {
+      return adminApiCall<any>(`/admin/v2/sportsbook/events/${eventId}`, {
+        method: 'PUT',
+        body: JSON.stringify(event),
+      });
+    },
+    getStats: async () => {
+      return adminApiCall<any>('/admin/v2/sportsbook/stats');
+    },
+  },
+
+  // Operations
+  security: {
+    listAlerts: async (status?: string) => {
+      const params = status ? `?status=${status}` : '';
+      return adminApiCall<any>(`/admin/v2/security/alerts${params}`);
+    },
+    resolveAlert: async (alertId: number, resolution: string) => {
+      return adminApiCall<any>(`/admin/v2/security/alerts/${alertId}/resolve`, {
+        method: 'POST',
+        body: JSON.stringify({ resolution }),
+      });
+    },
+  },
+
+  content: {
+    listPages: async (status?: string) => {
+      const params = status ? `?status=${status}` : '';
+      return adminApiCall<any>(`/admin/v2/cms/pages${params}`);
+    },
+    createPage: async (page: any) => {
+      return adminApiCall<any>('/admin/v2/cms/pages', {
+        method: 'POST',
+        body: JSON.stringify(page),
+      });
+    },
+    updatePage: async (pageId: number, page: any) => {
+      return adminApiCall<any>(`/admin/v2/cms/pages/${pageId}`, {
+        method: 'PUT',
+        body: JSON.stringify(page),
+      });
+    },
+    deletePage: async (pageId: number) => {
+      return adminApiCall<any>(`/admin/v2/cms/pages/${pageId}`, {
+        method: 'DELETE',
+      });
+    },
+    listBanners: async () => {
+      return adminApiCall<any>('/admin/v2/cms/banners');
+    },
+    createBanner: async (banner: any) => {
+      return adminApiCall<any>('/admin/v2/cms/banners', {
+        method: 'POST',
+        body: JSON.stringify(banner),
+      });
+    },
+  },
+
+  casino: {
+    getSettings: async () => {
+      return adminApiCall<any>('/admin/v2/casino/settings');
+    },
+    updateSettings: async (settings: any) => {
+      return adminApiCall<any>('/admin/v2/casino/settings', {
+        method: 'PUT',
+        body: JSON.stringify(settings),
+      });
+    },
+  },
+
+  social: {
+    listGroups: async () => {
+      return adminApiCall<any>('/admin/v2/social/groups');
+    },
+    getGroupMembers: async (groupId: number) => {
+      return adminApiCall<any>(`/admin/v2/social/groups/${groupId}/members`);
+    },
+  },
+
+  retention: {
+    listCampaigns: async () => {
+      return adminApiCall<any>('/admin/v2/retention/campaigns');
+    },
+    createCampaign: async (campaign: any) => {
+      return adminApiCall<any>('/admin/v2/retention/campaigns', {
+        method: 'POST',
+        body: JSON.stringify(campaign),
+      });
+    },
+    updateCampaign: async (campaignId: number, campaign: any) => {
+      return adminApiCall<any>(`/admin/v2/retention/campaigns/${campaignId}`, {
+        method: 'PUT',
+        body: JSON.stringify(campaign),
+      });
+    },
+  },
+
+  // Advanced
+  vip: {
+    listTiers: async () => {
+      return adminApiCall<any>('/admin/v2/vip/tiers');
+    },
+    createTier: async (tier: any) => {
+      return adminApiCall<any>('/admin/v2/vip/tiers', {
+        method: 'POST',
+        body: JSON.stringify(tier),
+      });
+    },
+    promotePlayer: async (playerId: number, vipTierId: number) => {
+      return adminApiCall<any>('/admin/v2/vip/promote', {
+        method: 'POST',
+        body: JSON.stringify({ playerId, vipTierId }),
+      });
+    },
+    listVIPPlayers: async () => {
+      return adminApiCall<any>('/admin/v2/vip/players');
+    },
+  },
+
+  fraud: {
+    listPatterns: async () => {
+      return adminApiCall<any>('/admin/v2/fraud/patterns');
+    },
+    createPattern: async (pattern: any) => {
+      return adminApiCall<any>('/admin/v2/fraud/patterns', {
+        method: 'POST',
+        body: JSON.stringify(pattern),
+      });
+    },
+    listFlags: async (status?: string) => {
+      const params = status ? `?status=${status}` : '';
+      return adminApiCall<any>(`/admin/v2/fraud/flags${params}`);
+    },
+    resolveFlag: async (flagId: number, resolution: string) => {
+      return adminApiCall<any>(`/admin/v2/fraud/flags/${flagId}/resolve`, {
+        method: 'POST',
+        body: JSON.stringify({ resolution }),
+      });
+    },
+  },
+
+  affiliate: {
+    listPartners: async (status?: string) => {
+      const params = status ? `?status=${status}` : '';
+      return adminApiCall<any>(`/admin/v2/affiliates${params}`);
+    },
+    createPartner: async (partner: any) => {
+      return adminApiCall<any>('/admin/v2/affiliates', {
+        method: 'POST',
+        body: JSON.stringify(partner),
+      });
+    },
+    approvePartner: async (partnerId: number) => {
+      return adminApiCall<any>(`/admin/v2/affiliates/${partnerId}/approve`, {
+        method: 'POST',
+      });
+    },
+    getStats: async (partnerId: number) => {
+      return adminApiCall<any>(`/admin/v2/affiliates/${partnerId}/stats`);
+    },
+  },
+
+  support: {
+    listTickets: async (status?: string, priority?: string) => {
+      const params = new URLSearchParams();
+      if (status) params.append('status', status);
+      if (priority) params.append('priority', priority);
+      return adminApiCall<any>(`/admin/v2/support/tickets?${params}`);
+    },
+    getMessages: async (ticketId: number) => {
+      return adminApiCall<any>(`/admin/v2/support/tickets/${ticketId}/messages`);
+    },
+    assignTicket: async (ticketId: number, adminId: number) => {
+      return adminApiCall<any>(`/admin/v2/support/tickets/${ticketId}/assign`, {
+        method: 'POST',
+        body: JSON.stringify({ adminId }),
+      });
+    },
+    closeTicket: async (ticketId: number) => {
+      return adminApiCall<any>(`/admin/v2/support/tickets/${ticketId}/close`, {
+        method: 'POST',
+      });
+    },
+  },
+
+  logs: {
+    listSystemLogs: async (page = 1, limit = 50, action?: string, adminId?: number) => {
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (action) params.append('action', action);
+      if (adminId) params.append('adminId', String(adminId));
+      return adminApiCall<any>(`/admin/v2/system/logs?${params}`);
+    },
+  },
+
+  api: {
+    listKeys: async () => {
+      return adminApiCall<any>('/admin/v2/api/keys');
+    },
+    createKey: async (key: any) => {
+      return adminApiCall<any>('/admin/v2/api/keys', {
+        method: 'POST',
+        body: JSON.stringify(key),
+      });
+    },
+    revokeKey: async (keyId: number) => {
+      return adminApiCall<any>(`/admin/v2/api/keys/${keyId}/revoke`, {
+        method: 'POST',
+      });
+    },
+  },
+
+  notifications: {
+    listTemplates: async () => {
+      return adminApiCall<any>('/admin/v2/notifications/templates');
+    },
+    createTemplate: async (template: any) => {
+      return adminApiCall<any>('/admin/v2/notifications/templates', {
+        method: 'POST',
+        body: JSON.stringify(template),
+      });
+    },
+  },
+
+  compliance: {
+    listLogs: async () => {
+      return adminApiCall<any>('/admin/v2/compliance/logs');
+    },
+    listAMLChecks: async () => {
+      return adminApiCall<any>('/admin/v2/compliance/aml-checks');
+    },
+    verifyAMLCheck: async (checkId: number, status: string, riskLevel: string) => {
+      return adminApiCall<any>(`/admin/v2/compliance/aml-checks/${checkId}/verify`, {
+        method: 'POST',
+        body: JSON.stringify({ status, riskLevel }),
+      });
+    },
+  },
+};
+
+// ===== ADMIN (Legacy) =====
 export const admin = {
   getDashboardStats: async () => {
     return adminApiCall<{ success: boolean; data: any }>('/admin/dashboard/stats');

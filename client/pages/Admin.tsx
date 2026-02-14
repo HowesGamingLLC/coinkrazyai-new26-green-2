@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
-import { admin } from '@/lib/api';
+import { admin, adminV2 } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Users, Gamepad2, BarChart3, AlertCircle, Zap } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Users, Gamepad2, BarChart3, AlertCircle, Zap, Search, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Admin = () => {
@@ -18,6 +19,7 @@ const Admin = () => {
   const [aiEmployees, setAiEmployees] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -28,15 +30,15 @@ const Admin = () => {
     const fetchAdminData = async () => {
       try {
         const [statsRes, playersRes, gamesRes, aiRes] = await Promise.all([
-          admin.getDashboardStats(),
-          admin.getPlayers(),
-          admin.getGames(),
+          adminV2.dashboard.getStats(),
+          adminV2.players.list(1, 20, searchTerm),
+          adminV2.games.list(),
           admin.getAIEmployees(),
         ]);
 
-        setStats(statsRes.data);
-        setPlayers(playersRes.data || []);
-        setGames(gamesRes.data || []);
+        setStats(statsRes);
+        setPlayers(playersRes.players || []);
+        setGames(gamesRes || []);
         setAiEmployees(aiRes.data || []);
       } catch (error: any) {
         console.error('Failed to fetch admin data:', error);
@@ -49,7 +51,7 @@ const Admin = () => {
     if (isAdmin) {
       fetchAdminData();
     }
-  }, [isAdmin, authLoading, navigate]);
+  }, [isAdmin, authLoading, navigate, searchTerm]);
 
   const handleToggleMaintenance = async () => {
     try {
@@ -106,32 +108,35 @@ const Admin = () => {
 
       {/* Stats Overview */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardDescription>Total Players</CardDescription>
+              <Users className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black">{stats.total_players || 0}</div>
+              <div className="text-3xl font-black">{stats.totalPlayers || 0}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.active_players || 0} active
+                {stats.activePlayers || 0} active
               </p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardDescription>Verified Players</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardDescription>Total Revenue</CardDescription>
+              <TrendingUp className="w-4 h-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black text-green-600">{stats.verified_players || 0}</div>
-              <p className="text-xs text-muted-foreground">KYC Verified</p>
+              <div className="text-3xl font-black text-green-600">${(stats.totalRevenue || 0).toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">All time</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardDescription>Active Games</CardDescription>
+              <Gamepad2 className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black text-primary">{games?.length || 0}</div>
@@ -140,12 +145,13 @@ const Admin = () => {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardDescription>AI Employees</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardDescription>Pending Actions</CardDescription>
+              <AlertCircle className="w-4 h-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black text-blue-600">{aiEmployees?.length || 0}</div>
-              <p className="text-xs text-muted-foreground">Active assistants</p>
+              <div className="text-3xl font-black text-yellow-600">{(stats.pendingKyc || 0) + (stats.pendingWithdrawals || 0)}</div>
+              <p className="text-xs text-muted-foreground">{stats.pendingKyc || 0} KYC, {stats.pendingWithdrawals || 0} Withdrawals</p>
             </CardContent>
           </Card>
         </div>
@@ -180,23 +186,39 @@ const Admin = () => {
               <CardDescription>Manage player accounts and balances</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {players.length > 0 ? (
-                  players.map(player => (
-                    <div key={player.id} className="p-3 border border-border rounded-lg flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold">{player.name}</p>
-                        <p className="text-xs text-muted-foreground">{player.email}</p>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Search className="w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search players by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+                <div className="space-y-2 max-h-96 overflow-y-auto border border-border rounded-lg p-2">
+                  {players.length > 0 ? (
+                    players.map(player => (
+                      <div key={player.id} className="p-3 border border-border rounded-lg flex items-center justify-between hover:bg-muted/50">
+                        <div>
+                          <p className="font-semibold">{player.username}</p>
+                          <p className="text-xs text-muted-foreground">{player.email}</p>
+                          <div className="flex gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs">{player.status}</Badge>
+                            <Badge variant="outline" className="text-xs">{player.kyc_level}</Badge>
+                          </div>
+                        </div>
+                        <div className="text-right text-sm">
+                          <p><span className="text-muted-foreground">GC:</span> {(player.gc_balance || 0).toLocaleString()}</p>
+                          <p><span className="text-muted-foreground">SC:</span> {(player.sc_balance || 0).toFixed(2)}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{player.games_played || 0} games</p>
+                        </div>
                       </div>
-                      <div className="text-right text-sm">
-                        <p>GC: {(player.gc_balance || 0).toLocaleString()}</p>
-                        <p>SC: {(player.sc_balance || 0).toFixed(2)}</p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground">No players found</p>
-                )}
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-center py-4">No players found</p>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -270,30 +292,53 @@ const Admin = () => {
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Analytics</CardTitle>
-              <CardDescription>Platform statistics and insights</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">Avg GC Balance</p>
-                    <p className="text-2xl font-bold">
-                      ${(stats?.avg_gc_balance || 0).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">Avg SC Balance</p>
-                    <p className="text-2xl font-bold">
-                      ${(stats?.avg_sc_balance || 0).toFixed(2)}
-                    </p>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue Metrics</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Total Wagered</p>
+                  <p className="text-2xl font-bold">
+                    ${(stats?.totalWagered || 0).toFixed(2)}
+                  </p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Total Won</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    ${(stats?.totalWon || 0).toFixed(2)}
+                  </p>
+                </div>
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Average Player Value</p>
+                  <p className="text-2xl font-bold">
+                    ${(stats?.averagePlayerValue || 0).toFixed(2)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Activity Metrics</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Games Today</p>
+                  <p className="text-2xl font-bold">{stats?.gamesToday || 0}</p>
+                </div>
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">New Players Today</p>
+                  <p className="text-2xl font-bold text-blue-600">{stats?.newPlayersToday || 0}</p>
+                </div>
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Open Support Tickets</p>
+                  <p className="text-2xl font-bold text-orange-600">{stats?.openTickets || 0}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
