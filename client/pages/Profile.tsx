@@ -4,17 +4,48 @@ import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, User, Calendar, Mail, Verified } from 'lucide-react';
+import { Loader2, User, Calendar, Mail, Verified, Dice5, TrendingUp, TrendingDown } from 'lucide-react';
+import { casino } from '@/lib/api';
 
 const Profile = () => {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [spinStats, setSpinStats] = useState<any>(null);
+  const [spinHistory, setSpinHistory] = useState<any[]>([]);
+  const [loadingStats, setLoadingStats] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate('/login');
     }
   }, [isLoading, isAuthenticated, navigate]);
+
+  useEffect(() => {
+    if (user && isAuthenticated) {
+      loadCasinoData();
+    }
+  }, [user, isAuthenticated]);
+
+  const loadCasinoData = async () => {
+    try {
+      setLoadingStats(true);
+      const [statsRes, historyRes] = await Promise.all([
+        casino.getStats(),
+        casino.getSpinHistory(10, 0)
+      ]);
+
+      if (statsRes.success) {
+        setSpinStats(statsRes.data);
+      }
+      if (historyRes.success) {
+        setSpinHistory(historyRes.data.spins);
+      }
+    } catch (err) {
+      console.error('Failed to load casino data:', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -140,6 +171,110 @@ const Profile = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Casino Statistics */}
+      {spinStats && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Dice5 className="w-5 h-5" />
+              Casino Statistics
+            </CardTitle>
+            <CardDescription>Your casino game performance</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-secondary/20 p-4 rounded-lg border border-secondary/20">
+                <p className="text-sm text-muted-foreground mb-1">Total Spins</p>
+                <p className="text-2xl font-bold">{spinStats.total_spins}</p>
+              </div>
+              <div className="bg-primary/20 p-4 rounded-lg border border-primary/20">
+                <p className="text-sm text-muted-foreground mb-1">Win Rate</p>
+                <p className="text-2xl font-bold text-primary">{spinStats.win_rate}%</p>
+              </div>
+              <div className="bg-green-500/20 p-4 rounded-lg border border-green-500/20">
+                <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+                  <TrendingUp className="w-4 h-4" /> Total Wins
+                </p>
+                <p className="text-2xl font-bold text-green-500">{spinStats.total_wins}</p>
+              </div>
+              <div className="bg-red-500/20 p-4 rounded-lg border border-red-500/20">
+                <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+                  <TrendingDown className="w-4 h-4" /> Total Losses
+                </p>
+                <p className="text-2xl font-bold text-red-500">{spinStats.total_losses}</p>
+              </div>
+              <div className="bg-amber-500/20 p-4 rounded-lg border border-amber-500/20">
+                <p className="text-sm text-muted-foreground mb-1">Total Wagered</p>
+                <p className="text-2xl font-bold text-amber-500">{spinStats.total_wagered.toFixed(2)} SC</p>
+              </div>
+              <div className="bg-blue-500/20 p-4 rounded-lg border border-blue-500/20">
+                <p className="text-sm text-muted-foreground mb-1">Total Winnings</p>
+                <p className="text-2xl font-bold text-blue-500">{spinStats.total_winnings.toFixed(2)} SC</p>
+              </div>
+              <div className="bg-purple-500/20 p-4 rounded-lg border border-purple-500/20">
+                <p className="text-sm text-muted-foreground mb-1">Max Win</p>
+                <p className="text-2xl font-bold text-purple-500">{spinStats.max_win.toFixed(2)} SC</p>
+              </div>
+              <div className="bg-indigo-500/20 p-4 rounded-lg border border-indigo-500/20">
+                <p className="text-sm text-muted-foreground mb-1">Games Played</p>
+                <p className="text-2xl font-bold text-indigo-500">{spinStats.games_played}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent Casino Spins */}
+      {spinHistory.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Dice5 className="w-5 h-5" />
+              Recent Spins
+            </CardTitle>
+            <CardDescription>Your last 10 casino game spins</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left p-2 font-semibold">Game</th>
+                    <th className="text-left p-2 font-semibold">Bet</th>
+                    <th className="text-left p-2 font-semibold">Result</th>
+                    <th className="text-left p-2 font-semibold">Winnings</th>
+                    <th className="text-left p-2 font-semibold">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {spinHistory.map((spin) => (
+                    <tr key={spin.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+                      <td className="p-2">
+                        <span className="font-medium">{spin.game_name}</span>
+                      </td>
+                      <td className="p-2">{spin.bet_amount.toFixed(2)} SC</td>
+                      <td className="p-2">
+                        <Badge variant={spin.result === 'win' ? 'default' : 'destructive'}>
+                          {spin.result.toUpperCase()}
+                        </Badge>
+                      </td>
+                      <td className="p-2">
+                        <span className={spin.winnings > 0 ? 'text-green-500 font-bold' : 'text-red-500'}>
+                          {spin.winnings > 0 ? '+' : ''}{spin.winnings.toFixed(2)} SC
+                        </span>
+                      </td>
+                      <td className="p-2 text-muted-foreground text-xs">
+                        {new Date(spin.created_at).toLocaleDateString()} {new Date(spin.created_at).toLocaleTimeString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Account Settings */}
       <Card>

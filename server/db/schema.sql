@@ -1096,3 +1096,23 @@ CREATE INDEX IF NOT EXISTS idx_pull_tab_transactions_player_id ON pull_tab_trans
 CREATE INDEX IF NOT EXISTS idx_pull_tab_transactions_ticket_id ON pull_tab_transactions(ticket_id);
 CREATE INDEX IF NOT EXISTS idx_pull_tab_transactions_type ON pull_tab_transactions(transaction_type);
 CREATE INDEX IF NOT EXISTS idx_pull_tab_transactions_created_at ON pull_tab_transactions(created_at);
+
+-- ===== CASINO GAME SPINS TRACKING =====
+CREATE TABLE IF NOT EXISTS casino_game_spins (
+  id SERIAL PRIMARY KEY,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  game_id VARCHAR(255) NOT NULL,
+  game_name VARCHAR(255) NOT NULL,
+  provider VARCHAR(100),
+  bet_amount DECIMAL(15, 2) NOT NULL,
+  winnings DECIMAL(15, 2) NOT NULL,
+  balance_before DECIMAL(15, 2),
+  balance_after DECIMAL(15, 2),
+  result VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_casino_game_spins_player_id ON casino_game_spins(player_id);
+CREATE INDEX IF NOT EXISTS idx_casino_game_spins_game_id ON casino_game_spins(game_id);
+CREATE INDEX IF NOT EXISTS idx_casino_game_spins_created_at ON casino_game_spins(created_at);
+CREATE INDEX IF NOT EXISTS idx_casino_game_spins_result ON casino_game_spins(result);

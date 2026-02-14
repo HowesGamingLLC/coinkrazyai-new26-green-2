@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { casinoGames } from '@/data/casinoGames';
+import { PRAGMATIC_GAMES } from '@/data/pragmaticGames';
 import { GameCard } from '@/components/casino/GameCard';
-import { GamePlayerModal } from '@/components/casino/GamePlayerModal';
+import { GamePopup } from '@/components/casino/GamePopup';
 import { useAuth } from '@/lib/auth-context';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,15 +11,24 @@ export default function Casino() {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
 
+  // Combine all games (Pragmatic + Other casino games)
+  const allGames = useMemo(() => {
+    const pragmaticCasted = PRAGMATIC_GAMES.map(g => ({
+      ...g,
+      costPerPlay: g.costPerPlay,
+    }));
+    return [...pragmaticCasted, ...casinoGames];
+  }, []);
+
   // Separate Pragmatic games from others
   const pragmaticGames = useMemo(() =>
-    casinoGames.filter(game => game.provider === 'Pragmatic'),
-    []
+    allGames.filter(game => game.provider === 'Pragmatic'),
+    [allGames]
   );
 
   const otherGames = useMemo(() =>
-    casinoGames.filter(game => game.provider !== 'Pragmatic'),
-    []
+    allGames.filter(game => game.provider !== 'Pragmatic'),
+    [allGames]
   );
 
   if (isLoading) {
@@ -82,12 +92,14 @@ export default function Casino() {
         </div>
       )}
 
-      {/* Game Player Modal */}
+      {/* Game Popup */}
       {selectedGame && (
-        <GamePlayerModal
-          gameId={selectedGame}
-          onClose={() => setSelectedGame(null)}
-        />
+        allGames.find(g => g.id === selectedGame) && (
+          <GamePopup
+            game={allGames.find(g => g.id === selectedGame)!}
+            onClose={() => setSelectedGame(null)}
+          />
+        )
       )}
     </div>
   );

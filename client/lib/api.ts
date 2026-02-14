@@ -201,6 +201,14 @@ export const casino = {
       }
     }
   },
+
+  getSpinHistory: async (limit: number = 20, offset: number = 0) => {
+    return apiCall<{ success: boolean; data: any }>(`/casino/spins?limit=${limit}&offset=${offset}`);
+  },
+
+  getStats: async () => {
+    return apiCall<{ success: boolean; data: any }>('/casino/stats');
+  },
 };
 
 // ===== GAMES =====
