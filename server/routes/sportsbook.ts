@@ -1,202 +1,336 @@
 import { RequestHandler } from "express";
-import { WalletService } from "../services/wallet-service";
-
-const DEFAULT_USER = 'default-user';
-
-interface GameMatch {
-  id: string;
-  sport: string;
-  homeTeam: string;
-  awayTeam: string;
-  spread: string;
-  overUnder: number;
-  time: string;
-  odds: number;
-}
+import * as dbQueries from "../db/queries";
+import { query } from "../db/connection";
 
 // Game configuration
 let gameConfig = {
   rtp: 92,
   minBet: 1,
-  maxBet: 1000,
-  minParlay: 3,
+  maxBet: 10000,
+  minParlay: 2,
   maxParlay: 10,
   houseCommission: 8, // percentage
 };
 
-const LIVE_GAMES: GameMatch[] = [
-  { id: 'game-1', sport: 'NFL', homeTeam: 'Chiefs', awayTeam: 'Eagles', spread: '-3.5', overUnder: 48.5, time: 'Q3 8:42', odds: 1.9 },
-  { id: 'game-2', sport: 'NBA', homeTeam: 'Lakers', awayTeam: 'Celtics', spread: '+2.5', overUnder: 224.5, time: 'Q1 2:15', odds: 1.85 },
-  { id: 'game-3', sport: 'MLB', homeTeam: 'Dodgers', awayTeam: 'Yankees', spread: '-1.5', overUnder: 8.5, time: 'Bottom 4', odds: 1.95 },
-  { id: 'game-4', sport: 'NHL', homeTeam: 'Bruins', awayTeam: 'Leafs', spread: '-0.5', overUnder: 5.5, time: 'P2 15:20', odds: 1.88 },
-  { id: 'game-5', sport: 'NBA', homeTeam: 'Warriors', awayTeam: 'Nuggets', spread: '+1.5', overUnder: 228.0, time: 'Q2 6:30', odds: 1.92 },
-  { id: 'game-6', sport: 'NFL', homeTeam: 'Patriots', awayTeam: 'Bills', spread: '-2.0', overUnder: 42.5, time: 'Q4 1:15', odds: 1.87 },
-];
-
-export const handleGetLiveGames: RequestHandler = (req, res) => {
+// Get live sports events
+export const handleGetLiveGames: RequestHandler = async (req, res) => {
   try {
-    res.json({ success: true, data: LIVE_GAMES });
+    const result = await dbQueries.getSportsEvents();
+
+    const events = result.rows.map(row => ({
+      id: row.id,
+      sport: row.sport,
+      event_name: row.event_name,
+      event_date: row.event_date,
+      status: row.status,
+      total_bets: row.total_bets,
+      line_movement: row.line_movement,
+      locked: row.locked
+    }));
+
+    res.json({
+      success: true,
+      data: events
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to get games' });
+    console.error('[Sportsbook] Get games error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get live games'
+    });
   }
 };
 
-export const handlePlaceParlay: RequestHandler = async (req, res) => {
-  try {
-    const { picks, bet, currency = 'SC' } = req.body;
-
-    if (!picks || !Array.isArray(picks) || picks.length === 0) {
-      return res.status(400).json({ success: false, error: "Invalid picks" });
-    }
-
-    if (picks.length < gameConfig.minParlay || picks.length > gameConfig.maxParlay) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Parlay must have between ${gameConfig.minParlay} and ${gameConfig.maxParlay} picks` 
-      });
-    }
-
-    if (!bet || bet <= 0 || bet < gameConfig.minBet || bet > gameConfig.maxBet) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Bet must be between ${gameConfig.minBet} and ${gameConfig.maxBet}` 
-      });
-    }
-
-    // Validate all picks exist
-    const pickIds = picks.map((p: any) => p.gameId);
-    const allGamesExist = pickIds.every((id: string) => LIVE_GAMES.find(g => g.id === id));
-    
-    if (!allGamesExist) {
-      return res.status(400).json({ success: false, error: "One or more games not found" });
-    }
-
-    // Check wallet
-    const wallet = WalletService.getWallet(DEFAULT_USER);
-    const currencyKey = currency === 'GC' ? 'goldCoins' : 'sweepsCoins';
-    
-    if (wallet[currencyKey] < bet) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Insufficient ${currency === 'GC' ? 'Gold Coins' : 'Sweeps Coins'}` 
-      });
-    }
-
-    // Deduct bet
-    const betResult = await WalletService.updateBalance(DEFAULT_USER, currency as 'GC' | 'SC', -bet, 'bet');
-    if (!betResult.success) {
-      return res.status(400).json({ success: false, error: betResult.error });
-    }
-
-    // Calculate potential payout (simplified)
-    // In a real system, this would use actual odds
-    let odds = 1;
-    picks.forEach((pick: any) => {
-      const game = LIVE_GAMES.find(g => g.id === pick.gameId);
-      if (game) {
-        odds *= game.odds;
-      }
-    });
-
-    const potentialPayout = bet * odds;
-
-    res.json({ 
-      success: true, 
-      data: { 
-        message: "Parlay bet placed successfully!",
-        parlay: {
-          id: Math.random().toString(36).substring(7),
-          picks,
-          bet,
-          currency,
-          odds,
-          potentialPayout,
-          status: 'pending',
-          createdAt: new Date().toISOString()
-        },
-        wallet: betResult.wallet
-      } 
-    });
-  } catch (error) {
-    console.error('Place parlay error:', error);
-    res.status(500).json({ success: false, error: 'Failed to place parlay' });
-  }
-};
-
+// Place a single bet
 export const handleSingleBet: RequestHandler = async (req, res) => {
   try {
-    const { gameId, betType, bet, currency = 'SC' } = req.body;
-
-    if (!gameId || !betType || !bet || bet <= 0) {
-      return res.status(400).json({ success: false, error: "Invalid bet parameters" });
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
     }
 
-    const game = LIVE_GAMES.find(g => g.id === gameId);
-    if (!game) {
-      return res.status(404).json({ success: false, error: "Game not found" });
+    const { event_id, bet_type, amount, odds } = req.body;
+
+    if (!event_id || !amount || !odds || amount <= 0 || odds <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Event ID, amount, and odds required'
+      });
     }
 
-    // Check wallet
-    const wallet = WalletService.getWallet(DEFAULT_USER);
-    const currencyKey = currency === 'GC' ? 'goldCoins' : 'sweepsCoins';
-    
-    if (wallet[currencyKey] < bet) {
-      return res.status(400).json({ success: false, error: "Insufficient balance" });
+    if (amount < gameConfig.minBet || amount > gameConfig.maxBet) {
+      return res.status(400).json({
+        success: false,
+        error: `Bet must be between ${gameConfig.minBet} and ${gameConfig.maxBet}`
+      });
     }
 
-    // Deduct bet
-    const betResult = await WalletService.updateBalance(DEFAULT_USER, currency as 'GC' | 'SC', -bet, 'bet');
-    
-    const potentialPayout = bet * game.odds;
+    // Get event
+    const eventResult = await query(
+      'SELECT * FROM sports_events WHERE id = $1',
+      [event_id]
+    );
+
+    if (eventResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Event not found'
+      });
+    }
+
+    const event = eventResult.rows[0];
+
+    if (event.locked) {
+      return res.status(400).json({
+        success: false,
+        error: 'Event is locked for betting'
+      });
+    }
+
+    // Check player balance
+    const player = await dbQueries.getPlayerById(req.user.playerId);
+    if (player.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Player not found'
+      });
+    }
+
+    const playerData = player.rows[0];
+    if (playerData.gc_balance < amount) {
+      return res.status(400).json({
+        success: false,
+        error: 'Insufficient gold coins'
+      });
+    }
+
+    // Deduct bet from player wallet
+    await dbQueries.recordWalletTransaction(
+      req.user.playerId,
+      'sports_bet',
+      -amount,
+      0,
+      `Sports bet on ${event.event_name}`
+    );
+
+    // Record bet
+    const potentialWinnings = amount * odds;
+    const betResult = await dbQueries.recordSportsBet(
+      req.user.playerId,
+      event_id,
+      bet_type || 'single',
+      amount,
+      odds,
+      potentialWinnings
+    );
+
+    // Update event total bets
+    await query(
+      'UPDATE sports_events SET total_bets = total_bets + $1 WHERE id = $2',
+      [amount, event_id]
+    );
+
+    // Get updated wallet
+    const updatedPlayer = await dbQueries.getPlayerById(req.user.playerId);
+    const updatedWallet = updatedPlayer.rows[0];
 
     res.json({
       success: true,
       data: {
-        message: "Bet placed successfully!",
-        bet: {
-          id: Math.random().toString(36).substring(7),
-          gameId,
-          betType,
-          amount: bet,
-          currency,
-          odds: game.odds,
-          potentialPayout,
-          status: 'pending',
-          createdAt: new Date().toISOString()
-        },
-        wallet: betResult.wallet
+        message: 'Bet placed successfully',
+        bet_id: betResult.rows[0].id,
+        event_name: event.event_name,
+        bet_amount: amount,
+        odds,
+        potential_winnings: potentialWinnings,
+        wallet: {
+          goldCoins: updatedWallet.gc_balance,
+          sweepsCoins: updatedWallet.sc_balance
+        }
       }
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to place bet' });
+    console.error('[Sportsbook] Bet error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to place bet'
+    });
   }
 };
 
-export const handleGetConfig: RequestHandler = (req, res) => {
-  res.json({ success: true, data: gameConfig });
+// Place a parlay bet
+export const handlePlaceParlay: RequestHandler = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
+    }
+
+    const { event_ids, amount, odds_list } = req.body;
+
+    if (!event_ids || !Array.isArray(event_ids) || event_ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'At least one event required'
+      });
+    }
+
+    if (event_ids.length < gameConfig.minParlay || event_ids.length > gameConfig.maxParlay) {
+      return res.status(400).json({
+        success: false,
+        error: `Parlay must have between ${gameConfig.minParlay} and ${gameConfig.maxParlay} picks`
+      });
+    }
+
+    if (!amount || amount <= 0 || amount < gameConfig.minBet || amount > gameConfig.maxBet) {
+      return res.status(400).json({
+        success: false,
+        error: `Bet must be between ${gameConfig.minBet} and ${gameConfig.maxBet}`
+      });
+    }
+
+    // Check player balance
+    const player = await dbQueries.getPlayerById(req.user.playerId);
+    if (player.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Player not found'
+      });
+    }
+
+    const playerData = player.rows[0];
+    if (playerData.gc_balance < amount) {
+      return res.status(400).json({
+        success: false,
+        error: 'Insufficient gold coins'
+      });
+    }
+
+    // Calculate parlay odds (product of all odds)
+    let parlayOdds = 1;
+    if (odds_list && Array.isArray(odds_list)) {
+      parlayOdds = odds_list.reduce((acc, o) => acc * o, 1);
+    } else {
+      // Default fallback
+      parlayOdds = Math.pow(2, event_ids.length);
+    }
+
+    // Deduct bet
+    await dbQueries.recordWalletTransaction(
+      req.user.playerId,
+      'parlay_bet',
+      -amount,
+      0,
+      `Parlay bet on ${event_ids.length} events`
+    );
+
+    // Record bet as parlay
+    const potentialWinnings = amount * parlayOdds;
+    const betResult = await dbQueries.recordSportsBet(
+      req.user.playerId,
+      event_ids[0], // Primary event
+      'parlay',
+      amount,
+      parlayOdds,
+      potentialWinnings
+    );
+
+    // Get updated wallet
+    const updatedPlayer = await dbQueries.getPlayerById(req.user.playerId);
+    const updatedWallet = updatedPlayer.rows[0];
+
+    res.json({
+      success: true,
+      data: {
+        message: `Parlay placed on ${event_ids.length} events`,
+        bet_id: betResult.rows[0].id,
+        bet_type: 'parlay',
+        bet_amount: amount,
+        parlay_odds: parlayOdds,
+        potential_winnings: potentialWinnings,
+        wallet: {
+          goldCoins: updatedWallet.gc_balance,
+          sweepsCoins: updatedWallet.sc_balance
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[Sportsbook] Parlay error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to place parlay'
+    });
+  }
 };
 
-export const handleUpdateConfig: RequestHandler = (req, res) => {
-  const { rtp, minBet, maxBet, minParlay, maxParlay, houseCommission } = req.body;
+// Get game configuration
+export const handleGetConfig: RequestHandler = async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        minBet: gameConfig.minBet,
+        maxBet: gameConfig.maxBet,
+        minParlay: gameConfig.minParlay,
+        maxParlay: gameConfig.maxParlay,
+        houseCommission: gameConfig.houseCommission,
+        rtp: gameConfig.rtp
+      }
+    });
+  } catch (error) {
+    console.error('[Sportsbook] Get config error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get configuration'
+    });
+  }
+};
 
-  if (rtp !== undefined && rtp > 0 && rtp <= 100) {
-    gameConfig.rtp = rtp;
-  }
-  if (minBet !== undefined && minBet > 0) {
-    gameConfig.minBet = minBet;
-  }
-  if (maxBet !== undefined && maxBet > gameConfig.minBet) {
-    gameConfig.maxBet = maxBet;
-  }
-  if (minParlay !== undefined && minParlay > 0) {
-    gameConfig.minParlay = minParlay;
-  }
-  if (maxParlay !== undefined && maxParlay > gameConfig.minParlay) {
-    gameConfig.maxParlay = maxParlay;
-  }
-  if (houseCommission !== undefined && houseCommission >= 0 && houseCommission <= 50) {
-    gameConfig.houseCommission = houseCommission;
-  }
+// Update game configuration (admin only)
+export const handleUpdateConfig: RequestHandler = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Admin access required'
+      });
+    }
 
-  res.json({ success: true, data: gameConfig });
+    const { minBet, maxBet, minParlay, maxParlay, houseCommission } = req.body;
+
+    if (minBet !== undefined && minBet > 0) {
+      gameConfig.minBet = minBet;
+    }
+
+    if (maxBet !== undefined && maxBet > gameConfig.minBet) {
+      gameConfig.maxBet = maxBet;
+    }
+
+    if (minParlay !== undefined && minParlay >= 2) {
+      gameConfig.minParlay = minParlay;
+    }
+
+    if (maxParlay !== undefined && maxParlay > gameConfig.minParlay) {
+      gameConfig.maxParlay = maxParlay;
+    }
+
+    if (houseCommission !== undefined && houseCommission >= 0 && houseCommission <= 100) {
+      gameConfig.houseCommission = houseCommission;
+    }
+
+    res.json({
+      success: true,
+      data: gameConfig
+    });
+  } catch (error) {
+    console.error('[Sportsbook] Update config error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update configuration'
+    });
+  }
 };

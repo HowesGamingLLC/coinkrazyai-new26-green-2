@@ -35,10 +35,11 @@ import {
   handleGetSystemHealth
 } from "./routes/admin";
 import { handleSpin, handleGetConfig as getSlotsConfig, handleUpdateConfig as updateSlotsConfig } from "./routes/slots";
-import { 
-  handleGetPokerTables, 
+import {
+  handleGetPokerTables,
   handleJoinTable,
   handleFold,
+  handleCashOut,
   handleGetConfig as getPokerConfig,
   handleUpdateConfig as updatePokerConfig
 } from "./routes/poker";
@@ -57,6 +58,18 @@ import {
   handleGetConfig as getSportsbookConfig,
   handleUpdateConfig as updateSportsbookConfig
 } from "./routes/sportsbook";
+import {
+  handleGetLeaderboard,
+  handleGetPlayerRank,
+  handleUpdateLeaderboards
+} from "./routes/leaderboards";
+import {
+  handleGetAchievements,
+  handleGetPlayerAchievements,
+  handleAwardAchievement,
+  handleCheckAchievements,
+  handleGetAchievementStats
+} from "./routes/achievements";
 import * as adminDb from "./routes/admin-db";
 import { AIService } from "./services/ai-service";
 
@@ -106,38 +119,39 @@ export function createServer() {
 
   // ===== POKER ROUTES =====
   app.get("/api/poker/tables", handleGetPokerTables);
-  app.post("/api/poker/join", handleJoinTable);
-  app.post("/api/poker/fold", handleFold);
+  app.post("/api/poker/join", verifyPlayer, handleJoinTable);
+  app.post("/api/poker/fold", verifyPlayer, handleFold);
+  app.post("/api/poker/cash-out", verifyPlayer, handleCashOut);
   app.get("/api/poker/config", getPokerConfig);
-  app.post("/api/poker/config/update", updatePokerConfig);
+  app.post("/api/poker/config/update", verifyAdmin, updatePokerConfig);
 
   // ===== BINGO ROUTES =====
   app.get("/api/bingo/rooms", handleGetBingoRooms);
-  app.post("/api/bingo/buy", handleBuyBingoTicket);
-  app.post("/api/bingo/mark", handleMarkNumber);
-  app.post("/api/bingo/win", handleBingoWin);
+  app.post("/api/bingo/buy", verifyPlayer, handleBuyBingoTicket);
+  app.post("/api/bingo/mark", verifyPlayer, handleMarkNumber);
+  app.post("/api/bingo/win", verifyPlayer, handleBingoWin);
   app.get("/api/bingo/config", getBingoConfig);
-  app.post("/api/bingo/config/update", updateBingoConfig);
+  app.post("/api/bingo/config/update", verifyAdmin, updateBingoConfig);
 
   // ===== SPORTSBOOK ROUTES =====
   app.get("/api/sportsbook/games", handleGetLiveGames);
-  app.post("/api/sportsbook/parlay", handlePlaceParlay);
-  app.post("/api/sportsbook/bet", handleSingleBet);
+  app.post("/api/sportsbook/parlay", verifyPlayer, handlePlaceParlay);
+  app.post("/api/sportsbook/bet", verifyPlayer, handleSingleBet);
   app.get("/api/sportsbook/config", getSportsbookConfig);
-  app.post("/api/sportsbook/config/update", updateSportsbookConfig);
+  app.post("/api/sportsbook/config/update", verifyAdmin, updateSportsbookConfig);
 
   // ===== ADMIN ROUTES =====
   app.post("/api/admin/login", handleAdminLogin);
-  app.get("/api/admin/stats", handleGetAdminStats);
-  app.get("/api/admin/game-config", handleGetGameConfig);
-  app.post("/api/admin/game-config", handleUpdateGameConfig);
-  app.get("/api/admin/ai-employees", handleGetAIEmployees);
-  app.post("/api/admin/ai-duty", handleAssignAIDuty);
-  app.post("/api/admin/ai-status", handleUpdateAIStatus);
-  app.get("/api/admin/store-packs", handleGetStorePacks);
-  app.post("/api/admin/store-pack", handleUpdateStorePack);
-  app.post("/api/admin/maintenance", handleSetMaintenanceMode);
-  app.get("/api/admin/health", handleGetSystemHealth);
+  app.get("/api/admin/stats", verifyAdmin, handleGetAdminStats);
+  app.get("/api/admin/game-config", verifyAdmin, handleGetGameConfig);
+  app.post("/api/admin/game-config", verifyAdmin, handleUpdateGameConfig);
+  app.get("/api/admin/ai-employees", verifyAdmin, handleGetAIEmployees);
+  app.post("/api/admin/ai-duty", verifyAdmin, handleAssignAIDuty);
+  app.post("/api/admin/ai-status", verifyAdmin, handleUpdateAIStatus);
+  app.get("/api/admin/store-packs", verifyAdmin, handleGetStorePacks);
+  app.post("/api/admin/store-pack", verifyAdmin, handleUpdateStorePack);
+  app.post("/api/admin/maintenance", verifyAdmin, handleSetMaintenanceMode);
+  app.get("/api/admin/health", verifyAdmin, handleGetSystemHealth);
   app.post("/api/admin/logout", handleLogout);
 
   // ===== DATABASE-DRIVEN ADMIN ROUTES =====
@@ -177,6 +191,18 @@ export function createServer() {
 
   // Sports
   app.get("/api/admin/sports/events", adminDb.getSportsEventsList);
+
+  // ===== LEADERBOARD ROUTES =====
+  app.get("/api/leaderboards", handleGetLeaderboard);
+  app.get("/api/leaderboards/my-rank", verifyPlayer, handleGetPlayerRank);
+  app.post("/api/leaderboards/update", verifyAdmin, handleUpdateLeaderboards);
+
+  // ===== ACHIEVEMENTS ROUTES =====
+  app.get("/api/achievements", handleGetAchievements);
+  app.get("/api/achievements/my-achievements", verifyPlayer, handleGetPlayerAchievements);
+  app.post("/api/achievements/award", verifyAdmin, handleAwardAchievement);
+  app.post("/api/achievements/check", verifyPlayer, handleCheckAchievements);
+  app.get("/api/achievements/stats", handleGetAchievementStats);
 
   // ===== EXAMPLE ROUTES =====
   app.get("/api/ping", (_req, res) => {
