@@ -1,4 +1,5 @@
 import { RequestHandler } from 'express';
+import axios from 'axios';
 import { query } from '../db/connection';
 import { S3Service } from '../services/s3-service';
 import { SlackService } from '../services/slack-service';
@@ -303,21 +304,73 @@ export const crawlSlots: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: 'URL is required' });
     }
 
-    // Mock crawling process
     console.log(`[Crawler] Starting crawl for: ${url}`);
 
-    // Simulate some work
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Fetch HTML with a standard User-Agent to avoid simple blocks
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      timeout: 15000,
+      validateStatus: () => true // Allow any status to handle errors manually
+    });
 
-    await SlackService.notifyAdminAction(req.user?.email || 'admin', 'Triggered Slots Crawler', `URL: ${url}`);
+    if (response.status !== 200) {
+      return res.status(response.status).json({ error: `Site returned status ${response.status}` });
+    }
+
+    const html = response.data;
+    if (typeof html !== 'string') {
+      return res.status(400).json({ error: 'Could not retrieve text content from the URL' });
+    }
+
+    // Extract Title (Game Name)
+    const titleMatch = html.match(/<title>(.*?)<\/title>/i);
+    let name = titleMatch ? titleMatch[1].trim() : 'Crawled Game';
+    // Clean up name: remove common separators and "Slot", "Online", etc if they are suffixes
+    name = name.split(/[|:-]/)[0].trim();
+
+    // Extract RTP (Return to Player)
+    // Common pattern in slot review sites: "RTP: 96.5%"
+    const rtpMatch = html.match(/RTP[:\s]+(\d{2}(\.\d{1,2})?)%/i) ||
+                     html.match(/(\d{2}(\.\d{1,2})?)%[\s]*RTP/i) ||
+                     html.match(/payout[\s]+percentage[:\s]+(\d{2}(\.\d{1,2})?)%/i);
+
+    const rtp = rtpMatch ? parseFloat(rtpMatch[1]) : 96.0;
+
+    // Extract Volatility
+    const volMatch = html.match(/(Low|Medium|High)[\s]+Volatility/i) ||
+                     html.match(/Volatility[:\s]+(Low|Medium|High)/i);
+    const volatility = volMatch ? volMatch[1].charAt(0).toUpperCase() + volMatch[1].slice(1).toLowerCase() : 'Medium';
+
+    // Extract Description
+    const metaDescMatch = html.match(/<meta name="description" content="(.*?)"/i) ||
+                          html.match(/<meta property="og:description" content="(.*?)"/i);
+    const description = metaDescMatch ? metaDescMatch[1].trim().substring(0, 250) : `Automatically crawled from ${url}`;
+
+    // Create game in database
+    const dbResult = await query(
+      `INSERT INTO games (name, category, provider, rtp, volatility, description, enabled)
+       VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING *`,
+      [name, 'Slots', 'External', rtp, volatility, description]
+    );
+
+    const game = dbResult.rows[0];
+
+    // Notify admin channel
+    await SlackService.notifyAdminAction(
+      req.user?.email || 'admin',
+      'Slots Crawl Successful',
+      `Imported "${name}" (RTP: ${rtp}%, Volatility: ${volatility}) from ${url}`
+    );
 
     res.json({
       success: true,
-      message: 'Crawl started successfully. Results will appear in the library soon.',
-      task_id: Math.floor(Math.random() * 1000000)
+      message: `Successfully crawled and imported "${name}" with ${rtp}% RTP.`,
+      data: game
     });
-  } catch (error) {
-    console.error('Crawl slots error:', error);
-    res.status(500).json({ error: 'Failed to start crawler' });
+  } catch (error: any) {
+    console.error('Crawl slots error:', error.message);
+    res.status(500).json({ error: `Crawler failed: ${error.message}` });
   }
 };
