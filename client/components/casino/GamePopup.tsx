@@ -23,18 +23,27 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
 
   // Derived game URL from thumbnail if not explicitly provided
   const getGameUrl = () => {
-    if (game.gameUrl) return game.gameUrl;
+    if (game.gameUrl) {
+      console.log('[GamePopup] Using explicit gameUrl:', game.gameUrl);
+      return game.gameUrl;
+    }
 
     // Attempt to construct LiveBet URL from thumbnail
     // Example thumb: https://www.livebet.com/images/casino/slots/pragmatic/zeus-vs-hades-gods-of-war-250.webp
     // Target URL: https://www.livebet.com/casino/slots/pragmatic/zeus-vs-hades-gods-of-war-250
     if (game.thumbnail.includes('livebet.com/images/')) {
-      return game.thumbnail
+      const gameUrl = game.thumbnail
         .replace('/images/', '/')
         .replace('.webp', '')
         .replace('.svg', '');
+      console.log('[GamePopup] Transformed thumbnail to gameUrl:', {
+        original: game.thumbnail,
+        transformed: gameUrl
+      });
+      return gameUrl;
     }
 
+    console.log('[GamePopup] Using fallback thumbnail as gameUrl:', game.thumbnail);
     return game.thumbnail; // Fallback
   };
 
