@@ -13,6 +13,7 @@ export interface PragmaticGame {
   costPerPlay: number; // SC cost per spin
   rtp?: number;
   volatility?: 'Low' | 'Medium' | 'High';
+  gameUrl?: string;
 }
 
 export const PRAGMATIC_GAMES: PragmaticGame[] = [

@@ -5,6 +5,7 @@ export interface CasinoGame {
   provider: string;
   type: 'slots' | 'table' | 'games';
   costPerPlay: number; // SC cost per play session
+  gameUrl?: string;
 }
 
 export const CASINO_MIN_BET = 0.01;

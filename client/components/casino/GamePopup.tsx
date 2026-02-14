@@ -19,6 +19,24 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
   const [betAmount, setBetAmount] = useState(CASINO_MIN_BET);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentBalance, setCurrentBalance] = useState(Number(user?.sc_balance ?? 0));
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+
+  // Derived game URL from thumbnail if not explicitly provided
+  const getGameUrl = () => {
+    if (game.gameUrl) return game.gameUrl;
+
+    // Attempt to construct LiveBet URL from thumbnail
+    // Example thumb: https://www.livebet.com/images/casino/slots/pragmatic/zeus-vs-hades-gods-of-war-250.webp
+    // Target URL: https://www.livebet.com/en/casino/slots/pragmatic/zeus-vs-hades-gods-of-war-250
+    if (game.thumbnail.includes('livebet.com/images/')) {
+      return game.thumbnail
+        .replace('/images/', '/en/')
+        .replace('.webp', '')
+        .replace('.svg', '');
+    }
+
+    return game.thumbnail; // Fallback
+  };
 
   // Update balance when user changes
   useEffect(() => {
@@ -212,32 +230,65 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
   }
 
   if (popupState === 'playing') {
+    const gameUrl = getGameUrl();
+
     return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-gray-900 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-amber-500/30">
+      <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-0 md:p-4">
+        <div className="bg-gray-900 w-full h-full md:rounded-xl max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl border border-amber-500/30">
           {/* Header */}
-          <div className="bg-gradient-to-r from-amber-600 to-amber-500 px-6 py-4 flex items-center justify-between">
-            <div className="text-2xl font-bold text-white">🎰 COINKRAZY</div>
-            <button
-              onClick={onClose}
-              className="text-white hover:text-amber-100 transition-colors"
-            >
-              <X className="h-6 w-6" />
-            </button>
+          <div className="bg-gradient-to-r from-amber-600 to-amber-500 px-4 md:px-6 py-3 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2 md:gap-4">
+              <div className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+                <span className="hidden sm:inline">🎰</span> COINKRAZY
+              </div>
+              <div className="h-6 w-px bg-amber-400/30 hidden sm:block"></div>
+              <div className="text-amber-100 text-sm font-medium truncate max-w-[150px] md:max-w-none">
+                Playing: {game.name}
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full text-xs text-white border border-white/10">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                LIVE SESSION
+              </div>
+              <button
+                onClick={onClose}
+                className="text-white hover:text-amber-100 transition-colors p-1"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
           </div>
 
           {/* Game Area */}
-          <div className="flex-1 bg-black flex items-center justify-center min-h-[500px]">
-            <div className="text-center space-y-4">
-              <div className="inline-block">
-                <div className="animate-spin rounded-full h-16 w-16 border-4 border-amber-500 border-t-transparent"></div>
+          <div className="flex-1 bg-black relative">
+            {!iframeLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center z-10 bg-black">
+                <div className="text-center space-y-4">
+                  <div className="inline-block">
+                    <div className="animate-spin rounded-full h-16 w-16 border-4 border-amber-500 border-t-transparent"></div>
+                  </div>
+                  <p className="text-gray-400 text-lg">Loading secure game session...</p>
+                  <p className="text-amber-400 font-semibold text-xl">{game.name}</p>
+                </div>
               </div>
-              <p className="text-gray-400 text-lg">Game Loading...</p>
-              <p className="text-amber-400 font-semibold text-xl">{game.name}</p>
-              <div className="space-y-2 text-sm text-gray-500">
-                <p>Spinning with: {betAmount.toFixed(2)} SC</p>
-                <p>Your balance: {currentBalance.toFixed(2)} SC</p>
-              </div>
+            )}
+
+            <iframe
+              src={gameUrl}
+              className="w-full h-full border-none"
+              allow="autoplay; fullscreen; encrypted-media"
+              onLoad={() => setIframeLoaded(true)}
+              title={game.name}
+            />
+          </div>
+
+          {/* Bottom Bar (Optional) */}
+          <div className="bg-gray-800/50 px-4 py-2 border-t border-gray-700 flex items-center justify-between text-[10px] md:text-xs text-gray-400 shrink-0">
+            <div>Provider: {game.provider}</div>
+            <div className="flex items-center gap-4">
+              <span>Bet: {betAmount.toFixed(2)} SC</span>
+              <span>Balance: {currentBalance.toFixed(2)} SC</span>
             </div>
           </div>
         </div>
