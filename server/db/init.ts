@@ -43,8 +43,21 @@ export const initializeDatabase = async () => {
 
 const seedDatabase = async () => {
   try {
-    // Add username column to players table if it doesn't exist
+    // Add password_hash column to players table if it doesn't exist
     console.log('[DB] Checking players table schema...');
+    try {
+      await query(`ALTER TABLE players ADD COLUMN password_hash VARCHAR(255) NOT NULL DEFAULT ''`);
+      console.log('[DB] Added password_hash column to players table');
+    } catch (err: any) {
+      if (err.code === '42701') {
+        // Column already exists
+        console.log('[DB] Password hash column already exists');
+      } else {
+        console.log('[DB] Schema check for password_hash:', err.message?.substring(0, 100));
+      }
+    }
+
+    // Add username column to players table if it doesn't exist
     try {
       await query(`ALTER TABLE players ADD COLUMN username VARCHAR(255) UNIQUE`);
       console.log('[DB] Added username column to players table');
