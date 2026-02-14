@@ -413,6 +413,56 @@ const seedDatabase = async () => {
         );
       }
     }
+
+    // Ensure Pragmatic Play games exist
+    const pragmaticCount = await query(
+      'SELECT COUNT(*) as count FROM games WHERE provider = $1',
+      ['Pragmatic']
+    );
+
+    if (parseInt(pragmaticCount.rows[0].count) === 0) {
+      console.log('[DB] Seeding Pragmatic Play games...');
+      const pragmaticGames = [
+        ['Zeus vs Hades - Gods of War 250', 'Slots', 'Pragmatic', 96.5, 'High', 'Epic battle-themed slot with massive payouts', true],
+        ['3 Magic Eggs', 'Slots', 'Pragmatic', 96.0, 'Medium', 'Magical eggs reveal hidden treasures', true],
+        ['Cyber Heist City', 'Slots', 'Pragmatic', 96.7, 'High', 'High-tech heist adventure slot game', true],
+        ['Big Bass Bonanza', 'Slots', 'Pragmatic', 96.7, 'High', 'Fishing-themed slot with big bonuses', true],
+        ['Sweet Bonanza', 'Slots', 'Pragmatic', 96.48, 'High', 'Candy-filled slot with sweet wins', true],
+        ['The Dog House', 'Slots', 'Pragmatic', 96.55, 'High', 'Dog-themed slot with expanding reels', true],
+        ['Gates of Olympus', 'Slots', 'Pragmatic', 96.5, 'High', 'Greek mythology themed with multiplier features', true],
+        ['Sugar Rush', 'Slots', 'Pragmatic', 96.0, 'Medium', 'Fast-paced sweet adventure slot', true],
+        ['Bigger Bass Bonanza', 'Slots', 'Pragmatic', 96.7, 'High', 'Enhanced fishing experience with bigger rewards', true],
+        ['Gates of Olympus 1000', 'Slots', 'Pragmatic', 96.5, 'High', 'Maximum multiplier version of Gates of Olympus', true],
+        ['Lucky\'s Wild Pub 2', 'Slots', 'Pragmatic', 96.5, 'High', 'Irish pub adventure with wild features', true],
+        ['Big Bass Raceday Repeat', 'Slots', 'Pragmatic', 96.7, 'High', 'Racing and fishing combined', true],
+        ['Wild Skullz', 'Slots', 'Pragmatic', 96.0, 'Medium', 'Pirate-themed skull hunt slot', true],
+        ['Tut\'s Treasure Tower', 'Slots', 'Pragmatic', 96.6, 'High', 'Egyptian tomb exploration with tower feature', true],
+        ['Haunted Crypt', 'Slots', 'Pragmatic', 96.5, 'High', 'Spooky crypt with ghostly features', true],
+        ['Rolling in Treasures', 'Slots', 'Pragmatic', 96.0, 'Medium', 'Treasure hunt themed slot game', true],
+        ['Mummy\'s Jewels 100', 'Slots', 'Pragmatic', 96.2, 'Medium', 'Ancient mummy jewel collection', true],
+        ['Smoke\'Em', 'Slots', 'Pragmatic', 96.5, 'Medium', 'Classic western slot with smoking wins', true],
+        ['Treasures of Osiris', 'Slots', 'Pragmatic', 96.3, 'High', 'Ancient Egyptian treasure hunt', true],
+        ['Emerald King - Wheel of Wealth', 'Slots', 'Pragmatic', 96.5, 'High', 'Royal emerald treasure with wheel bonus', true],
+      ];
+
+      for (const game of pragmaticGames) {
+        try {
+          await query(
+            `INSERT INTO games (name, category, provider, rtp, volatility, description, enabled)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            game
+          );
+        } catch (err: any) {
+          // Game might already exist, that's okay
+          if (err.code !== '23505') {
+            console.log('[DB] Error seeding game:', err.message?.substring(0, 100));
+          }
+        }
+      }
+      console.log('[DB] Pragmatic Play games seeded successfully');
+    } else {
+      console.log('[DB] Pragmatic games already exist, skipping seed');
+    }
   } catch (error) {
     console.error('[DB] Seeding failed:', error);
     throw error;

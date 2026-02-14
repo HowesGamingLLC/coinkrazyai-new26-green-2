@@ -25,8 +25,8 @@ import { MIN_BET_SC, MAX_BET_SC, MAX_WIN_SC, MAX_WIN_GC } from "../../shared/con
 let gameConfig = {
   rtp: 95, // Return to Player percentage
   minBet: 0.01,
-  maxBet: 1, // Max bet 1 SC (if slots were SC)
-  maxLineWinnings: MAX_WIN_GC, // Cap GC winnings too if applicable
+  maxBet: 5.00, // Max bet 5.00 SC
+  maxLineWinnings: MAX_WIN_SC, // Cap SC winnings
 };
 
 // Cryptographically secure RNG using crypto module
@@ -158,21 +158,21 @@ export const handleSpin: RequestHandler = async (req, res) => {
 
     const currentPlayer = player.rows[0];
 
-    // Check sufficient balance (assume bet in GC)
-    if (currentPlayer.gc_balance < bet_amount) {
+    // Check sufficient balance (use SC for Pragmatic games)
+    if (currentPlayer.sc_balance < bet_amount) {
       return res.status(400).json({
         success: false,
-        error: 'Insufficient gold coins'
+        error: 'Insufficient sweeps coins'
       });
     }
 
-    // Deduct bet from player's balance
+    // Deduct bet from player's SC balance
     await dbQueries.recordWalletTransaction(
       req.user.playerId,
       'slots_bet',
-      -bet_amount,
       0,
-      `Slots spin bet: ${bet_amount} GC`
+      -bet_amount,
+      `Slots spin bet: ${bet_amount} SC`
     );
 
     // Generate reels
@@ -181,20 +181,20 @@ export const handleSpin: RequestHandler = async (req, res) => {
     // Calculate winnings
     let { winnings, winLines, resultType } = calculateWinnings(reels, bet_amount);
 
-    // Apply platform-wide max win cap (for GC, using MAX_WIN_GC)
-    if (winnings > MAX_WIN_GC) {
-      winnings = MAX_WIN_GC;
-      console.log(`[Slots] Win capped at ${MAX_WIN_GC} GC for player ${req.user.playerId}`);
+    // Apply platform-wide max win cap (for SC, using MAX_WIN_SC)
+    if (winnings > MAX_WIN_SC) {
+      winnings = MAX_WIN_SC;
+      console.log(`[Slots] Win capped at ${MAX_WIN_SC} SC for player ${req.user.playerId}`);
     }
 
-    // Add winnings to wallet if any
+    // Add winnings to wallet if any (use SC)
     if (winnings > 0) {
       await dbQueries.recordWalletTransaction(
         req.user.playerId,
         'slots_win',
-        winnings,
         0,
-        `Slots spin win: ${winnings} GC (${winLines.length} lines)`
+        winnings,
+        `Slots spin win: ${winnings} SC (${winLines.length} lines)`
       );
     }
 
@@ -221,7 +221,7 @@ export const handleSpin: RequestHandler = async (req, res) => {
         result_type: resultType,
         won: winnings > 0,
         win_lines: winLines,
-        new_balance: updatedWallet.gc_balance,
+        new_balance: updatedWallet.sc_balance,
         wallet: {
           goldCoins: updatedWallet.gc_balance,
           sweepsCoins: updatedWallet.sc_balance

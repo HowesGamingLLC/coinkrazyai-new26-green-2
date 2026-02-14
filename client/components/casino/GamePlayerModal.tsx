@@ -4,15 +4,17 @@ import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { X, AlertCircle, Loader } from 'lucide-react';
 import { casino } from '@/lib/api';
+import { PragmaticGamePlayer } from './PragmaticGamePlayer';
 
 interface GamePlayerModalProps {
   gameId: string;
   onClose: () => void;
+  provider?: string;
 }
 
-export function GamePlayerModal({ gameId, onClose }: GamePlayerModalProps) {
+export function GamePlayerModal({ gameId, onClose, provider }: GamePlayerModalProps) {
   const game = casinoGames.find((g) => g.id === gameId);
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasStarted, setHasStarted] = useState(false);
@@ -23,6 +25,17 @@ export function GamePlayerModal({ gameId, onClose }: GamePlayerModalProps) {
 
   const currentScBalance = Number(user.sc_balance ?? 0);
   const hasEnoughBalance = currentScBalance >= betAmount;
+  const isPragmatic = provider === 'Pragmatic' || game.provider === 'Pragmatic';
+
+  const handlePragmaticGameEnded = async (result: { winnings: number; newBalance: number }) => {
+    console.log('[Pragmatic] Game ended with result:', result);
+    // Refresh profile to get updated balance
+    try {
+      await refreshProfile();
+    } catch (err) {
+      console.error('[Pragmatic] Failed to refresh profile:', err);
+    }
+  };
 
   const handlePlayGame = async () => {
     if (!hasEnoughBalance) {
@@ -183,8 +196,18 @@ export function GamePlayerModal({ gameId, onClose }: GamePlayerModalProps) {
                 </Button>
               </div>
             </div>
+          ) : isPragmatic ? (
+            /* Pragmatic Game Iframe */
+            <div className="w-full h-full min-h-[600px] bg-black">
+              <PragmaticGamePlayer
+                gameId={gameId}
+                gameName={game.name}
+                betAmount={betAmount}
+                onGameEnded={handlePragmaticGameEnded}
+              />
+            </div>
           ) : (
-            /* Game Iframe */
+            /* Generic Game Placeholder */
             <div className="w-full h-full min-h-[600px] bg-black flex items-center justify-center">
               <div className="text-center space-y-4">
                 <div className="inline-block">

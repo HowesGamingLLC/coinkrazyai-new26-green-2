@@ -42,7 +42,7 @@ const Slots = () => {
   const [selectedGame, setSelectedGame] = useState<GameInfo | null>(null);
   const [isLoadingGames, setIsLoadingGames] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
-  const [betAmount, setBetAmount] = useState(100);
+  const [betAmount, setBetAmount] = useState(0.50); // SC currency
   const [gameState, setGameState] = useState<GameState>({
     reels: ['🎰', '🎰', '🎰'],
     isSpinning: false,
@@ -91,8 +91,8 @@ const Slots = () => {
   const handleSpin = async () => {
     if (gameState.isSpinning) return;
     if (!selectedGame) return;
-    if ((user?.gc_balance || 0) < betAmount) {
-      toast.error('Insufficient balance');
+    if ((user?.sc_balance || 0) < betAmount) {
+      toast.error('Insufficient SC balance');
       return;
     }
 
@@ -143,7 +143,7 @@ const Slots = () => {
           }));
 
           if (winnings > 0) {
-            toast.success(`You won ${winnings.toLocaleString()} GC!`);
+            toast.success(`You won ${winnings.toFixed(2)} SC!`);
             if (!isMuted) playSound();
           } else {
             toast.info('No win this time. Try again!');
@@ -262,46 +262,46 @@ const Slots = () => {
                     {gameState.lastWinnings > 0 && (
                       <div className="text-center p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
                         <p className="text-sm text-muted-foreground">Last Win</p>
-                        <p className="text-3xl font-black text-green-600">+{gameState.lastWinnings} GC</p>
+                        <p className="text-3xl font-black text-green-600">+{gameState.lastWinnings.toFixed(2)} SC</p>
                       </div>
                     )}
 
                     {/* Controls */}
                     <div className="space-y-4">
                       <div>
-                        <label className="text-sm font-semibold block mb-2">Bet Amount</label>
+                        <label className="text-sm font-semibold block mb-2">Bet Amount (SC)</label>
                         <div className="flex gap-2">
-                          {[10, 50, 100, 500].map(amount => (
+                          {[0.01, 0.25, 0.50, 1.00, 2.50, 5.00].map(amount => (
                             <Button
                               key={amount}
                               variant={betAmount === amount ? 'default' : 'outline'}
                               size="sm"
                               onClick={() => setBetAmount(amount)}
-                              disabled={gameState.isSpinning}
+                              disabled={gameState.isSpinning || (user?.sc_balance || 0) < amount}
                             >
-                              {amount}
+                              {amount.toFixed(2)}
                             </Button>
                           ))}
                         </div>
                         <input
                           type="range"
-                          min="10"
-                          max={Math.min(1000, user?.gc_balance || 0)}
-                          step="10"
+                          min="0.01"
+                          max={Math.min(5.00, user?.sc_balance || 0)}
+                          step="0.01"
                           value={betAmount}
                           onChange={(e) => setBetAmount(Number(e.target.value))}
                           disabled={gameState.isSpinning}
                           className="w-full mt-3"
                         />
                         <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                          <span>${betAmount}</span>
-                          <span>Balance: {Number(user?.gc_balance ?? 0).toLocaleString()} GC</span>
+                          <span>SC {betAmount.toFixed(2)}</span>
+                          <span>Balance: {Number(user?.sc_balance ?? 0).toFixed(2)} SC</span>
                         </div>
                       </div>
 
                       <Button
                         onClick={handleSpin}
-                        disabled={gameState.isSpinning || (user?.gc_balance || 0) < betAmount}
+                        disabled={gameState.isSpinning || (user?.sc_balance || 0) < betAmount}
                         size="lg"
                         className="w-full font-bold text-lg"
                       >
@@ -344,11 +344,11 @@ const Slots = () => {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Total Wins</p>
-                      <p className="text-2xl font-bold text-green-600">{gameState.totalWins.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-green-600">{gameState.totalWins.toFixed(2)} SC</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Total Losses</p>
-                      <p className="text-2xl font-bold text-red-600">{gameState.totalLosses.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-red-600">{gameState.totalLosses.toFixed(2)} SC</p>
                     </div>
                   </div>
                 </CardContent>
