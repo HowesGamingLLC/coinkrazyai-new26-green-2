@@ -19,12 +19,14 @@ const SYMBOLS: SlotSymbol[] = [
   { id: 'seven', name: '7️⃣', value: 100, weight: 5 },
 ];
 
+import { MIN_BET_SC, MAX_BET_SC, MAX_WIN_SC, MAX_WIN_GC } from "../../shared/constants";
+
 // Game configuration (in production, load from database)
 let gameConfig = {
   rtp: 95, // Return to Player percentage
   minBet: 0.01,
-  maxBet: 1000,
-  maxLineWinnings: 50000,
+  maxBet: 1, // Max bet 1 SC (if slots were SC)
+  maxLineWinnings: MAX_WIN_GC, // Cap GC winnings too if applicable
 };
 
 // Cryptographically secure RNG using crypto module
@@ -177,7 +179,13 @@ export const handleSpin: RequestHandler = async (req, res) => {
     const reels = generateReels();
 
     // Calculate winnings
-    const { winnings, winLines, resultType } = calculateWinnings(reels, bet_amount);
+    let { winnings, winLines, resultType } = calculateWinnings(reels, bet_amount);
+
+    // Apply platform-wide max win cap (for GC, using MAX_WIN_GC)
+    if (winnings > MAX_WIN_GC) {
+      winnings = MAX_WIN_GC;
+      console.log(`[Slots] Win capped at ${MAX_WIN_GC} GC for player ${req.user.playerId}`);
+    }
 
     // Add winnings to wallet if any
     if (winnings > 0) {

@@ -2,11 +2,13 @@ import { RequestHandler } from "express";
 import * as dbQueries from "../db/queries";
 import { query } from "../db/connection";
 
+import { MIN_BET_SC, MAX_BET_SC, MAX_WIN_SC } from "../../shared/constants";
+
 // Game configuration
 let gameConfig = {
   rtp: 92,
-  minBet: 1,
-  maxBet: 10000,
+  minBet: MIN_BET_SC,
+  maxBet: MAX_BET_SC,
   minParlay: 2,
   maxParlay: 10,
   houseCommission: 8, // percentage
@@ -63,7 +65,7 @@ export const handleSingleBet: RequestHandler = async (req, res) => {
     if (amount < gameConfig.minBet || amount > gameConfig.maxBet) {
       return res.status(400).json({
         success: false,
-        error: `Bet must be between ${gameConfig.minBet} and ${gameConfig.maxBet}`
+        error: `Bet must be between ${gameConfig.minBet} SC and ${gameConfig.maxBet} SC`
       });
     }
 
@@ -99,24 +101,31 @@ export const handleSingleBet: RequestHandler = async (req, res) => {
     }
 
     const playerData = player.rows[0];
-    if (playerData.gc_balance < amount) {
+    if (playerData.sc_balance < amount) {
       return res.status(400).json({
         success: false,
-        error: 'Insufficient gold coins'
+        error: 'Insufficient Sweeps Coins'
       });
     }
 
-    // Deduct bet from player wallet
+    // Deduct bet from player wallet (using SC)
     await dbQueries.recordWalletTransaction(
       req.user.playerId,
       'sports_bet',
-      -amount,
       0,
+      -amount,
       `Sports bet on ${event.event_name}`
     );
 
     // Record bet
-    const potentialWinnings = amount * odds;
+    let potentialWinnings = amount * odds;
+
+    // Apply platform-wide max win cap ($20)
+    if (potentialWinnings > MAX_WIN_SC) {
+      potentialWinnings = MAX_WIN_SC;
+      console.log(`[Sportsbook] Potential winnings capped at ${MAX_WIN_SC} SC for player ${req.user.playerId}`);
+    }
+
     const betResult = await dbQueries.recordSportsBet(
       req.user.playerId,
       event_id,
@@ -189,7 +198,7 @@ export const handlePlaceParlay: RequestHandler = async (req, res) => {
     if (!amount || amount <= 0 || amount < gameConfig.minBet || amount > gameConfig.maxBet) {
       return res.status(400).json({
         success: false,
-        error: `Bet must be between ${gameConfig.minBet} and ${gameConfig.maxBet}`
+        error: `Bet must be between ${gameConfig.minBet} SC and ${gameConfig.maxBet} SC`
       });
     }
 
@@ -203,10 +212,10 @@ export const handlePlaceParlay: RequestHandler = async (req, res) => {
     }
 
     const playerData = player.rows[0];
-    if (playerData.gc_balance < amount) {
+    if (playerData.sc_balance < amount) {
       return res.status(400).json({
         success: false,
-        error: 'Insufficient gold coins'
+        error: 'Insufficient Sweeps Coins'
       });
     }
 
@@ -219,17 +228,24 @@ export const handlePlaceParlay: RequestHandler = async (req, res) => {
       parlayOdds = Math.pow(2, event_ids.length);
     }
 
-    // Deduct bet
+    // Deduct bet (using SC)
     await dbQueries.recordWalletTransaction(
       req.user.playerId,
       'parlay_bet',
-      -amount,
       0,
+      -amount,
       `Parlay bet on ${event_ids.length} events`
     );
 
     // Record bet as parlay
-    const potentialWinnings = amount * parlayOdds;
+    let potentialWinnings = amount * parlayOdds;
+
+    // Apply platform-wide max win cap ($20)
+    if (potentialWinnings > MAX_WIN_SC) {
+      potentialWinnings = MAX_WIN_SC;
+      console.log(`[Sportsbook] Parlay potential winnings capped at ${MAX_WIN_SC} SC for player ${req.user.playerId}`);
+    }
+
     const betResult = await dbQueries.recordSportsBet(
       req.user.playerId,
       event_ids[0], // Primary event

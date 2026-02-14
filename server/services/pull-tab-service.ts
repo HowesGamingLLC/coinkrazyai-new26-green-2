@@ -1,6 +1,7 @@
 import { query, getClient } from '../db/connection';
 import { WalletService } from './wallet-service';
 import { NotificationService } from './notification-service';
+import { MIN_BET_SC, MAX_BET_SC, MAX_WIN_SC } from '../../shared/constants';
 
 interface PullTabTab {
   index: number;
@@ -50,9 +51,14 @@ export class PullTabService {
     if (isWinningTicket) {
       // Generate one winning prize tab and rest are LOSS
       const winningTabIndex = Math.floor(Math.random() * tabCount);
-      const prizeAmount = Math.floor(
+      let prizeAmount = Math.floor(
         Math.random() * (design.prize_max_sc - design.prize_min_sc + 1) + design.prize_min_sc
       );
+
+      // Apply platform-wide max win cap
+      if (prizeAmount > MAX_WIN_SC) {
+        prizeAmount = MAX_WIN_SC;
+      }
 
       for (let i = 0; i < tabCount; i++) {
         tabs.push({
@@ -103,6 +109,14 @@ export class PullTabService {
       }
 
       const design = designResult.rows[0] as PullTabDesign;
+
+      // Enforce platform-wide bet limits
+      if (design.cost_sc < MIN_BET_SC || design.cost_sc > MAX_BET_SC) {
+        return {
+          success: false,
+          error: `Ticket cost must be between ${MIN_BET_SC} and ${MAX_BET_SC} SC`
+        };
+      }
 
       // Get player's current balances
       const playerResult = await query(`SELECT gc_balance, sc_balance FROM players WHERE id = $1`, [playerId]);
@@ -337,6 +351,11 @@ export class PullTabService {
           winningTabIndex = i;
           break;
         }
+      }
+
+      // Apply platform-wide max win cap (double check)
+      if (prizeAmount > MAX_WIN_SC) {
+        prizeAmount = MAX_WIN_SC;
       }
 
       // No winning tab = no prize
