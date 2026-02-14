@@ -301,9 +301,9 @@ const seedDatabase = async () => {
 
       // Seed scratch ticket designs
       const scratchDesigns = [
-        ['Gold Rush', 'Scratch to find hidden gold!', 5, 6, 16.67, 1, 50, null, '#FFD700'],
-        ['Lucky Clover', 'Find the 4-leaf clover and win big!', 2, 4, 20, 0.5, 20, null, '#4CAF50'],
-        ['Diamond Dazzle', 'Diamonds are a player\'s best friend!', 10, 9, 15, 5, 100, null, '#00BCD4'],
+        ['Gold Rush', 'Scratch to find hidden gold!', 5, 6, 16.67, 1, 10, null, '#FFD700'],
+        ['Lucky Clover', 'Find the 4-leaf clover and win big!', 2, 4, 20, 1, 5, null, '#4CAF50'],
+        ['Diamond Dazzle', 'Diamonds are a player\'s best friend!', 10, 9, 15, 5, 10, null, '#00BCD4'],
       ];
 
       for (const design of scratchDesigns) {
@@ -316,9 +316,9 @@ const seedDatabase = async () => {
 
       // Seed pull tab designs
       const pullTabDesigns = [
-        ['Orange Heat', 'Traditional pull tabs with big wins!', 5, 3, 20, 1, 25, null, '#FF6B35'],
-        ['Midnight Stars', 'Pull the stars and reach for the moon!', 1, 3, 25, 0.25, 10, null, '#3F51B5'],
-        ['Royal Jackpot', 'Only for the elite - massive prizes await!', 25, 5, 15, 10, 500, null, '#9C27B0'],
+        ['Orange Heat', 'Traditional pull tabs with big wins!', 5, 3, 20, 1, 10, null, '#FF6B35'],
+        ['Midnight Stars', 'Pull the stars and reach for the moon!', 1, 3, 25, 1, 5, null, '#3F51B5'],
+        ['Royal Jackpot', 'Only for the elite - massive prizes await!', 25, 5, 15, 5, 10, null, '#9C27B0'],
       ];
 
       for (const design of pullTabDesigns) {
@@ -339,9 +339,9 @@ const seedDatabase = async () => {
     if (parseInt(scratchCount.rows[0].count) === 0) {
       console.log('[DB] Seeding scratch ticket designs...');
       const scratchDesigns = [
-        ['Gold Rush', 'Scratch to find hidden gold!', 5, 6, 16.67, 1, 50, null, '#FFD700'],
-        ['Lucky Clover', 'Find the 4-leaf clover and win big!', 2, 4, 20, 0.5, 20, null, '#4CAF50'],
-        ['Diamond Dazzle', 'Diamonds are a player\'s best friend!', 10, 9, 15, 5, 100, null, '#00BCD4'],
+        ['Gold Rush', 'Scratch to find hidden gold!', 5, 6, 16.67, 1, 10, null, '#FFD700'],
+        ['Lucky Clover', 'Find the 4-leaf clover and win big!', 2, 4, 20, 1, 5, null, '#4CAF50'],
+        ['Diamond Dazzle', 'Diamonds are a player\'s best friend!', 10, 9, 15, 5, 10, null, '#00BCD4'],
       ];
       for (const design of scratchDesigns) {
         await query(
@@ -356,15 +356,35 @@ const seedDatabase = async () => {
     if (parseInt(pullTabCount.rows[0].count) === 0) {
       console.log('[DB] Seeding pull tab designs...');
       const pullTabDesigns = [
-        ['Orange Heat', 'Traditional pull tabs with big wins!', 5, 3, 20, 1, 25, null, '#FF6B35'],
-        ['Midnight Stars', 'Pull the stars and reach for the moon!', 1, 3, 25, 0.25, 10, null, '#3F51B5'],
-        ['Royal Jackpot', 'Only for the elite - massive prizes await!', 25, 5, 15, 10, 500, null, '#9C27B0'],
+        ['Orange Heat', 'Traditional pull tabs with big wins!', 5, 3, 20, 1, 10, null, '#FF6B35'],
+        ['Midnight Stars', 'Pull the stars and reach for the moon!', 1, 3, 25, 1, 5, null, '#3F51B5'],
+        ['Royal Jackpot', 'Only for the elite - massive prizes await!', 25, 5, 15, 5, 10, null, '#9C27B0'],
       ];
       for (const design of pullTabDesigns) {
         await query(
           `INSERT INTO pull_tab_designs (name, description, cost_sc, tab_count, win_probability, prize_min_sc, prize_max_sc, image_url, background_color)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
           design
+        );
+      }
+    }
+
+    const storePacksCount = await query('SELECT COUNT(*) as count FROM store_packs');
+    if (parseInt(storePacksCount.rows[0].count) === 0) {
+      console.log('[DB] Seeding store packs...');
+      const storePacks = [
+        ['Starter Pack', 'Perfect for new players', 9.99, 1000, 0, 0, false, false, true, 1],
+        ['Gold Bundle', 'Popular choice', 24.99, 3000, 500, 10, true, false, true, 2],
+        ['Platinum Pack', 'Best value offer', 49.99, 7000, 2000, 20, false, true, true, 3],
+        ['VIP Elite', 'Premium experience', 99.99, 15000, 5000, 30, false, false, true, 4],
+        ['Mega Bonus', 'Limited time offer', 14.99, 2000, 200, 15, false, false, true, 5],
+      ];
+
+      for (const pack of storePacks) {
+        await query(
+          `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, enabled, position)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          pack
         );
       }
     }

@@ -32,12 +32,12 @@ export const WinningPopup: React.FC<WinningPopupProps> = ({
             </div>
           </div>
 
-          <DialogTitle className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-            🎉 You Won!
+          <DialogTitle className="text-4xl font-black bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent uppercase tracking-tighter">
+            CoinKrazy WIN!
           </DialogTitle>
 
-          <DialogDescription className="text-base mt-2">
-            Congratulations on your lucky pull!
+          <DialogDescription className="text-lg font-bold text-slate-900 dark:text-white mt-2">
+            YOU WON {winAmount} SC!
           </DialogDescription>
         </DialogHeader>
 
@@ -74,17 +74,17 @@ export const WinningPopup: React.FC<WinningPopupProps> = ({
             <Button
               onClick={onClaim}
               disabled={isClaiming}
-              className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+              className="flex-1 h-14 text-lg font-black bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-lg shadow-red-500/20"
             >
               {isClaiming ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Collecting Prize...
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Claiming...
                 </>
               ) : (
                 <>
-                  <Gift className="w-4 h-4 mr-2" />
-                  Collect {winAmount} SC
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  CLAIM IT NOW!
                 </>
               )}
             </Button>

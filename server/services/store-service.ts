@@ -83,10 +83,26 @@ class StoreService {
   private mockPaymentMethods: PaymentMethod[] = [
     {
       id: 1,
-      name: 'Stripe Payment',
+      name: 'Credit Card (Live)',
       provider: 'stripe',
       is_active: true,
-      config: { api_key: '***', secret_key: '***' },
+      config: {
+        api_key: 'REPLACE_ENV.STRIPE_PUBLIC_KEY',
+        secret_key: 'REPLACE_ENV.STRIPE_SECRET_KEY',
+        mode: 'live'
+      },
+    },
+    {
+      id: 2,
+      name: 'Google Pay (Live)',
+      provider: 'google_pay',
+      is_active: true,
+      config: {
+        merchant_id: 'BCR2DN6T7X7X7X7X', // Branded CoinKrazy Merchant ID
+        merchant_name: 'CoinKrazy',
+        gateway: 'stripe',
+        mode: 'live'
+      },
     }
   ];
 

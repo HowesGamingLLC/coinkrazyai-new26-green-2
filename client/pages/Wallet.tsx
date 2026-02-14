@@ -61,20 +61,12 @@ const Wallet = () => {
     }
   };
 
-  const getTransactionColor = (type: string) => {
-    switch (type) {
-      case 'Deposit':
-      case 'Win':
-      case 'Bonus':
-        return 'bg-green-500/10 text-green-700';
-      case 'Withdrawal':
-      case 'Loss':
-        return 'bg-red-500/10 text-red-700';
-      case 'Transfer':
-        return 'bg-blue-500/10 text-blue-700';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
+  const getTransactionColor = (type: string, gcAmount?: number, scAmount?: number) => {
+    const isDebit = (gcAmount && Number(gcAmount) < 0) || (scAmount && Number(scAmount) < 0) ||
+                    ['Loss', 'Withdrawal', 'Purchase', 'slots_bet', 'poker_buy_in', 'bingo_ticket', 'sports_bet', 'parlay_bet', 'Scratch Ticket Purchase', 'Pull Tab Purchase'].includes(type);
+
+    if (isDebit) return 'bg-red-500/10 text-red-700';
+    return 'bg-green-500/10 text-green-700';
   };
 
   if (isLoading) {
@@ -254,7 +246,7 @@ const Wallet = () => {
                 >
                   {/* Icon and Description */}
                   <div className="flex items-center gap-4 flex-1">
-                    <div className={`p-2 rounded-full ${getTransactionColor(tx.type)}`}>
+                    <div className={`p-2 rounded-full ${getTransactionColor(tx.type, tx.gc_amount, tx.sc_amount)}`}>
                       {getTransactionIcon(tx.type)}
                     </div>
                     <div>
@@ -265,31 +257,26 @@ const Wallet = () => {
                     </div>
                   </div>
 
-                  {/* Amount */}
-                  <div className="text-right">
-                    <div className={`font-bold text-lg ${
-                      tx.type === 'Deposit' || tx.type === 'Win' || tx.type === 'Bonus'
-                        ? 'text-green-600'
-                        : 'text-red-600'
+                  {/* Amounts */}
+                  <div className="text-right space-y-1">
+                    <div className={`font-bold flex flex-col items-end ${
+                      (tx.gc_amount && Number(tx.gc_amount) < 0) || (tx.sc_amount && Number(tx.sc_amount) < 0)
+                        ? 'text-red-600'
+                        : 'text-green-600'
                     }`}>
-                      {tx.type === 'Deposit' || tx.type === 'Win' || tx.type === 'Bonus' ? '+' : '-'}
-                      {tx.gc_amount && Number(tx.gc_amount) !== 0 ? (
-                        <>
-                          {Number(tx.gc_amount).toLocaleString()} <span className="text-xs">GC</span>
-                        </>
-                      ) : (
-                        <>
-                          {Number(tx.sc_amount ?? 0).toFixed(2)} <span className="text-xs">SC</span>
-                        </>
-                      )}
+                      <div className="flex items-center gap-1">
+                        <span>{Number(tx.gc_amount || 0) >= 0 ? '+' : ''}{Number(tx.gc_amount || 0).toLocaleString()}</span>
+                        <span className="text-[10px] font-black opacity-70">GC</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm">
+                        <span>{Number(tx.sc_amount || 0) >= 0 ? '+' : ''}{Number(tx.sc_amount || 0).toFixed(2)}</span>
+                        <span className="text-[10px] font-black opacity-70">SC</span>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Balance: {tx.gc_amount && Number(tx.gc_amount) !== 0 ? (
-                        <>{Number(tx.gc_balance_after ?? 0).toLocaleString()} GC</>
-                      ) : (
-                        <>{Number(tx.sc_balance_after ?? 0).toFixed(2)} SC</>
-                      )}
-                    </p>
+                    <div className="text-[10px] text-muted-foreground flex flex-col items-end opacity-60">
+                      <span>Bal: {Number(tx.gc_balance_after ?? 0).toLocaleString()} GC</span>
+                      <span>Bal: {Number(tx.sc_balance_after ?? 0).toFixed(2)} SC</span>
+                    </div>
                   </div>
                 </div>
               ))}
