@@ -1,4 +1,16 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "path";
+
+// Load .env from project root
+const envPath = path.join(process.cwd(), ".env");
+console.log('[DB] Loading .env from:', envPath);
+const result = dotenv.config({ path: envPath });
+if (result.error) {
+  console.log('[DB] dotenv error:', result.error.message);
+} else {
+  console.log('[DB] dotenv loaded', Object.keys(result.parsed || {}).length, 'variables');
+}
+
 import express from "express";
 import cors from "cors";
 import { initializeDatabase } from "./db/init";
