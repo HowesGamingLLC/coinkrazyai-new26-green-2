@@ -36,6 +36,17 @@ import {
   Bell,
   Link2
 } from 'lucide-react';
+import { PlayerManagement } from '@/components/admin/PlayerManagement';
+import { BonusManagement } from '@/components/admin/BonusManagement';
+import { GameManagement } from '@/components/admin/GameManagement';
+import { AnalyticsDashboard } from '@/components/admin/AnalyticsDashboard';
+import { SecurityManagement } from '@/components/admin/SecurityManagement';
+import { WalletManagement } from '@/components/admin/WalletManagement';
+import { KYCSettings } from '@/components/admin/KYCSettings';
+import { PokerManagement } from '@/components/admin/PokerManagement';
+import { BingoManagement } from '@/components/admin/BingoManagement';
+import { SportsManagement } from '@/components/admin/SportsManagement';
+import { APIManagement } from '@/components/admin/APIManagement';
 
 // --- Stats Card ---
 const StatsCard = ({ icon: Icon, label, value, color }: any) => (
@@ -341,42 +352,42 @@ const Admin = () => {
           )}
 
           {/* Core Management Sections */}
-          {activeSection === 'players' && <AdminSection title="Player Management" description="Manage player accounts, profiles, and activities" icon={Users2} />}
-          {activeSection === 'kyc' && <AdminSection title="KYC Settings" description="Configure Know Your Customer verification" icon={Shield} />}
-          {activeSection === 'wallet' && <AdminSection title="Wallet Management" description="Manage player wallets and balances" icon={Coins} />}
+          {activeSection === 'players' && <PlayerManagement />}
+          {activeSection === 'kyc' && <KYCSettings />}
+          {activeSection === 'wallet' && <WalletManagement />}
 
           {/* Financial Sections */}
           {activeSection === 'rain' && <AdminSection title="Make it Rain" description="Distribute rewards and promotions" icon={Gift} />}
-          {activeSection === 'bonuses' && <AdminSection title="Bonus Management" description="Create and manage player bonuses" icon={Zap} />}
+          {activeSection === 'bonuses' && <BonusManagement />}
           {activeSection === 'jackpot' && <AdminSection title="Jackpot Management" description="Configure and monitor progressive jackpots" icon={Trophy} />}
           {activeSection === 'banking' && <AdminSection title="Banking & Payments" description="Manage payment methods and transactions" icon={CreditCard} />}
           {activeSection === 'redemption' && <AdminSection title="Redemption Approvals" description="Approve withdrawal requests" icon={Check} />}
 
           {/* Games & Sports Sections */}
-          {activeSection === 'library' && <AdminSection title="Game Library" description="Manage available games and versions" icon={Gamepad2} />}
+          {activeSection === 'library' && <GameManagement />}
           {activeSection === 'ingestion' && <AdminSection title="Game Ingestion" description="Import and update games from providers" icon={Upload} />}
           {activeSection === 'ai-builder' && <AdminSection title="AI Game Builder" description="Create new games with AI assistance" icon={Bot} />}
-          {activeSection === 'poker' && <AdminSection title="Poker Management" description="Configure poker tables and rules" icon={Gamepad2} />}
-          {activeSection === 'bingo' && <AdminSection title="Bingo Management" description="Manage bingo games and patterns" icon={Gamepad2} />}
+          {activeSection === 'poker' && <PokerManagement />}
+          {activeSection === 'bingo' && <BingoManagement />}
           {activeSection === 'caller' && <AdminSection title="Caller Management" description="Configure bingo callers" icon={MessageSquare} />}
-          {activeSection === 'sportsbook' && <AdminSection title="Sportsbook" description="Manage sports betting options" icon={TrendingUp} />}
+          {activeSection === 'sportsbook' && <SportsManagement />}
           {activeSection === 'sports-settings' && <AdminSection title="Sports Settings" description="Configure sports betting rules" icon={Settings} />}
 
           {/* Operations Sections */}
-          {activeSection === 'security' && <AdminSection title="Security Management" description="Configure security policies and controls" icon={Lock} />}
+          {activeSection === 'security' && <SecurityManagement />}
           {activeSection === 'content' && <AdminSection title="Content Management" description="Manage website and game content" icon={FileText} />}
           {activeSection === 'casino-settings' && <AdminSection title="Casino Settings" description="Global casino configuration" icon={Settings} />}
           {activeSection === 'social' && <AdminSection title="Social Management" description="Manage social features and chat" icon={MessageSquare} />}
           {activeSection === 'retention' && <AdminSection title="Player Retention" description="Configure retention strategies and campaigns" icon={Users} />}
 
           {/* Advanced Sections */}
-          {activeSection === 'analytics' && <AdminSection title="Analytics & Reporting" description="View detailed analytics and generate reports" icon={BarChart3} />}
+          {activeSection === 'analytics' && <AnalyticsDashboard />}
           {activeSection === 'vip' && <AdminSection title="VIP Management" description="Manage VIP tiers and benefits" icon={Gift} />}
           {activeSection === 'fraud' && <AdminSection title="Fraud Detection" description="Monitor and prevent fraudulent activity" icon={ShieldAlert} />}
           {activeSection === 'affiliate' && <AdminSection title="Affiliate Management" description="Manage affiliate programs and payouts" icon={Link2} />}
           {activeSection === 'tickets' && <AdminSection title="Support & Tickets" description="Manage customer support tickets" icon={MessageSquare} />}
           {activeSection === 'logs' && <AdminSection title="System Logs" description="View system activity and audit logs" icon={FileText} />}
-          {activeSection === 'api' && <AdminSection title="API Management" description="Manage API keys and integrations" icon={Key} />}
+          {activeSection === 'api' && <APIManagement />}
           {activeSection === 'database' && <AdminSection title="Database & Backups" description="Manage database and create backups" icon={Database} />}
           {activeSection === 'performance' && <AdminSection title="Performance" description="Monitor system performance metrics" icon={Zap} />}
           {activeSection === 'notifications' && <AdminSection title="Notifications" description="Configure notification settings" icon={Bell} />}
