@@ -50,8 +50,9 @@ export function WinNotification({
   if (!isVisible) return null;
 
   // Determine notification style based on amount
-  const isJackpot = amount >= 10;
-  const isBigWin = amount >= 5;
+  const numAmount = Number(amount || 0);
+  const isJackpot = numAmount >= 10;
+  const isBigWin = numAmount >= 5;
 
   return (
     <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -92,7 +93,7 @@ export function WinNotification({
             <div className={`text-5xl font-black ${
               isJackpot ? 'text-yellow-300' : isBigWin ? 'text-green-300' : 'text-blue-300'
             }`}>
-              {amount.toFixed(2)}
+              {Number(amount || 0).toFixed(2)}
             </div>
             <p className="text-gray-400 text-lg font-semibold">SWEEPS COINS</p>
           </div>

@@ -158,7 +158,7 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
       // Show result notification
       if (isWin) {
         setShowWinNotification(true);
-        toast.success(`🎉 You won ${response.winnings.toFixed(2)} SC!`);
+        toast.success(`🎉 You won ${Number(response.winnings || 0).toFixed(2)} SC!`);
       } else {
         toast.info(`Better luck next time!`);
       }

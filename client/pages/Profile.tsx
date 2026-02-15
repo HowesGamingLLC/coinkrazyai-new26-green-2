@@ -206,15 +206,15 @@ const Profile = () => {
               </div>
               <div className="bg-amber-500/20 p-4 rounded-lg border border-amber-500/20">
                 <p className="text-sm text-muted-foreground mb-1">Total Wagered</p>
-                <p className="text-2xl font-bold text-amber-500">{spinStats.total_wagered.toFixed(2)} SC</p>
+                <p className="text-2xl font-bold text-amber-500">{Number(spinStats.total_wagered || 0).toFixed(2)} SC</p>
               </div>
               <div className="bg-blue-500/20 p-4 rounded-lg border border-blue-500/20">
                 <p className="text-sm text-muted-foreground mb-1">Total Winnings</p>
-                <p className="text-2xl font-bold text-blue-500">{spinStats.total_winnings.toFixed(2)} SC</p>
+                <p className="text-2xl font-bold text-blue-500">{Number(spinStats.total_winnings || 0).toFixed(2)} SC</p>
               </div>
               <div className="bg-purple-500/20 p-4 rounded-lg border border-purple-500/20">
                 <p className="text-sm text-muted-foreground mb-1">Max Win</p>
-                <p className="text-2xl font-bold text-purple-500">{spinStats.max_win.toFixed(2)} SC</p>
+                <p className="text-2xl font-bold text-purple-500">{Number(spinStats.max_win || 0).toFixed(2)} SC</p>
               </div>
               <div className="bg-indigo-500/20 p-4 rounded-lg border border-indigo-500/20">
                 <p className="text-sm text-muted-foreground mb-1">Games Played</p>
@@ -253,15 +253,15 @@ const Profile = () => {
                       <td className="p-2">
                         <span className="font-medium">{spin.game_name}</span>
                       </td>
-                      <td className="p-2">{spin.bet_amount.toFixed(2)} SC</td>
+                      <td className="p-2">{Number(spin.bet_amount || 0).toFixed(2)} SC</td>
                       <td className="p-2">
                         <Badge variant={spin.result === 'win' ? 'default' : 'destructive'}>
                           {spin.result.toUpperCase()}
                         </Badge>
                       </td>
                       <td className="p-2">
-                        <span className={spin.winnings > 0 ? 'text-green-500 font-bold' : 'text-red-500'}>
-                          {spin.winnings > 0 ? '+' : ''}{spin.winnings.toFixed(2)} SC
+                        <span className={Number(spin.winnings || 0) > 0 ? 'text-green-500 font-bold' : 'text-red-500'}>
+                          {Number(spin.winnings || 0) > 0 ? '+' : ''}{Number(spin.winnings || 0).toFixed(2)} SC
                         </span>
                       </td>
                       <td className="p-2 text-muted-foreground text-xs">
