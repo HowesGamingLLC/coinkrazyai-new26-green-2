@@ -192,16 +192,31 @@ function PragmaticGameModal({ gameId, onClose }: PragmaticGameModalProps) {
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const game = PRAGMATIC_GAMES.find((g) => g.id === gameId);
 
-  // Build Pragmatic Play demo URL
-  const getPragmaticDemoUrl = (gameId: string, gameKey?: string) => {
-    const keyToUse = gameKey || gameId.replace(/-/g, '_');
-    const baseUrl = 'https://demo.pragmaticplay.net/en/game';
-    const url = `${baseUrl}/${keyToUse}`;
+  // Build Roxor Games demo URL (works for Pragmatic Play games)
+  const getRoxorGamesUrl = (gameId: string, gameKey?: string) => {
+    const baseUrl = 'https://cdn.na.roxor.games/static-assets/platform-assets/gs-wrapper/2.180.344/index.html';
+    const keyToUse = gameKey || `play-${gameId}`;
 
-    console.log('[PragmaticGameModal] Constructing Pragmatic URL:', {
+    const params = new URLSearchParams({
+      country: 'CA',
+      currency: 'CAD',
+      gameKey: keyToUse,
+      language: 'EN',
+      playerGuestId: 'GUEST',
+      playMode: 'GUEST',
+      sessionToken: 'GUEST',
+      website: 'pabal',
+      homePos: 'left',
+      hideP4RButton: 'true',
+      environment: 'ontario',
+      environmentType: 'live'
+    });
+
+    const url = `${baseUrl}?${params.toString()}`;
+
+    console.log('[PragmaticGameModal] Constructing Roxor Games URL:', {
       gameId,
-      gameKey,
-      keyToUse,
+      gameKey: keyToUse,
       finalUrl: url,
     });
 

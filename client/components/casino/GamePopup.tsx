@@ -56,28 +56,16 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
       return game.gameUrl;
     }
 
-    // Check provider and use appropriate launcher
-    if (game.provider === 'Pragmatic') {
-      // For Pragmatic games, use demo URL
-      const pragmaticUrl = `https://demo.pragmaticplay.net/en/game/${(game as any).gameKey || game.id.replace(/-/g, '_')}`;
-      console.log('[GamePopup] Pragmatic Game URL:', {
-        provider: game.provider,
-        gameId: game.id,
-        gameKey: (game as any).gameKey,
-        url: pragmaticUrl,
-      });
-      return pragmaticUrl;
-    } else {
-      // Use Roxor Games for non-Pragmatic casino games
-      const roxorUrl = constructRoxorGamesUrl(game.id, (game as any).gameKey);
-      console.log('[GamePopup] Roxor Games URL:', {
-        provider: game.provider,
-        gameId: game.id,
-        gameKey: (game as any).gameKey,
-        url: roxorUrl,
-      });
-      return roxorUrl;
-    }
+    // Use Roxor Games wrapper for all casino games
+    // It handles both Pragmatic Play and other providers
+    const roxorUrl = constructRoxorGamesUrl(game.id, (game as any).gameKey);
+    console.log('[GamePopup] Game URL:', {
+      provider: game.provider,
+      gameId: game.id,
+      gameKey: (game as any).gameKey,
+      url: roxorUrl,
+    });
+    return roxorUrl;
   };
 
   // Update balance when user changes
