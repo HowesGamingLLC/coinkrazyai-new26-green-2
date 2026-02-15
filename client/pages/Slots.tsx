@@ -11,6 +11,7 @@ export default function Slots() {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterProvider, setFilterProvider] = useState<string | null>(null);
+  const [showUpcoming, setShowUpcoming] = useState(false);
   const { user, isLoading: authLoading } = useAuth();
   const { data: allGames = [], isLoading: gamesLoading } = useGames();
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function Slots() {
 
   // Get all providers for filter
   const providers = useMemo(() => {
+    if (!allGames || allGames.length === 0) return [];
     return [...new Set(allGames.map(g => g.provider))].sort();
   }, [allGames]);
 
