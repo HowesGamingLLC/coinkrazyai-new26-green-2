@@ -36,19 +36,39 @@ export default function Casino() {
       }
     }
 
+    // Debug: Log game loading
+    console.log('[Casino] Games Loaded:', {
+      pragmaticCount: pragmaticCasted.length,
+      casinoGamesCount: casinoGames.length,
+      totalAfterDedup: deduplicated.length,
+      providers: [...new Set(deduplicated.map(g => g.provider))],
+    });
+
     return deduplicated;
   }, []);
 
   // Separate Pragmatic games from others
-  const pragmaticGames = useMemo(() =>
-    allGames.filter(game => game.provider === 'Pragmatic'),
-    [allGames]
-  );
+  const pragmaticGames = useMemo(() => {
+    const games = allGames.filter(game => game.provider === 'Pragmatic');
+    console.log('[Casino] Pragmatic Games Filtered:', {
+      count: games.length,
+      games: games.slice(0, 5).map(g => ({ id: g.id, name: g.name })),
+    });
+    return games;
+  }, [allGames]);
 
-  const otherGames = useMemo(() =>
-    allGames.filter(game => game.provider !== 'Pragmatic'),
-    [allGames]
-  );
+  const otherGames = useMemo(() => {
+    const games = allGames.filter(game => game.provider !== 'Pragmatic');
+    const providerBreakdown: Record<string, number> = {};
+    games.forEach(g => {
+      providerBreakdown[g.provider] = (providerBreakdown[g.provider] || 0) + 1;
+    });
+    console.log('[Casino] Other Games Filtered:', {
+      count: games.length,
+      providerBreakdown,
+    });
+    return games;
+  }, [allGames]);
 
   if (isLoading) {
     return (

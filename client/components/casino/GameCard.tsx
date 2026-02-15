@@ -8,6 +8,17 @@ interface GameCardProps {
 }
 
 export function GameCard({ game, onPlay }: GameCardProps) {
+  const handlePlayClick = () => {
+    console.log('[GameCard] Play Button Clicked:', {
+      gameId: game.id,
+      gameName: game.name,
+      provider: game.provider,
+      gameType: game.type,
+      timestamp: new Date().toISOString(),
+    });
+    onPlay(game.id);
+  };
+
   return (
     <div className="group relative bg-gray-900 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer border border-gray-800">
       {/* Game Thumbnail */}
@@ -27,7 +38,7 @@ export function GameCard({ game, onPlay }: GameCardProps) {
       {/* Play Button Overlay */}
       <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         <Button
-          onClick={() => onPlay(game.id)}
+          onClick={handlePlayClick}
           size="lg"
           className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold rounded-full"
         >

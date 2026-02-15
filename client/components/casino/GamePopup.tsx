@@ -48,18 +48,35 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
   // Derived game URL from thumbnail if not explicitly provided
   const getGameUrl = () => {
     if (game.gameUrl) {
-      console.log('[GamePopup] Using explicit gameUrl:', game.gameUrl);
+      console.log('[GamePopup] Using explicit gameUrl:', {
+        provider: game.provider,
+        gameUrl: game.gameUrl,
+      });
       return game.gameUrl;
     }
 
-    // Use Roxor Games for all casino games
-    const roxorUrl = constructRoxorGamesUrl(game.id, (game as any).gameKey);
-    console.log('[GamePopup] Constructed Roxor Games URL:', {
-      gameId: game.id,
-      gameKey: (game as any).gameKey,
-      url: roxorUrl
-    });
-    return roxorUrl;
+    // Check provider and use appropriate launcher
+    if (game.provider === 'Pragmatic') {
+      // For Pragmatic games, use demo URL
+      const pragmaticUrl = `https://demo.pragmaticplay.net/en/game/${(game as any).gameKey || game.id.replace(/-/g, '_')}`;
+      console.log('[GamePopup] Pragmatic Game URL:', {
+        provider: game.provider,
+        gameId: game.id,
+        gameKey: (game as any).gameKey,
+        url: pragmaticUrl,
+      });
+      return pragmaticUrl;
+    } else {
+      // Use Roxor Games for non-Pragmatic casino games
+      const roxorUrl = constructRoxorGamesUrl(game.id, (game as any).gameKey);
+      console.log('[GamePopup] Roxor Games URL:', {
+        provider: game.provider,
+        gameId: game.id,
+        gameKey: (game as any).gameKey,
+        url: roxorUrl,
+      });
+      return roxorUrl;
+    }
   };
 
   // Update balance when user changes
@@ -79,6 +96,17 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
       return;
     }
 
+    // Debug: Log game launch
+    console.log('[GamePopup] Game Launch Event:', {
+      gameId: game.id,
+      gameName: game.name,
+      gameProvider: game.provider,
+      gameType: game.type,
+      betAmount,
+      timestamp: new Date().toISOString(),
+      userBalance: currentBalance,
+    });
+
     setIsProcessing(true);
 
     // Deduct bet from balance immediately
@@ -89,7 +117,13 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
     // Process transaction in background
     try {
       const response = await casino.playGame(game.id, betAmount);
-      console.log('[Casino] Game transaction successful:', response);
+      console.log('[GamePopup] Game transaction successful:', {
+        gameId: game.id,
+        provider: game.provider,
+        betAmount,
+        winnings: response.winnings,
+        timestamp: new Date().toISOString(),
+      });
       
       // If game returns winnings, add them
       if (response.winnings && response.winnings > 0) {
