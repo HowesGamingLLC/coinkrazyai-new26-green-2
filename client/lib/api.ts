@@ -27,14 +27,18 @@ export async function apiCall<T>(
 
   if (!response.ok) {
     let errorMessage = `API request failed with status ${response.status}`;
+    let errorDetails = null;
     try {
       const error = await response.json();
       errorMessage = error.error || error.message || errorMessage;
-      console.error(`[API Error] ${url}:`, { status: response.status, error });
+      errorDetails = error.details || error;
+      console.error(`[API Error] ${url}:`, { status: response.status, error, details: errorDetails });
     } catch (e) {
       console.error(`[API Error] ${url}: Failed to parse error response, status: ${response.status}`);
     }
-    throw new Error(errorMessage);
+    const err = new Error(errorMessage);
+    (err as any).details = errorDetails;
+    throw err;
   }
 
   return response.json();
@@ -64,14 +68,18 @@ export async function adminApiCall<T>(
 
   if (!response.ok) {
     let errorMessage = `API request failed with status ${response.status}`;
+    let errorDetails = null;
     try {
       const error = await response.json();
       errorMessage = error.error || error.message || errorMessage;
-      console.error(`[API Error] ${url}:`, { status: response.status, error });
+      errorDetails = error.details || error;
+      console.error(`[API Error] ${url}:`, { status: response.status, error, details: errorDetails });
     } catch (e) {
       console.error(`[API Error] ${url}: Failed to parse error response, status: ${response.status}`);
     }
-    throw new Error(errorMessage);
+    const err = new Error(errorMessage);
+    (err as any).details = errorDetails;
+    throw err;
   }
 
   return response.json();

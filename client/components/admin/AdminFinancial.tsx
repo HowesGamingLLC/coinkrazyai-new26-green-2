@@ -39,19 +39,39 @@ const AdminFinancial = () => {
   const handleCreateBonus = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const bonusName = formData.get('bonusName') as string;
+    const bonusType = formData.get('bonusType') as string;
+    const amount = formData.get('amount') ? Number(formData.get('amount')) : undefined;
+    const percentage = formData.get('percentage') ? Number(formData.get('percentage')) : undefined;
+    const minDeposit = formData.get('minDeposit') ? Number(formData.get('minDeposit')) : undefined;
+    const maxClaims = formData.get('maxClaims') ? Number(formData.get('maxClaims')) : undefined;
+    const wageringMultiplier = formData.get('wageringMultiplier') ? Number(formData.get('wageringMultiplier')) : undefined;
+
+    // Validate at least one of amount or percentage is provided
+    if (!amount && !percentage) {
+      toast.error('Please enter either an amount or percentage');
+      return;
+    }
+
     try {
       await adminV2.bonuses.create({
-        name: formData.get('bonusName'),
-        type: formData.get('bonusType'),
-        amount: formData.get('amount'),
-        percentage: formData.get('percentage'),
+        name: bonusName,
+        type: bonusType,
+        amount,
+        percentage,
+        minDeposit,
+        maxClaims,
+        wageringMultiplier,
       });
       toast.success('Bonus created successfully');
       fetchData();
       (e.target as HTMLFormElement).reset();
     } catch (error) {
       console.error('Failed to create bonus:', error);
-      toast.error('Failed to create bonus');
+      const errorMessage = error instanceof Error
+        ? `Failed to create bonus: ${error.message}`
+        : 'Failed to create bonus';
+      toast.error(errorMessage);
     }
   };
 
@@ -152,24 +172,45 @@ const AdminFinancial = () => {
               <CardDescription>Create and manage player bonuses</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form onSubmit={handleCreateBonus} className="p-4 border rounded-lg bg-muted/30 grid grid-cols-1 md:grid-cols-3 gap-3 items-end mb-4">
-                <div>
-                  <label className="text-sm font-medium block mb-1">Bonus Name</label>
-                  <Input name="bonusName" placeholder="e.g., Welcome Bonus" required />
+              <form onSubmit={handleCreateBonus} className="p-4 border rounded-lg bg-muted/30 space-y-3 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium block mb-1">Bonus Name *</label>
+                    <Input name="bonusName" placeholder="e.g., Welcome Bonus" required />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-1">Type *</label>
+                    <select name="bonusType" className="w-full px-3 py-2 border rounded-md text-sm" required>
+                      <option value="">Select Type...</option>
+                      <option value="Deposit">Deposit</option>
+                      <option value="Reload">Reload</option>
+                      <option value="Free Spins">Free Spins</option>
+                      <option value="Free Bet">Free Bet</option>
+                      <option value="Cashback">Cashback</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-1">Amount (USD)</label>
+                    <Input name="amount" placeholder="e.g., 100" type="number" step="0.01" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-1">Percentage (%)</label>
+                    <Input name="percentage" placeholder="e.g., 50" type="number" step="0.01" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-1">Min Deposit</label>
+                    <Input name="minDeposit" placeholder="e.g., 10" type="number" step="0.01" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-1">Max Claims</label>
+                    <Input name="maxClaims" placeholder="e.g., 1" type="number" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-1">Wagering Multiplier</label>
+                    <Input name="wageringMultiplier" placeholder="e.g., 35" type="number" step="0.1" />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium block mb-1">Type</label>
-                  <select name="bonusType" className="w-full px-3 py-2 border rounded-md text-sm" required>
-                    <option>Deposit</option>
-                    <option>Reload</option>
-                    <option>Free Spins</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium block mb-1">Amount/Percentage</label>
-                  <Input name="amount" placeholder="100 or 50%" type="number" />
-                </div>
-                <Button type="submit" className="md:col-span-3">Create Bonus</Button>
+                <Button type="submit" className="w-full">Create Bonus</Button>
               </form>
 
               {isLoading ? (
