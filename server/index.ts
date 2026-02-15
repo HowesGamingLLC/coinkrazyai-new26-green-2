@@ -155,6 +155,16 @@ import {
   crawlSlots
 } from "./routes/games-sports";
 import {
+  getProviders,
+  syncProvider,
+  syncAllProviders,
+  getStats as getAggregationStats,
+  bulkImportGames,
+  exportGames,
+  getGamesByProvider,
+  deleteProviderGames
+} from "./routes/game-aggregation";
+import {
   listSecurityAlerts,
   resolveSecurityAlert,
   listCMSPages,
@@ -488,6 +498,16 @@ export function createServer() {
   app.post("/api/admin/v2/sportsbook/events", verifyAdmin, createSportsEvent);
   app.put("/api/admin/v2/sportsbook/events/:eventId", verifyAdmin, updateSportsEvent);
   app.get("/api/admin/v2/sportsbook/stats", verifyAdmin, getSportsbookStats);
+
+  // Game Aggregation
+  app.get("/api/admin/v2/aggregation/providers", verifyAdmin, getProviders);
+  app.post("/api/admin/v2/aggregation/sync/:providerId", verifyAdmin, syncProvider);
+  app.post("/api/admin/v2/aggregation/sync-all", verifyAdmin, syncAllProviders);
+  app.get("/api/admin/v2/aggregation/stats", verifyAdmin, getAggregationStats);
+  app.post("/api/admin/v2/aggregation/bulk-import", verifyAdmin, bulkImportGames);
+  app.get("/api/admin/v2/aggregation/export", verifyAdmin, exportGames);
+  app.get("/api/admin/v2/aggregation/provider/:provider/games", verifyAdmin, getGamesByProvider);
+  app.delete("/api/admin/v2/aggregation/provider/:provider/games", verifyAdmin, deleteProviderGames);
 
   // Scratch Tickets
   app.get("/api/admin/v2/scratch-tickets/designs", verifyAdmin, getScratchDesigns);

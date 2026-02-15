@@ -620,6 +620,47 @@ export const adminV2 = {
     },
   },
 
+  aggregation: {
+    getProviders: async () => {
+      return adminApiCall<any>('/admin/v2/aggregation/providers');
+    },
+    syncProvider: async (providerId: string, forceRefresh?: boolean) => {
+      return adminApiCall<any>(`/admin/v2/aggregation/sync/${providerId}`, {
+        method: 'POST',
+        body: JSON.stringify({ providerId, forceRefresh }),
+      });
+    },
+    syncAllProviders: async () => {
+      return adminApiCall<any>('/admin/v2/aggregation/sync-all', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+    },
+    getStats: async () => {
+      return adminApiCall<any>('/admin/v2/aggregation/stats');
+    },
+    bulkImport: async (games: any[]) => {
+      return adminApiCall<any>('/admin/v2/aggregation/bulk-import', {
+        method: 'POST',
+        body: JSON.stringify({ games }),
+      });
+    },
+    exportGames: async (filters?: { provider?: string; category?: string }) => {
+      const params = new URLSearchParams();
+      if (filters?.provider) params.append('provider', filters.provider);
+      if (filters?.category) params.append('category', filters.category);
+      return adminApiCall<any>(`/admin/v2/aggregation/export?${params.toString()}`);
+    },
+    getGamesByProvider: async (provider: string) => {
+      return adminApiCall<any>(`/admin/v2/aggregation/provider/${provider}/games`);
+    },
+    deleteProviderGames: async (provider: string) => {
+      return adminApiCall<any>(`/admin/v2/aggregation/provider/${provider}/games`, {
+        method: 'DELETE',
+      });
+    },
+  },
+
   poker: {
     listTables: async () => {
       return adminApiCall<any>('/admin/v2/poker/tables');

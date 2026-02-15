@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { ScratchTicketDesigner } from './ScratchTicketDesigner';
 import { PullTabDesigner } from './PullTabDesigner';
 import { PullTabAnalytics } from './PullTabAnalytics';
+import AdminGameAggregation from './AdminGameAggregation';
 
 const AdminGamesSports = () => {
   const [games, setGames] = useState<any[]>([]);
@@ -167,7 +168,7 @@ const AdminGamesSports = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="slots" className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="slots">Slots</TabsTrigger>
           <TabsTrigger value="games">Games</TabsTrigger>
           <TabsTrigger value="poker">Poker</TabsTrigger>
@@ -175,6 +176,7 @@ const AdminGamesSports = () => {
           <TabsTrigger value="sports">Sports</TabsTrigger>
           <TabsTrigger value="pull-tabs">Pull Tabs</TabsTrigger>
           <TabsTrigger value="scratch">Scratch</TabsTrigger>
+          <TabsTrigger value="aggregation">Aggregation</TabsTrigger>
           <TabsTrigger value="ingestion">Ingestion</TabsTrigger>
         </TabsList>
 
