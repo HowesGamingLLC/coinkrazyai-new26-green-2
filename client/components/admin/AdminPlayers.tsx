@@ -36,18 +36,12 @@ const AdminPlayers = () => {
   const [isSaving, setIsSaving] = useState(false);
   const limit = 20;
 
-  const mockPlayers: Player[] = [
-    { id: 1, username: 'player1', email: 'player1@example.com', name: 'John Doe', gc_balance: 5000, sc_balance: 250.50, status: 'Active', kyc_level: 'Full', created_at: '2024-01-15', last_login: '2024-02-15', total_wagered: 10000, total_won: 8500, games_played: 150 },
-    { id: 2, username: 'player2', email: 'player2@example.com', name: 'Jane Smith', gc_balance: 2500, sc_balance: 125.25, status: 'Active', kyc_level: 'Basic', created_at: '2024-02-01', last_login: '2024-02-14', total_wagered: 5000, total_won: 4200, games_played: 75 },
-    { id: 3, username: 'player3', email: 'player3@example.com', name: 'Bob Johnson', gc_balance: 0, sc_balance: 50.00, status: 'Suspended', kyc_level: 'None', created_at: '2024-02-10', last_login: '2024-02-10', total_wagered: 1000, total_won: 800, games_played: 20 },
-  ];
-
   const fetchPlayers = async () => {
     try {
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setPlayers(mockPlayers);
-      setTotal(mockPlayers.length);
+      const response = await adminV2.players.list(page, limit, searchTerm, statusFilter, kycFilter);
+      setPlayers(response.data?.players || response.data || []);
+      setTotal(response.data?.total || response.data?.length || 0);
     } catch (error) {
       console.error('Failed to fetch players:', error);
       toast.error('Failed to load players');
@@ -67,11 +61,11 @@ const AdminPlayers = () => {
   const handleStatusChange = async (username: string, newStatus: string) => {
     try {
       setIsSaving(true);
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await adminV2.players.updateStatusByUsername(username, newStatus);
       setPlayers(players.map(p => p.username === username ? { ...p, status: newStatus } : p));
       toast.success(`Player status updated to ${newStatus}`);
-    } catch (error) {
-      toast.error('Failed to update player status');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update player status');
     } finally {
       setIsSaving(false);
     }
@@ -84,17 +78,17 @@ const AdminPlayers = () => {
       if (scAmount !== null) {
         try {
           setIsSaving(true);
-          await new Promise(resolve => setTimeout(resolve, 300));
           const gcNum = parseFloat(gcAmount);
           const scNum = parseFloat(scAmount);
+          await adminV2.players.updateBalanceByUsername(player.username, gcNum, scNum);
           setPlayers(players.map(p => p.id === player.id ? {
             ...p,
             gc_balance: p.gc_balance + gcNum,
             sc_balance: p.sc_balance + scNum
           } : p));
           toast.success('Player balance updated');
-        } catch (error) {
-          toast.error('Failed to update balance');
+        } catch (error: any) {
+          toast.error(error.message || 'Failed to update balance');
         } finally {
           setIsSaving(false);
         }

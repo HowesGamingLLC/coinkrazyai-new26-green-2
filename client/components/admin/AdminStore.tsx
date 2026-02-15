@@ -28,64 +28,87 @@ interface PaymentMethod {
 }
 
 const AdminStore = () => {
-  const [packages, setPackages] = useState<GoldCoinPackage[]>([
-    { id: 1, title: 'Starter Pack', description: '1,000 GC', price_usd: 9.99, gold_coins: 1000, sweeps_coins: 10, bonus_sc: 5, is_popular: false, display_order: 1 },
-    { id: 2, title: 'Popular Pack', description: '5,000 GC + 50 SC', price_usd: 49.99, gold_coins: 5000, sweeps_coins: 50, bonus_sc: 25, is_popular: true, display_order: 2 },
-    { id: 3, title: 'Premium Pack', description: '10,000 GC + 100 SC', price_usd: 99.99, gold_coins: 10000, sweeps_coins: 100, bonus_sc: 50, is_popular: false, display_order: 3 },
-  ]);
-
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    { id: 1, name: 'Stripe', provider: 'stripe', is_active: true },
-    { id: 2, name: 'PayPal', provider: 'paypal', is_active: true },
-    { id: 3, name: 'Bitcoin', provider: 'crypto', is_active: false },
-  ]);
-
-  const [isLoading, setIsLoading] = useState(false);
+  const [packages, setPackages] = useState<GoldCoinPackage[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showNewPackageForm, setShowNewPackageForm] = useState(false);
   const [showNewPaymentForm, setShowNewPaymentForm] = useState(false);
   const [editingPackage, setEditingPackage] = useState<GoldCoinPackage | null>(null);
 
-  const totalRevenue = packages.length * 50; // Mock data
-  const totalSales = 234; // Mock data
+  const totalRevenue = packages.reduce((sum, p) => sum + (p.price_usd || 0), 0);
+  const totalSales = packages.length;
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      const [packRes, methodRes] = await Promise.all([
+        adminV2.store.getPackages(),
+        adminV2.store.getPaymentMethods(),
+      ]);
+      setPackages(packRes.data || []);
+      setPaymentMethods(methodRes.data || []);
+    } catch (error: any) {
+      console.error('Failed to load store data:', error);
+      toast.error('Failed to load store data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleCreatePackage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     try {
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const newPackage: GoldCoinPackage = {
-        id: Math.max(...packages.map(p => p.id), 0) + 1,
+      const newPackageData = {
         title: formData.get('title') as string,
         description: formData.get('description') as string,
         price_usd: parseFloat(formData.get('price') as string),
         gold_coins: parseInt(formData.get('gc') as string),
         sweeps_coins: parseInt(formData.get('sc') as string),
         bonus_sc: parseInt(formData.get('bonus') as string),
-        is_popular: false,
-        display_order: packages.length + 1,
       };
-      setPackages([...packages, newPackage]);
+      await adminV2.store.createPackage(newPackageData);
       setShowNewPackageForm(false);
       toast.success('Package created');
       (e.target as HTMLFormElement).reset();
-    } catch (error) {
-      toast.error('Failed to create package');
+      loadData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create package');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDeletePackage = (id: number) => {
+  const handleDeletePackage = async (id: number) => {
     if (confirm('Delete this package?')) {
-      setPackages(packages.filter(p => p.id !== id));
-      toast.success('Package deleted');
+      try {
+        setIsLoading(true);
+        await adminV2.store.deletePackage(id);
+        setPackages(packages.filter(p => p.id !== id));
+        toast.success('Package deleted');
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to delete package');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
-  const handleTogglePaymentMethod = (id: number) => {
-    setPaymentMethods(methods => methods.map(m => m.id === id ? { ...m, is_active: !m.is_active } : m));
-    toast.success('Payment method updated');
+  const handleTogglePaymentMethod = async (id: number) => {
+    try {
+      const method = paymentMethods.find(m => m.id === id);
+      if (!method) return;
+      await adminV2.store.updatePaymentMethod(id, { is_active: !method.is_active });
+      setPaymentMethods(methods => methods.map(m => m.id === id ? { ...m, is_active: !m.is_active } : m));
+      toast.success('Payment method updated');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update payment method');
+    }
   };
 
   return (
