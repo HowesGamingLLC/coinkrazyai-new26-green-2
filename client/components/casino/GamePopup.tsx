@@ -21,6 +21,29 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
   const [currentBalance, setCurrentBalance] = useState(Number(user?.sc_balance ?? 0));
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
+  // Construct Roxor Games URL dynamically
+  const constructRoxorGamesUrl = (gameId: string): string => {
+    const baseUrl = 'https://cdn.na.roxor.games/static-assets/platform-assets/gs-wrapper/2.180.344/index.html';
+    const gameKey = `play-${gameId}`;
+
+    const params = new URLSearchParams({
+      country: 'CA',
+      currency: 'CAD',
+      gameKey: gameKey,
+      language: 'EN',
+      playerGuestId: 'GUEST',
+      playMode: 'GUEST',
+      sessionToken: 'GUEST',
+      website: 'pabal',
+      homePos: 'left',
+      hideP4RButton: 'true',
+      environment: 'ontario',
+      environmentType: 'live'
+    });
+
+    return `${baseUrl}?${params.toString()}`;
+  };
+
   // Derived game URL from thumbnail if not explicitly provided
   const getGameUrl = () => {
     if (game.gameUrl) {
@@ -28,23 +51,13 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
       return game.gameUrl;
     }
 
-    // Attempt to construct LiveBet URL from thumbnail
-    // Example thumb: https://www.livebet.com/images/casino/slots/pragmatic/zeus-vs-hades-gods-of-war-250.webp
-    // Target URL: https://www.livebet.com/casino/slots/pragmatic/zeus-vs-hades-gods-of-war-250
-    if (game.thumbnail.includes('livebet.com/images/')) {
-      const gameUrl = game.thumbnail
-        .replace('/images/', '/')
-        .replace('.webp', '')
-        .replace('.svg', '');
-      console.log('[GamePopup] Transformed thumbnail to gameUrl:', {
-        original: game.thumbnail,
-        transformed: gameUrl
-      });
-      return gameUrl;
-    }
-
-    console.log('[GamePopup] Using fallback thumbnail as gameUrl:', game.thumbnail);
-    return game.thumbnail; // Fallback
+    // Use Roxor Games for all casino games
+    const roxorUrl = constructRoxorGamesUrl(game.id);
+    console.log('[GamePopup] Constructed Roxor Games URL:', {
+      gameId: game.id,
+      url: roxorUrl
+    });
+    return roxorUrl;
   };
 
   // Update balance when user changes
