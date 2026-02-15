@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { adminV2 } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,19 +44,8 @@ interface Campaign {
 }
 
 const AdminOperations = () => {
-  const [securityAlerts, setSecurityAlerts] = useState<SecurityAlert[]>([
-    { id: 1, type: 'Failed Login Attempt', severity: 'warning', message: 'Multiple failed logins from 192.168.1.1', timestamp: '5 mins ago', resolved: false },
-    { id: 2, type: 'Large Withdrawal', severity: 'info', message: 'Player_123 withdrawing $5,000', timestamp: '15 mins ago', resolved: false },
-    { id: 3, type: 'Fraud Detection', severity: 'critical', message: 'Suspicious pattern detected on account Player_456', timestamp: '1 hour ago', resolved: false },
-  ]);
-
-  const [cmsPages, setCmsPages] = useState<CMSPage[]>([
-    { id: 1, title: 'Terms & Conditions', slug: 'terms', status: 'published', lastUpdated: '2 days ago', content: '' },
-    { id: 2, title: 'Privacy Policy', slug: 'privacy', status: 'published', lastUpdated: '1 week ago', content: '' },
-    { id: 3, title: 'About Us', slug: 'about', status: 'draft', lastUpdated: 'Now', content: '' },
-    { id: 4, title: 'FAQ', slug: 'faq', status: 'published', lastUpdated: '3 days ago', content: '' },
-  ]);
-
+  const [securityAlerts, setSecurityAlerts] = useState<SecurityAlert[]>([]);
+  const [cmsPages, setCmsPages] = useState<CMSPage[]>([]);
   const [casinoSettings, setCasinoSettings] = useState<CasinoSettings>({
     houseEdge: 5,
     maxBet: 10000,
@@ -63,19 +53,76 @@ const AdminOperations = () => {
     maintenanceMode: false,
     demoMode: false,
   });
-
-  const [campaigns, setCampaigns] = useState<Campaign[]>([
-    { id: 1, name: 'Win-back Campaign', targetCount: 345, status: 'active', reward: 50, type: 'bonus' },
-    { id: 2, name: 'VIP Rewards', targetCount: 89, status: 'active', reward: 100, type: 'bonus' },
-    { id: 3, name: 'New Player Onboarding', targetCount: 234, status: 'scheduled', reward: 25, type: 'free_spin' },
-  ]);
-
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedAlertFilter, setSelectedAlertFilter] = useState<'all' | 'critical' | 'warning' | 'resolved'>('all');
   const [showNewPageForm, setShowNewPageForm] = useState(false);
   const [showNewCampaignForm, setShowNewCampaignForm] = useState(false);
   const [selectedPage, setSelectedPage] = useState<CMSPage | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadOperationData();
+  }, []);
+
+  const loadOperationData = async () => {
+    try {
+      setIsLoading(true);
+      const [alertsRes, pagesRes, campaignsRes, settingsRes] = await Promise.all([
+        adminV2.security.listAlerts().catch(() => ({ data: [] })),
+        adminV2.content.listPages().catch(() => ({ data: [] })),
+        adminV2.retention.listCampaigns().catch(() => ({ data: [] })),
+        adminV2.casino.getSettings().catch(() => ({ data: { houseEdge: 5, maxBet: 10000, minBet: 1 } })),
+      ]);
+
+      const alertsList = Array.isArray(alertsRes) ? alertsRes : (alertsRes?.data || []);
+      const pagesList = Array.isArray(pagesRes) ? pagesRes : (pagesRes?.data || []);
+      const campaignsList = Array.isArray(campaignsRes) ? campaignsRes : (campaignsRes?.data || []);
+      const settings = Array.isArray(settingsRes) ? settingsRes : (settingsRes?.data || {});
+
+      setSecurityAlerts(alertsList.map((a: any) => ({
+        id: a.id,
+        type: a.alert_type || 'Security Alert',
+        severity: a.severity || 'info',
+        message: a.message,
+        timestamp: a.created_at,
+        resolved: a.status === 'resolved',
+      })));
+
+      setCmsPages(pagesList.map((p: any) => ({
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        status: p.status,
+        lastUpdated: p.updated_at,
+        content: p.content || '',
+      })));
+
+      setCampaigns(campaignsList.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        targetCount: c.target_count || 0,
+        status: c.status,
+        reward: c.reward || 0,
+        type: c.type,
+      })));
+
+      setCasinoSettings({
+        ...casinoSettings,
+        houseEdge: settings.houseEdge || 5,
+        maxBet: settings.maxBet || 10000,
+        minBet: settings.minBet || 1,
+        maintenanceMode: settings.maintenanceMode || false,
+        demoMode: settings.demoMode || false,
+      });
+    } catch (error: any) {
+      console.error('Failed to load operation data:', error);
+      toast.error('Failed to load operation data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredAlerts = securityAlerts.filter(alert => {
     if (selectedAlertFilter === 'all') return true;
@@ -85,9 +132,17 @@ const AdminOperations = () => {
     return false;
   });
 
-  const handleResolveAlert = (alertId: number) => {
-    setSecurityAlerts(alerts => alerts.map(a => a.id === alertId ? { ...a, resolved: true } : a));
-    toast.success('Alert resolved');
+  const handleResolveAlert = async (alertId: number) => {
+    try {
+      setSavingSettings(true);
+      await adminV2.security.resolveAlert(alertId, 'resolved');
+      setSecurityAlerts(alerts => alerts.map(a => a.id === alertId ? { ...a, resolved: true } : a));
+      toast.success('Alert resolved');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to resolve alert');
+    } finally {
+      setSavingSettings(false);
+    }
   };
 
   const handleInvestigateAlert = (alertId: number) => {
@@ -97,10 +152,10 @@ const AdminOperations = () => {
   const handleSaveCasinoSettings = async () => {
     setSavingSettings(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await adminV2.casino.updateSettings(casinoSettings);
       toast.success('Casino settings saved successfully');
-    } catch (error) {
-      toast.error('Failed to save settings');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to save settings');
     } finally {
       setSavingSettings(false);
     }
@@ -111,20 +166,21 @@ const AdminOperations = () => {
     setIsSaving(true);
     try {
       const formData = new FormData(e.currentTarget);
-      const newCampaign: Campaign = {
-        id: Math.max(...campaigns.map(c => c.id), 0) + 1,
+      const newCampaignData = {
         name: formData.get('campaignName') as string,
-        targetCount: parseInt(formData.get('targetCount') as string) || 0,
+        target_count: parseInt(formData.get('targetCount') as string) || 0,
         status: 'draft',
         reward: parseFloat(formData.get('reward') as string) || 0,
         type: formData.get('type') as string,
       };
+      const res = await adminV2.retention.createCampaign(newCampaignData);
+      const newCampaign = res.data || { ...newCampaignData, id: Math.random() };
       setCampaigns([...campaigns, newCampaign]);
       setShowNewCampaignForm(false);
       toast.success('Campaign created successfully');
       (e.target as HTMLFormElement).reset();
-    } catch (error) {
-      toast.error('Failed to create campaign');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create campaign');
     } finally {
       setIsSaving(false);
     }
@@ -135,39 +191,63 @@ const AdminOperations = () => {
     setIsSaving(true);
     try {
       const formData = new FormData(e.currentTarget);
-      const newPage: CMSPage = {
-        id: Math.max(...cmsPages.map(p => p.id), 0) + 1,
-        title: formData.get('pageTitle') as string,
-        slug: (formData.get('pageTitle') as string)?.toLowerCase().replace(/\\s+/g, '-'),
+      const title = formData.get('pageTitle') as string;
+      const newPageData = {
+        title,
+        slug: title.toLowerCase().replace(/\s+/g, '-'),
         status: 'draft',
-        lastUpdated: 'Just now',
         content: formData.get('pageContent') as string,
       };
+      const res = await adminV2.content.createPage(newPageData);
+      const newPage = res.data || { ...newPageData, id: Math.random(), lastUpdated: new Date().toISOString() };
       setCmsPages([...cmsPages, newPage]);
       setShowNewPageForm(false);
       toast.success('Page created successfully');
       (e.target as HTMLFormElement).reset();
-    } catch (error) {
-      toast.error('Failed to create page');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create page');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDeletePage = (pageId: number) => {
-    setCmsPages(pages => pages.filter(p => p.id !== pageId));
-    toast.success('Page deleted');
+  const handleDeletePage = async (pageId: number) => {
+    try {
+      await adminV2.content.deletePage(pageId);
+      setCmsPages(pages => pages.filter(p => p.id !== pageId));
+      toast.success('Page deleted');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete page');
+    }
   };
 
-  const handleDeleteCampaign = (campaignId: number) => {
-    setCampaigns(camps => camps.filter(c => c.id !== campaignId));
-    toast.success('Campaign deleted');
+  const handleDeleteCampaign = async (campaignId: number) => {
+    try {
+      await adminV2.retention.updateCampaign(campaignId, { status: 'deleted' });
+      setCampaigns(camps => camps.filter(c => c.id !== campaignId));
+      toast.success('Campaign deleted');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete campaign');
+    }
   };
 
-  const handleLaunchCampaign = (campaignId: number) => {
-    setCampaigns(camps => camps.map(c => c.id === campaignId ? { ...c, status: 'active' } : c));
-    toast.success('Campaign launched!');
+  const handleLaunchCampaign = async (campaignId: number) => {
+    try {
+      await adminV2.retention.updateCampaign(campaignId, { status: 'active' });
+      setCampaigns(camps => camps.map(c => c.id === campaignId ? { ...c, status: 'active' } : c));
+      toast.success('Campaign launched!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to launch campaign');
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

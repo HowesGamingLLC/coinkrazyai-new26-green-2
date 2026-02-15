@@ -1,26 +1,70 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { adminV2 } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, DollarSign, Wallet, BarChart3, FileText } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Wallet, BarChart3, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const AdminFinancial = () => {
   const [selectedDateRange, setSelectedDateRange] = useState('30days');
+  const [isLoading, setIsLoading] = useState(true);
+  const [financialData, setFinancialData] = useState({
+    totalRevenue: 0,
+    totalWagered: 0,
+    totalWinnings: 0,
+    playerDepositValue: 0,
+    withdrawalsPending: 0,
+    houseProfit: 0,
+    playerCount: 0,
+    activePlayerCount: 0,
+  });
+  const [redemptions, setRedemptions] = useState<any[]>([]);
 
-  // Mock financial data
-  const financialData = {
-    totalRevenue: 125432.50,
-    totalWagered: 456789.00,
-    totalWinnings: 234567.89,
-    playerDepositValue: 45000.00,
-    withdrawalsPending: 12500.00,
-    houseProfit: 222221.11,
-    playerCount: 1234,
-    activePlayerCount: 456,
+  useEffect(() => {
+    fetchFinancialData();
+  }, []);
+
+  const fetchFinancialData = async () => {
+    try {
+      setIsLoading(true);
+      const [stats, redemptionRes] = await Promise.all([
+        adminV2.dashboard.getStats().catch(() => ({ data: {} })),
+        adminV2.redemptions.list().catch(() => ({ data: [] })),
+      ]);
+
+      const statsData = Array.isArray(stats) ? stats : (stats?.data || {});
+      const redemptionData = Array.isArray(redemptionRes) ? redemptionRes : (redemptionRes?.data || []);
+
+      setFinancialData({
+        totalRevenue: statsData.totalRevenue || 0,
+        totalWagered: statsData.totalWagered || 0,
+        totalWinnings: statsData.totalWon || 0,
+        playerDepositValue: statsData.totalDeposits || 0,
+        withdrawalsPending: redemptionData.filter((r: any) => r.status === 'pending').reduce((sum: number, r: any) => sum + (r.amount || 0), 0),
+        houseProfit: (statsData.totalRevenue || 0) - (statsData.totalWon || 0),
+        playerCount: statsData.totalPlayers || 0,
+        activePlayerCount: statsData.activePlayers || 0,
+      });
+
+      setRedemptions(redemptionData);
+    } catch (error: any) {
+      console.error('Failed to fetch financial data:', error);
+      toast.error('Failed to load financial data');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -165,33 +209,59 @@ const AdminFinancial = () => {
                 <div className="p-4 border rounded-lg flex items-center justify-between">
                   <div>
                     <p className="font-semibold">Pending Withdrawals</p>
-                    <p className="text-sm text-muted-foreground">45 requests</p>
+                    <p className="text-sm text-muted-foreground">
+                      {redemptions.filter(r => r.status === 'pending').length} requests
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xl font-bold text-orange-600">${financialData.withdrawalsPending.toFixed(2)}</p>
-                    <Button size="sm" variant="outline" className="mt-2">Review</Button>
+                    <p className="text-xl font-bold text-orange-600">
+                      ${financialData.withdrawalsPending.toFixed(2)}
+                    </p>
+                    <Button size="sm" variant="outline" className="mt-2">
+                      Review
+                    </Button>
                   </div>
                 </div>
 
                 <div className="p-4 border rounded-lg flex items-center justify-between">
                   <div>
-                    <p className="font-semibold">Completed Today</p>
-                    <p className="text-sm text-muted-foreground">12 withdrawals</p>
+                    <p className="font-semibold">Approved Withdrawals</p>
+                    <p className="text-sm text-muted-foreground">
+                      {redemptions.filter(r => r.status === 'approved').length} processed
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xl font-bold text-green-600">$8,500.00</p>
-                    <Button size="sm" variant="outline" className="mt-2">View</Button>
+                    <p className="text-xl font-bold text-green-600">
+                      $
+                      {redemptions
+                        .filter(r => r.status === 'approved')
+                        .reduce((sum, r) => sum + (r.amount || 0), 0)
+                        .toFixed(2)}
+                    </p>
+                    <Button size="sm" variant="outline" className="mt-2">
+                      View
+                    </Button>
                   </div>
                 </div>
 
                 <div className="p-4 border rounded-lg flex items-center justify-between">
                   <div>
-                    <p className="font-semibold">Failed Withdrawals</p>
-                    <p className="text-sm text-muted-foreground">3 failed attempts</p>
+                    <p className="font-semibold">Rejected Withdrawals</p>
+                    <p className="text-sm text-muted-foreground">
+                      {redemptions.filter(r => r.status === 'rejected').length} rejected
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xl font-bold text-red-600">$1,250.00</p>
-                    <Button size="sm" variant="outline" className="mt-2">Investigate</Button>
+                    <p className="text-xl font-bold text-red-600">
+                      $
+                      {redemptions
+                        .filter(r => r.status === 'rejected')
+                        .reduce((sum, r) => sum + (r.amount || 0), 0)
+                        .toFixed(2)}
+                    </p>
+                    <Button size="sm" variant="outline" className="mt-2">
+                      Investigate
+                    </Button>
                   </div>
                 </div>
               </div>

@@ -19,21 +19,57 @@ interface Transaction {
 }
 
 const AdminWallet = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    { id: 1, player_id: 1, player_username: 'player1', type: 'Withdrawal', amount: -100, balance_before: 350, balance_after: 250.50, created_at: '2024-02-15', description: 'Cash withdrawal' },
-    { id: 2, player_id: 2, player_username: 'player2', type: 'Deposit', amount: 50, balance_before: 75.25, balance_after: 125.25, created_at: '2024-02-14', description: 'Crypto deposit' },
-    { id: 3, player_id: 1, player_username: 'player1', type: 'Win', amount: 150, balance_before: 200.50, balance_after: 350, created_at: '2024-02-13', description: 'Casino game win' },
-  ]);
-
-  const [isLoading, setIsLoading] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedUsername, setSelectedUsername] = useState('');
-  const [totalGCCirculation, setTotalGCCirculation] = useState(123456);
-  const [totalSCCirculation, setTotalSCCirculation] = useState(45234.56);
+  const [totalGCCirculation, setTotalGCCirculation] = useState(0);
+  const [totalSCCirculation, setTotalSCCirculation] = useState(0);
   const [filteredTrans, setFilteredTrans] = useState<Transaction[]>([]);
 
   useEffect(() => {
+    loadWalletData();
+  }, []);
+
+  const loadWalletData = async () => {
+    try {
+      setIsLoading(true);
+      // Fetch redemptions to understand overall circulation
+      const redemptions = await adminV2.redemptions.list();
+      const redeemList = Array.isArray(redemptions) ? redemptions : (redemptions?.data || []);
+
+      // Calculate totals from transactions
+      let totalGC = 0;
+      let totalSC = 0;
+
+      setTransactions([]);
+      // In a real scenario, we'd fetch wallet data from an endpoint
+      // For now, we'll let the user search by username
+    } catch (error) {
+      console.error('Failed to load wallet data:', error);
+      toast.error('Failed to load wallet data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchPlayerTransactions = async (username: string) => {
+    try {
+      setIsLoading(true);
+      const playerTrans = await adminV2.players.getTransactionsByUsername(username);
+      const trans = Array.isArray(playerTrans) ? playerTrans : (playerTrans?.data || []);
+      setFilteredTrans(trans);
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error);
+      toast.error('Failed to load transactions');
+      setFilteredTrans([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (selectedUsername) {
-      setFilteredTrans(transactions.filter(t => t.player_username === selectedUsername));
+      fetchPlayerTransactions(selectedUsername);
     } else {
       setFilteredTrans([]);
     }
@@ -48,13 +84,13 @@ const AdminWallet = () => {
 
     try {
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await adminV2.players.updateBalanceByUsername(username, gc, sc, 'Admin fund addition');
       setTotalGCCirculation(totalGCCirculation + gc);
       setTotalSCCirculation(totalSCCirculation + sc);
       toast.success('Funds added successfully');
       (e.target as HTMLFormElement).reset();
-    } catch (error) {
-      toast.error('Failed to add funds');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to add funds');
     } finally {
       setIsLoading(false);
     }
@@ -69,13 +105,13 @@ const AdminWallet = () => {
 
     try {
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await adminV2.players.updateBalanceByUsername(username, -gc, -sc, 'Admin fund removal');
       setTotalGCCirculation(totalGCCirculation - gc);
       setTotalSCCirculation(totalSCCirculation - sc);
       toast.success('Funds removed successfully');
       (e.target as HTMLFormElement).reset();
-    } catch (error) {
-      toast.error('Failed to remove funds');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to remove funds');
     } finally {
       setIsLoading(false);
     }
