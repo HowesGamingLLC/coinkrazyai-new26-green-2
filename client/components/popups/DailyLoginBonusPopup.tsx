@@ -1,249 +1,193 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { X, Gift, Clock, Flame, Zap, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { apiCall } from '@/lib/api';
+import { Gift, X, Zap } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface DailyBonus {
+  day: number;
+  sc: number;
+  gc: number;
+}
 
 interface DailyLoginBonusPopupProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onClaimed?: () => void;
+  currentDay: number;
+  currentBonus: DailyBonus;
+  nextBonus: DailyBonus;
+  nextAvailableAt?: Date;
+  onClaim: () => Promise<void>;
+  onSkip: () => void;
 }
 
-interface BonusData {
-  day: number;
-  amount_sc: number;
-  amount_gc: number;
-  streak: number;
-  can_claim: boolean;
-}
-
-const BONUS_REWARDS = [
-  { day: 1, emoji: '🎯' },
-  { day: 2, emoji: '⚡' },
-  { day: 3, emoji: '🔥' },
-  { day: 4, emoji: '💎' },
-  { day: 5, emoji: '👑' },
-  { day: 6, emoji: '🌟' },
-  { day: 7, emoji: '🏆' },
+const BONUS_SEQUENCE: DailyBonus[] = [
+  { day: 1, sc: 0.5, gc: 100 },
+  { day: 2, sc: 1, gc: 200 },
+  { day: 3, sc: 1.5, gc: 300 },
+  { day: 4, sc: 2, gc: 400 },
+  { day: 5, sc: 2.5, gc: 500 },
+  { day: 6, sc: 3, gc: 750 },
+  { day: 7, sc: 5, gc: 1000 },
 ];
 
-export function DailyLoginBonusPopup({
-  isOpen,
-  onClose,
-  onClaimed,
-}: DailyLoginBonusPopupProps) {
-  const [bonusData, setBonusData] = useState<BonusData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export const DailyLoginBonusPopup: React.FC<DailyLoginBonusPopupProps> = ({
+  currentDay,
+  currentBonus,
+  nextBonus,
+  nextAvailableAt,
+  onClaim,
+  onSkip,
+}) => {
+  const [timeLeft, setTimeLeft] = useState<string>('');
   const [isClaiming, setIsClaiming] = useState(false);
-  const [claimed, setClaimed] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      checkBonus();
-    }
-  }, [isOpen]);
+    if (!nextAvailableAt) return;
 
-  const checkBonus = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiCall<any>('/daily-login-bonus/check');
-      if (response.success) {
-        setBonusData(response.data);
+    const interval = setInterval(() => {
+      const now = new Date();
+      const diff = new Date(nextAvailableAt).getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setTimeLeft('Ready to claim!');
+        clearInterval(interval);
+        return;
       }
-    } catch (error: any) {
-      console.error('Failed to check daily bonus:', error);
-      toast.error('Failed to load daily bonus');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const handleClaimBonus = async () => {
-    if (!bonusData || !bonusData.can_claim) return;
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
+      setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [nextAvailableAt]);
+
+  const handleClaim = async () => {
+    setIsClaiming(true);
     try {
-      setIsClaiming(true);
-      const response = await apiCall<any>('/daily-login-bonus/claim', {
-        method: 'POST',
-      });
-
-      if (response.success) {
-        setClaimed(true);
-        toast.success(`You claimed ${bonusData.amount_sc} SC and ${bonusData.amount_gc} GC!`);
-        
-        // Refresh profile to update balance
-        setTimeout(() => {
-          onClaimed?.();
-        }, 1500);
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to claim bonus');
+      await onClaim();
+    } catch (error) {
+      console.error('Claim failed:', error);
     } finally {
       setIsClaiming(false);
     }
   };
 
-  if (!isOpen) return null;
-
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-12 pb-12 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!bonusData) return null;
-
-  const bonusEmoji = BONUS_REWARDS.find(r => r.day === bonusData.day)?.emoji || '🎁';
-  const progressPercent = (bonusData.day / 7) * 100;
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md overflow-hidden">
-        {/* Header with animation */}
-        <div className="bg-gradient-to-r from-amber-600 via-orange-500 to-red-600 p-6 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-2 left-2 text-4xl animate-bounce">✨</div>
-            <div className="absolute bottom-2 right-2 text-4xl animate-pulse">🎁</div>
-          </div>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-gradient-to-br from-primary/20 to-secondary/20 border-2 border-primary rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl backdrop-blur-sm">
+        {/* Close Button */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={onSkip}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-          <div className="relative z-10 flex items-center justify-between">
-            <div>
-              <CardTitle className="text-white text-2xl flex items-center gap-2">
-                <Zap className="w-6 h-6" />
-                Daily Bonus
-              </CardTitle>
-              <CardDescription className="text-amber-100">
-                Day {bonusData.day} of 7
-              </CardDescription>
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div className="flex justify-center mb-4">
+            <div className="relative">
+              <Gift className="w-16 h-16 text-primary animate-bounce" />
+              <Zap className="w-8 h-8 text-yellow-400 absolute -top-2 -right-2 animate-pulse" />
             </div>
+          </div>
+          <h2 className="text-3xl font-black text-primary mb-2">Daily Login Bonus!</h2>
+          <p className="text-muted-foreground">Day {currentDay} of 7</p>
+        </div>
 
-            <button
-              onClick={onClose}
-              className="text-white hover:bg-white/20 p-1 rounded"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        {/* Streak Progress */}
+        <div className="mb-6">
+          <div className="flex gap-1 mb-3">
+            {BONUS_SEQUENCE.map((bonus) => (
+              <div
+                key={bonus.day}
+                className={cn(
+                  'flex-1 h-2 rounded-full transition-all',
+                  bonus.day <= currentDay ? 'bg-primary' : 'bg-muted'
+                )}
+              />
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground text-center">
+            Come back day 7 for our biggest reward!
+          </p>
+        </div>
+
+        {/* Bonus Display */}
+        <div className="bg-background/80 rounded-lg p-6 mb-6 border border-primary/30">
+          <p className="text-sm font-semibold text-muted-foreground mb-3 text-center">
+            You're claiming:
+          </p>
+          <div className="flex justify-around items-center">
+            <div className="text-center">
+              <p className="text-3xl font-black text-primary">{currentBonus.sc}</p>
+              <p className="text-xs font-semibold text-muted-foreground">Sweep Coins</p>
+            </div>
+            <div className="w-px h-12 bg-border" />
+            <div className="text-center">
+              <p className="text-3xl font-black text-yellow-500">{currentBonus.gc}</p>
+              <p className="text-xs font-semibold text-muted-foreground">Gold Coins</p>
+            </div>
           </div>
         </div>
 
-        <CardContent className="pt-6 space-y-6">
-          {/* Streak Counter */}
-          <div className="flex items-center justify-between bg-muted/50 p-4 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Flame className="w-5 h-5 text-orange-500" />
-              <span className="font-semibold">Current Streak</span>
-            </div>
-            <Badge className="text-lg px-3 py-1">
-              {bonusData.streak} days
-            </Badge>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-semibold">Weekly Progress</span>
-              <span className="text-sm text-muted-foreground">{Math.round(progressPercent)}%</span>
-            </div>
-            <Progress value={progressPercent} className="h-3" />
-          </div>
-
-          {/* Day Display */}
-          <div className="grid grid-cols-7 gap-2">
-            {Array.from({ length: 7 }).map((_, idx) => {
-              const day = idx + 1;
-              const isCurrentDay = day === bonusData.day;
-              const isPastDay = day < bonusData.day;
-
-              return (
-                <div
-                  key={day}
-                  className={`
-                    aspect-square flex items-center justify-center rounded-lg font-bold text-lg
-                    transition-all
-                    ${isCurrentDay
-                      ? 'bg-primary text-primary-foreground ring-2 ring-primary/50 scale-110'
-                      : isPastDay
-                      ? 'bg-green-500/20 text-green-700 border border-green-500/30'
-                      : 'bg-muted text-muted-foreground border border-border'
-                    }
-                  `}
-                >
-                  {BONUS_REWARDS[idx].emoji}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Bonus Amount */}
-          <div className="bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30 p-6 rounded-lg text-center space-y-3">
-            <p className="text-sm text-muted-foreground font-semibold">TODAY'S REWARD</p>
-            <div className="space-y-2">
-              <div className="flex items-center justify-center gap-2">
-                <Gift className="w-5 h-5 text-primary" />
-                <p className="text-3xl font-black text-primary">
-                  {bonusData.amount_sc.toFixed(2)}
-                </p>
-                <span className="text-primary font-bold">SC</span>
+        {/* Next Bonus Preview */}
+        <div className="bg-muted/50 rounded-lg p-4 mb-6 border border-border">
+          <p className="text-xs font-semibold text-muted-foreground mb-2">
+            Tomorrow's Bonus (Day {nextBonus.day}):
+          </p>
+          <div className="flex justify-between items-center">
+            <div className="flex gap-3">
+              <div>
+                <p className="text-lg font-bold text-primary">{nextBonus.sc} SC</p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                + {bonusData.amount_gc.toLocaleString()} GC
-              </p>
+              <div>
+                <p className="text-lg font-bold text-yellow-500">{nextBonus.gc} GC</p>
+              </div>
             </div>
+            {currentDay === 7 && (
+              <div className="bg-primary/20 px-2 py-1 rounded text-xs font-bold text-primary">
+                BONUS RESET
+              </div>
+            )}
           </div>
+        </div>
 
-          {/* Info Box */}
-          <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-lg text-sm text-blue-700">
-            <p className="font-semibold mb-2">💡 Pro Tip:</p>
-            <p>Keep your streak going! Claim your bonus every 24 hours to earn bigger rewards.</p>
+        {/* Time Remaining */}
+        {timeLeft && timeLeft !== 'Ready to claim!' && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-6 text-center">
+            <p className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">
+              Next bonus in: {timeLeft}
+            </p>
           </div>
+        )}
 
-          {/* Action Button */}
-          {!claimed ? (
-            <Button
-              onClick={handleClaimBonus}
-              disabled={!bonusData.can_claim || isClaiming}
-              className="w-full text-lg font-bold py-6"
-            >
-              {isClaiming ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Claiming...
-                </>
-              ) : !bonusData.can_claim ? (
-                <>
-                  <Clock className="w-4 h-4 mr-2" />
-                  Already Claimed Today
-                </>
-              ) : (
-                <>
-                  <Gift className="w-4 h-4 mr-2" />
-                  Claim Bonus
-                </>
-              )}
-            </Button>
-          ) : (
-            <div className="bg-green-500/20 border border-green-500/30 p-4 rounded-lg text-center">
-              <p className="text-green-700 font-bold">✓ Bonus Claimed!</p>
-              <p className="text-sm text-green-600 mt-1">Come back tomorrow for your next bonus</p>
-            </div>
-          )}
-
-          {/* Close Button */}
-          <Button onClick={onClose} variant="outline" className="w-full">
-            Close
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={onSkip}
+          >
+            Maybe Later
           </Button>
-        </CardContent>
-      </Card>
+          <Button
+            className="flex-1 bg-primary hover:bg-primary/90 font-bold"
+            onClick={handleClaim}
+            disabled={isClaiming}
+          >
+            {isClaiming ? 'Claiming...' : 'Claim Bonus'}
+          </Button>
+        </div>
+
+        {/* Info */}
+        <p className="text-xs text-muted-foreground text-center mt-4">
+          Log in daily to increase your rewards! Come back tomorrow for more.
+        </p>
+      </div>
     </div>
   );
-}
+};

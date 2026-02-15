@@ -1,216 +1,167 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { X, Share2, Facebook, Twitter, Copy, CheckCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import { apiCall } from '@/lib/api';
+import { Facebook, Twitter, Mail, Copy, Check, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface SocialSharePopupProps {
-  isOpen: boolean;
-  onClose: () => void;
   winAmount: number;
   gameName: string;
   gameId?: number;
+  onShare?: (platform: string, message: string) => Promise<void>;
+  onClose: () => void;
 }
 
-export function SocialSharePopup({
-  isOpen,
-  onClose,
+export const SocialSharePopup: React.FC<SocialSharePopupProps> = ({
   winAmount,
   gameName,
   gameId,
-}: SocialSharePopupProps) {
-  const [sharedPlatforms, setSharedPlatforms] = useState<string[]>([]);
-  const [isSharing, setIsSharing] = useState(false);
+  onShare,
+  onClose,
+}) => {
   const [copied, setCopied] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
 
-  const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://coinkrazy.ai';
+  const shareMessage = `🎉 I just won ${winAmount} SC playing ${gameName} on CoinKrazy Social Casino! 🎰 Join me and win big! 💰 https://coinkrazy.io/?ref=social`;
 
-  const preTypedMessage = `I just won ${winAmount.toFixed(2)} SC playing ${gameName} on CoinKrazy Social Casino! 🎰 Join me for free: ${appUrl}`;
-
-  if (!isOpen) return null;
-
-  const handleShareFacebook = async () => {
-    try {
-      setIsSharing(true);
-      // Open Facebook share dialog
-      const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(appUrl)}&quote=${encodeURIComponent(preTypedMessage)}`;
-      
-      window.open(facebookShareUrl, 'facebook-share-dialog', 'width=800,height=600');
-
-      // Log the share
-      await apiCall('/social-sharing/share', {
-        method: 'POST',
-        body: JSON.stringify({
-          game_id: gameId,
-          game_name: gameName,
-          win_amount: winAmount,
-          platform: 'facebook',
-          message: preTypedMessage,
-        }),
-      });
-
-      setSharedPlatforms([...sharedPlatforms, 'facebook']);
-      toast.success('Shared to Facebook!');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to share');
-    } finally {
-      setIsSharing(false);
+  const platforms = [
+    {
+      name: 'Facebook',
+      icon: Facebook,
+      color: 'bg-blue-600 hover:bg-blue-700',
+      url: `https://www.facebook.com/sharer/sharer.php?u=https://coinkrazy.io&quote=${encodeURIComponent(shareMessage)}`
+    },
+    {
+      name: 'Twitter',
+      icon: Twitter,
+      color: 'bg-sky-500 hover:bg-sky-600',
+      url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMessage)}`
+    },
+    {
+      name: 'Email',
+      icon: Mail,
+      color: 'bg-red-500 hover:bg-red-600',
+      url: `mailto:?subject=Check out CoinKrazy!&body=${encodeURIComponent(shareMessage)}`
     }
-  };
-
-  const handleShareTwitter = async () => {
-    try {
-      setIsSharing(true);
-      const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(preTypedMessage)}`;
-      
-      window.open(twitterShareUrl, 'twitter-share-dialog', 'width=550,height=420');
-
-      await apiCall('/social-sharing/share', {
-        method: 'POST',
-        body: JSON.stringify({
-          game_id: gameId,
-          game_name: gameName,
-          win_amount: winAmount,
-          platform: 'twitter',
-          message: preTypedMessage,
-        }),
-      });
-
-      setSharedPlatforms([...sharedPlatforms, 'twitter']);
-      toast.success('Shared to Twitter!');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to share');
-    } finally {
-      setIsSharing(false);
-    }
-  };
+  ];
 
   const handleCopyMessage = () => {
-    navigator.clipboard.writeText(preTypedMessage);
+    navigator.clipboard.writeText(shareMessage);
     setCopied(true);
-    toast.success('Message copied to clipboard');
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleShare = async (platform: string, url: string) => {
+    setSelectedPlatform(platform);
+    setIsSharing(true);
+
+    try {
+      // Record the share
+      if (onShare) {
+        await onShare(platform, shareMessage);
+      }
+
+      // Open share URL
+      window.open(url, '_blank', 'width=600,height=400');
+    } catch (error) {
+      console.error('Share failed:', error);
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md">
-        <CardHeader className="flex flex-row items-start justify-between">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-background border-2 border-primary rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <CardTitle className="text-2xl">🎉 You Won!</CardTitle>
-            <CardDescription>Share your win with friends</CardDescription>
+            <h2 className="text-2xl font-bold text-primary mb-1">You Won!</h2>
+            <p className="text-3xl font-black text-primary">{winAmount} SC</p>
           </div>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
-        </CardHeader>
+        </div>
 
-        <CardContent className="space-y-6">
-          {/* Win Amount */}
-          <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 p-4 rounded-lg text-center">
-            <p className="text-muted-foreground text-sm mb-1">You won</p>
-            <p className="text-4xl font-black text-green-600">
-              {winAmount.toFixed(2)} SC
-            </p>
-            <p className="text-muted-foreground text-sm mt-1">playing {gameName}</p>
+        {/* Share Message Preview */}
+        <div className="bg-muted p-4 rounded-lg mb-6 border border-border">
+          <p className="text-sm font-semibold text-muted-foreground mb-2">Your Share Message:</p>
+          <p className="text-sm text-foreground leading-relaxed">{shareMessage}</p>
+        </div>
+
+        {/* Social Platforms */}
+        <div className="space-y-3 mb-6">
+          <p className="text-sm font-semibold text-muted-foreground">Share your win:</p>
+          <div className="grid grid-cols-3 gap-3">
+            {platforms.map((platform) => {
+              const Icon = platform.icon;
+              return (
+                <button
+                  key={platform.name}
+                  onClick={() => handleShare(platform.name, platform.url)}
+                  disabled={isSharing}
+                  className={cn(
+                    'flex flex-col items-center gap-2 p-3 rounded-lg transition-all',
+                    platform.color,
+                    'text-white font-semibold text-sm',
+                    isSharing && 'opacity-50 cursor-not-allowed'
+                  )}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span>{platform.name}</span>
+                </button>
+              );
+            })}
           </div>
+        </div>
 
-          {/* Pre-typed Message */}
-          <div className="space-y-3">
-            <label className="text-sm font-semibold">Share your win:</label>
-            <div className="bg-muted p-3 rounded-lg border border-border">
-              <p className="text-sm text-foreground leading-relaxed">
-                {preTypedMessage}
-              </p>
-            </div>
-            <Button
-              onClick={handleCopyMessage}
-              variant="outline"
-              size="sm"
-              className="w-full"
-            >
-              {copied ? (
-                <>
-                  <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                  Copied!
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy Message
-                </>
-              )}
-            </Button>
-          </div>
-
-          {/* Share Buttons */}
-          <div className="space-y-3">
-            <label className="text-sm font-semibold">Share on social media:</label>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                onClick={handleShareFacebook}
-                disabled={isSharing || sharedPlatforms.includes('facebook')}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {sharedPlatforms.includes('facebook') ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Shared
-                  </>
-                ) : (
-                  <>
-                    <Facebook className="w-4 h-4 mr-2" />
-                    Facebook
-                  </>
-                )}
-              </Button>
-
-              <Button
-                onClick={handleShareTwitter}
-                disabled={isSharing || sharedPlatforms.includes('twitter')}
-                className="bg-sky-500 hover:bg-sky-600"
-              >
-                {sharedPlatforms.includes('twitter') ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Shared
-                  </>
-                ) : (
-                  <>
-                    <Twitter className="w-4 h-4 mr-2" />
-                    Twitter
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-
-          {/* Badges for shares */}
-          {sharedPlatforms.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground">Shared on:</p>
-              <div className="flex gap-2 flex-wrap">
-                {sharedPlatforms.map(platform => (
-                  <Badge key={platform} variant="secondary">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Close Button */}
-          <Button onClick={onClose} className="w-full" variant="outline">
-            Close
+        {/* Copy to Clipboard */}
+        <div className="mb-6">
+          <Button
+            variant="outline"
+            className="w-full flex items-center justify-center gap-2"
+            onClick={handleCopyMessage}
+          >
+            {copied ? (
+              <>
+                <Check className="w-4 h-4" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                Copy Message
+              </>
+            )}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={onClose}
+          >
+            Maybe Later
+          </Button>
+          <Button
+            className="flex-1 bg-primary hover:bg-primary/90"
+            onClick={onClose}
+          >
+            Continue Playing
+          </Button>
+        </div>
+
+        {/* Info Text */}
+        <p className="text-xs text-muted-foreground text-center mt-4">
+          Share your wins to unlock exclusive rewards and bonuses!
+        </p>
+      </div>
     </div>
   );
-}
+};
