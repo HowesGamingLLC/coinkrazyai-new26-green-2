@@ -27,13 +27,18 @@ class StoreService {
   // ===== PACKAGES =====
 
   async getPackages(): Promise<GoldCoinPackage[]> {
-    const result = await query('SELECT * FROM store_packs ORDER BY position ASC');
-    return result.rows.map(row => this.mapRowToPackage(row));
+    const result = await query('SELECT * FROM store_packs ORDER BY display_order ASC');
+    return result.rows.map((row: any) => this.mapRowToPackage(row));
   }
 
   async getActivePackages(): Promise<GoldCoinPackage[]> {
-    const result = await query('SELECT * FROM store_packs WHERE enabled = true ORDER BY position ASC');
-    return result.rows.map(row => this.mapRowToPackage(row));
+    try {
+      const result = await query('SELECT * FROM store_packs WHERE enabled = true ORDER BY display_order ASC');
+      return result.rows.map((row: any) => this.mapRowToPackage(row));
+    } catch (error) {
+      console.error('[StoreService] getActivePackages error:', error);
+      throw error;
+    }
   }
 
   async getPackageById(id: number): Promise<GoldCoinPackage | undefined> {
@@ -43,7 +48,7 @@ class StoreService {
 
   async createPackage(data: Omit<GoldCoinPackage, 'id'>): Promise<GoldCoinPackage> {
     const result = await query(
-      `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_sc, bonus_percentage, is_popular, is_best_value, position, enabled)
+      `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_sc, bonus_percentage, is_popular, is_best_value, display_order, enabled)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
       [data.title, data.description, data.price_usd, data.gold_coins, data.sweeps_coins, data.bonus_sc, data.bonus_percentage, data.is_popular, data.is_best_value, data.display_order, data.enabled]
@@ -57,9 +62,7 @@ class StoreService {
     let i = 1;
 
     Object.entries(data).forEach(([key, value]) => {
-      // Map display_order to position for database
-      const dbKey = key === 'display_order' ? 'position' : key;
-      fields.push(`${dbKey} = $${i++}`);
+      fields.push(`${key} = $${i++}`);
       values.push(value);
     });
 
@@ -81,8 +84,18 @@ class StoreService {
   // Helper to map database row to GoldCoinPackage interface
   private mapRowToPackage(row: any): GoldCoinPackage {
     return {
-      ...row,
-      display_order: row.position ?? row.display_order,
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      price_usd: row.price_usd,
+      gold_coins: row.gold_coins,
+      sweeps_coins: row.sweeps_coins,
+      bonus_sc: row.bonus_sc,
+      bonus_percentage: row.bonus_percentage,
+      is_popular: row.is_popular,
+      is_best_value: row.is_best_value,
+      display_order: row.display_order ?? 0,
+      enabled: row.enabled,
     };
   }
 

@@ -7,14 +7,7 @@ import { storeService } from "../services/store-service";
 // Get available coin packs
 export const handleGetPacks: RequestHandler = async (req, res) => {
   try {
-    // First, check ALL packages to debug
-    const allPacks = await query('SELECT * FROM store_packs');
-    console.log('[Store] ALL packages in DB:', allPacks.rows.map((p: any) => ({
-      id: p.id,
-      title: p.title,
-      enabled: p.enabled,
-      display_order: p.display_order
-    })));
+    console.log('[Store] handleGetPacks called');
 
     // Get packages from store service (includes admin-created packages)
     const packs = await storeService.getActivePackages();
@@ -32,7 +25,8 @@ export const handleGetPacks: RequestHandler = async (req, res) => {
     console.error('[Store] Get packs error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to get packs'
+      error: 'Failed to get packs',
+      details: error instanceof Error ? error.message : String(error)
     });
   }
 };
