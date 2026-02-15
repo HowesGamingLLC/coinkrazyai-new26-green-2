@@ -30,6 +30,7 @@ export default function Slots() {
 
   // Filter games based on search and provider
   const filteredGames = useMemo(() => {
+    if (!allGames) return [];
     return allGames.filter(game => {
       const matchesSearch = game.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           game.provider.toLowerCase().includes(searchTerm.toLowerCase());
@@ -40,6 +41,7 @@ export default function Slots() {
 
   // Group games by provider
   const gamesByProvider = useMemo(() => {
+    if (!filteredGames || filteredGames.length === 0) return [];
     const groups: Record<string, any[]> = {};
     filteredGames.forEach(game => {
       if (!groups[game.provider]) {
