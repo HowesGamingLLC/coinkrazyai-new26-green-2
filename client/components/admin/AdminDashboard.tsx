@@ -27,6 +27,16 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     try {
       setRefreshing(true);
+
+      // Check if admin token exists
+      const adminToken = localStorage.getItem('admin_token');
+      if (!adminToken) {
+        console.warn('No admin token found. Admin must be logged in.');
+        toast.error('Please log in as admin to access this dashboard');
+        setIsLoading(false);
+        return;
+      }
+
       const response = await adminV2.dashboard.getStats();
       const data = response.data || response || {};
       setStats({
@@ -42,9 +52,19 @@ const AdminDashboard = () => {
         pendingKyc: data.pendingKyc || 0,
         pendingWithdrawals: data.pendingWithdrawals || 0,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch dashboard stats:', error);
-      toast.error('Failed to load dashboard statistics');
+      const errorMsg = error?.message || 'Failed to load dashboard statistics';
+
+      // Check if it's an auth error
+      if (error?.status === 401 || errorMsg.includes('401')) {
+        toast.error('Admin session expired. Please log in again.');
+        localStorage.removeItem('admin_token');
+      } else if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
+        toast.error('Network error: Unable to reach the server. Check your connection.');
+      } else {
+        toast.error(errorMsg);
+      }
     } finally {
       setRefreshing(false);
       setIsLoading(false);

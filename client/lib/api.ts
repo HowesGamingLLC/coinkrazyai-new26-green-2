@@ -53,28 +53,43 @@ export async function adminApiCall<T>(
     ...options?.headers,
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (!token) {
+    console.warn('[Admin API] No admin token found. User must log in.');
+    const error = new Error('Admin not authenticated. Please log in.');
+    (error as any).status = 401;
+    throw error;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  headers['Authorization'] = `Bearer ${token}`;
 
-  if (!response.ok) {
-    let errorMessage = `API request failed with status ${response.status}`;
-    try {
-      const error = await response.json();
-      errorMessage = error.error || error.message || errorMessage;
-      console.error(`[API Error] ${url}:`, { status: response.status, error });
-    } catch (e) {
-      console.error(`[API Error] ${url}: Failed to parse error response, status: ${response.status}`);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `API request failed with status ${response.status}`;
+      try {
+        const error = await response.json();
+        errorMessage = error.error || error.message || errorMessage;
+        console.error(`[Admin API Error] ${url}:`, { status: response.status, error });
+      } catch (e) {
+        console.error(`[Admin API Error] ${url}: Failed to parse error response, status: ${response.status}`);
+      }
+      const err = new Error(errorMessage);
+      (err as any).status = response.status;
+      throw err;
     }
-    throw new Error(errorMessage);
-  }
 
-  return response.json();
+    return response.json();
+  } catch (error: any) {
+    if (error.message === 'Admin not authenticated. Please log in.') {
+      throw error;
+    }
+    console.error(`[Admin API] Request to ${url} failed:`, error.message);
+    throw error;
+  }
 }
 
 // ===== AUTHENTICATION =====

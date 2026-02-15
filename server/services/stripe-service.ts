@@ -8,9 +8,7 @@ function getStripe(): Stripe {
     if (!apiKey) {
       throw new Error('STRIPE_SECRET_KEY environment variable is not set');
     }
-    stripe = new Stripe(apiKey, {
-      apiVersion: '2023-10-16',
-    });
+    stripe = new Stripe(apiKey);
   }
   return stripe;
 }

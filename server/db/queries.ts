@@ -1,6 +1,9 @@
 import { query } from './connection';
 import { WalletService } from '../services/wallet-service';
 
+// Re-export query function for modules that need it
+export { query } from './connection';
+
 // ===== PLAYERS =====
 export const getPlayers = async (limit = 20, offset = 0) => {
   return query(
