@@ -267,7 +267,7 @@ function PragmaticGameModal({ gameId, onClose }: PragmaticGameModalProps) {
 
   if (!game) return null;
 
-  const gameUrl = getPragmaticDemoUrl(game.id, game.gameKey);
+  const gameUrl = getRoxorGamesUrl(game.id, game.gameKey);
 
   console.log('[PragmaticGameModal] Launching Game:', {
     gameId: game.id,
