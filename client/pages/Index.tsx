@@ -6,6 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Gamepad2, Coins, TrendingUp, Users, Zap, MessageSquare, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRAGMATIC_GAMES } from '@/data/pragmaticGames';
+import { SlotGameCarousel } from '@/components/SlotGameCarousel';
+import { NEW_SLOT_GAMES, UPCOMING_SLOT_GAMES } from '@/data/slotGames';
+import { SlotGame } from '@shared/api';
 
 const Index = () => {
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
@@ -152,6 +155,45 @@ const Index = () => {
             </Card>
           ))}
         </div>
+      </section>
+
+      {/* New Games Carousel */}
+      <section className="space-y-4">
+        <SlotGameCarousel
+          games={NEW_SLOT_GAMES.slice(0, 12)}
+          title="NEW GAMES"
+          onPlayClick={(game: SlotGame) => {
+            console.log('[Index] Slot Game Play Clicked:', {
+              gameId: game.id,
+              title: game.title,
+              provider: game.provider,
+              timestamp: new Date().toISOString(),
+            });
+            // Open the game URL in a modal or new tab
+            if (game.gameUrl && game.gameUrl.includes('http')) {
+              window.open(game.gameUrl, '_blank', 'width=1024,height=768');
+            }
+          }}
+        />
+      </section>
+
+      {/* Upcoming Games Carousel */}
+      <section className="space-y-4">
+        <SlotGameCarousel
+          games={UPCOMING_SLOT_GAMES.slice(0, 10)}
+          title="COMING SOON"
+          isUpcoming={true}
+          onPlayClick={(game: SlotGame) => {
+            console.log('[Index] Upcoming Game Notify Clicked:', {
+              gameId: game.id,
+              title: game.title,
+              provider: game.provider,
+              releaseDate: game.releaseDate,
+              timestamp: new Date().toISOString(),
+            });
+            // TODO: Implement notification signup
+          }}
+        />
       </section>
 
       {/* Pragmatic Game Player Modal */}
