@@ -33,10 +33,34 @@ class StoreService {
 
   async getActivePackages(): Promise<GoldCoinPackage[]> {
     try {
-      const result = await query('SELECT * FROM store_packs WHERE enabled = true ORDER BY display_order ASC');
+      console.log('[StoreService] getActivePackages called');
+
+      // Try with display_order first, fall back to position if needed
+      let result;
+      try {
+        console.log('[StoreService] Trying with display_order column...');
+        result = await query('SELECT * FROM store_packs WHERE enabled = true ORDER BY display_order ASC');
+      } catch (orderError: any) {
+        console.warn('[StoreService] display_order query failed, trying position:', orderError.message);
+        result = await query('SELECT * FROM store_packs WHERE enabled = true ORDER BY COALESCE(display_order, position, 0) ASC');
+      }
+
+      console.log('[StoreService] Query successful, rows:', result.rows.length);
+
+      if (result.rows.length === 0) {
+        console.log('[StoreService] No active packages found');
+        return [];
+      }
+
+      console.log('[StoreService] Sample row columns:', Object.keys(result.rows[0]));
+
       return result.rows.map((row: any) => this.mapRowToPackage(row));
     } catch (error) {
       console.error('[StoreService] getActivePackages error:', error);
+      if (error instanceof Error) {
+        console.error('[StoreService] Error message:', error.message);
+        console.error('[StoreService] Error code:', (error as any).code);
+      }
       throw error;
     }
   }
@@ -83,20 +107,27 @@ class StoreService {
 
   // Helper to map database row to GoldCoinPackage interface
   private mapRowToPackage(row: any): GoldCoinPackage {
-    return {
-      id: row.id,
-      title: row.title,
-      description: row.description,
-      price_usd: row.price_usd,
-      gold_coins: row.gold_coins,
-      sweeps_coins: row.sweeps_coins,
-      bonus_sc: row.bonus_sc,
-      bonus_percentage: row.bonus_percentage,
-      is_popular: row.is_popular,
-      is_best_value: row.is_best_value,
-      display_order: row.display_order ?? 0,
-      enabled: row.enabled,
-    };
+    try {
+      const mapped: GoldCoinPackage = {
+        id: Number(row.id),
+        title: String(row.title || ''),
+        description: String(row.description || ''),
+        price_usd: Number(row.price_usd || 0),
+        gold_coins: Number(row.gold_coins || 0),
+        sweeps_coins: Number(row.sweeps_coins || 0),
+        bonus_sc: Number(row.bonus_sc || 0),
+        bonus_percentage: Number(row.bonus_percentage || 0),
+        is_popular: Boolean(row.is_popular),
+        is_best_value: Boolean(row.is_best_value),
+        display_order: Number(row.display_order || row.position || 0),
+        enabled: Boolean(row.enabled),
+      };
+      console.log('[StoreService] Mapped package:', { id: mapped.id, title: mapped.title, display_order: mapped.display_order });
+      return mapped;
+    } catch (error) {
+      console.error('[StoreService] Error mapping row:', row, error);
+      throw error;
+    }
   }
 
   // ===== PAYMENT METHODS =====

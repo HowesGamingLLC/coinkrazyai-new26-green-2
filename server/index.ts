@@ -735,6 +735,27 @@ export function createServer() {
   app.delete("/api/messages/:messageId", verifyPlayer, handleDeleteMessage);
   app.get("/api/messages/stats", verifyPlayer, handleGetMessageStats);
 
+  // ===== DEBUG ROUTES =====
+  app.get("/api/debug/store-packs", async (_req, res) => {
+    try {
+      const result = await query('SELECT * FROM store_packs LIMIT 1');
+      const columns = result.rows.length > 0 ? Object.keys(result.rows[0]) : [];
+      res.json({
+        success: true,
+        message: 'Store packs table exists',
+        columns,
+        sampleRow: result.rows[0],
+        totalRows: result.rows.length
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        errorCode: error.code
+      });
+    }
+  });
+
   // ===== EXAMPLE ROUTES =====
   app.get("/api/ping", (_req, res) => {
     const ping = process.env.PING_MESSAGE ?? "ping";

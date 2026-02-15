@@ -23,10 +23,13 @@ export const handleGetPacks: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     console.error('[Store] Get packs error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : '';
+    console.error('[Store] Full error details:', errorMessage, errorStack);
     res.status(500).json({
       success: false,
       error: 'Failed to get packs',
-      details: error instanceof Error ? error.message : String(error)
+      details: errorMessage
     });
   }
 };
