@@ -20,7 +20,7 @@ export default function Casino() {
 
   // Transform API games to casino format
   const allGames = useMemo(() => {
-    return allGamesData.map(g => ({
+    return (allGamesData || []).map(g => ({
       id: g.id,
       name: g.title,
       provider: g.provider,
