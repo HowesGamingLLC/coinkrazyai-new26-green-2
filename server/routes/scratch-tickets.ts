@@ -2,6 +2,12 @@ import { RequestHandler } from 'express';
 import { ScratchTicketService } from '../services/scratch-ticket-service';
 import { query } from '../db/connection';
 
+// Helper to ensure param is a string
+const getStringParam = (param: string | string[] | undefined): string => {
+  if (Array.isArray(param)) return param[0];
+  return param || '';
+};
+
 // ===== PLAYER ROUTES =====
 
 /**
@@ -134,7 +140,7 @@ export const getTicket: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const { ticketId } = req.params;
+    const ticketId = getStringParam(req.params.ticketId);
 
     const ticket = await ScratchTicketService.getTicket(parseInt(ticketId), req.user.playerId);
 

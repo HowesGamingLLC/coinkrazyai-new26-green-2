@@ -1,6 +1,12 @@
 import { RequestHandler } from 'express';
 import { storeService } from '../services/store-service';
 
+// Helper to ensure param is a string
+const getStringParam = (param: string | string[] | undefined): string => {
+  if (Array.isArray(param)) return param[0];
+  return param || '';
+};
+
 // ===== GOLD COIN PACKAGES =====
 
 export const getStorePackages: RequestHandler = async (req, res) => {
@@ -45,7 +51,7 @@ export const createStorePackage: RequestHandler = async (req, res) => {
 
 export const updateStorePackage: RequestHandler = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = getStringParam(req.params.id);
     const { title, description, price_usd, gold_coins, sweeps_coins, bonus_sc, bonus_percentage, is_popular, is_best_value, display_order } = req.body;
 
     const packageId = parseInt(id);
@@ -77,7 +83,7 @@ export const updateStorePackage: RequestHandler = async (req, res) => {
 
 export const deleteStorePackage: RequestHandler = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = getStringParam(req.params.id);
     const packageId = parseInt(id);
 
     const success = await storeService.deletePackage(packageId);
@@ -128,7 +134,7 @@ export const createPaymentMethod: RequestHandler = async (req, res) => {
 
 export const updatePaymentMethod: RequestHandler = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = getStringParam(req.params.id);
     const { name, provider, config, is_active } = req.body;
 
     const methodId = parseInt(id);
@@ -154,7 +160,7 @@ export const updatePaymentMethod: RequestHandler = async (req, res) => {
 
 export const deletePaymentMethod: RequestHandler = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = getStringParam(req.params.id);
     const methodId = parseInt(id);
 
     const success = await storeService.deletePaymentMethod(methodId);

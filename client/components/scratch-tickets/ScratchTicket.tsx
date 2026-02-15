@@ -88,7 +88,7 @@ export const ScratchTicket: React.FC<ScratchTicketProps> = ({ ticket, onRefresh 
     if (scratchedSlots.has(slotIndex) || claimStatus === 'claimed') return;
 
     try {
-      const response = await apiCall('/scratch-tickets/reveal', {
+      const response = await apiCall<{ success: boolean; data?: { prize: number }; error?: string }>('/scratch-tickets/reveal', {
         method: 'POST',
         body: JSON.stringify({
           ticketId: ticket.id,
@@ -96,9 +96,9 @@ export const ScratchTicket: React.FC<ScratchTicketProps> = ({ ticket, onRefresh 
         }),
       });
 
-      if (response.success) {
+      if (response.success && response.data) {
         setScratchedSlots(prev => new Set([...prev, slotIndex]));
-        
+
         // Update slots
         const updatedSlots = slots.map(s =>
           s.index === slotIndex ? { ...s, revealed: true } : s
@@ -190,12 +190,12 @@ export const ScratchTicket: React.FC<ScratchTicketProps> = ({ ticket, onRefresh 
   const handleClaim = async () => {
     try {
       setIsClaiming(true);
-      const response = await apiCall('/scratch-tickets/claim', {
+      const response = await apiCall<{ success: boolean; data?: { prizeAmount: number }; error?: string }>('/scratch-tickets/claim', {
         method: 'POST',
         body: JSON.stringify({ ticketId: ticket.id }),
       });
 
-      if (response.success) {
+      if (response.success && response.data) {
         toast.success(`🎉 You won ${response.data.prizeAmount} SC!`);
         setClaimStatus('claimed');
         setTicketStatus('active');

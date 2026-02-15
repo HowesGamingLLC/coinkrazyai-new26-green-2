@@ -23,7 +23,7 @@ interface BingoGameRoom {
   jackpot: number;
   ticketPrice: number;
   createdAt: Date;
-  callerInterval?: NodeJS.Timer;
+  callerInterval?: NodeJS.Timeout;
 }
 
 const activeGames: Map<number, BingoGameRoom> = new Map();

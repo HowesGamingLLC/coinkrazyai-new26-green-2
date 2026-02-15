@@ -136,29 +136,30 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
     // Process transaction result in background
     try {
       const response = await casino.playGame(game.id, betAmount);
+      const winnings = response.data?.winnings ?? 0;
       console.log('[GamePopup] Game transaction recorded on server:', {
         gameId: game.id,
         provider: game.provider,
         betAmount,
-        serverWinnings: response.winnings,
+        serverWinnings: winnings,
         timestamp: new Date().toISOString(),
       });
 
       // Use server response for final balance
-      const finalBalance = newBalance + response.winnings;
+      const finalBalance = newBalance + winnings;
       setCurrentBalance(finalBalance);
 
       // Store result and transition to result screen
-      const isWin = response.winnings && response.winnings > 0;
+      const isWin = winnings && winnings > 0;
       setGameResult({
-        winnings: response.winnings,
+        winnings,
         isWin,
       });
 
       // Show result notification
       if (isWin) {
         setShowWinNotification(true);
-        toast.success(`🎉 You won ${response.winnings.toFixed(2)} SC!`);
+        toast.success(`🎉 You won ${winnings.toFixed(2)} SC!`);
       } else {
         toast.info(`Better luck next time!`);
       }

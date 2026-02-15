@@ -2,6 +2,12 @@ import { RequestHandler } from 'express';
 import { query } from '../db/connection';
 import { MIN_BET_SC, MAX_BET_SC, MAX_WIN_SC } from '../../shared/constants';
 
+// Helper to ensure param is a string
+const getStringParam = (param: string | string[] | undefined): string => {
+  if (Array.isArray(param)) return param[0];
+  return param || '';
+};
+
 // ===== ADMIN ROUTES =====
 
 /**
@@ -28,7 +34,7 @@ export const getDesigns: RequestHandler = async (req, res) => {
  */
 export const getDesign: RequestHandler = async (req, res) => {
   try {
-    const { designId } = req.params;
+    const designId = getStringParam(req.params.designId);
 
     const result = await query(
       `SELECT * FROM scratch_ticket_designs WHERE id = $1`,
@@ -122,7 +128,7 @@ export const createDesign: RequestHandler = async (req, res) => {
  */
 export const updateDesign: RequestHandler = async (req, res) => {
   try {
-    const { designId } = req.params;
+    const designId = getStringParam(req.params.designId);
     const {
       name,
       description,
@@ -227,7 +233,7 @@ export const updateDesign: RequestHandler = async (req, res) => {
  */
 export const deleteDesign: RequestHandler = async (req, res) => {
   try {
-    const { designId } = req.params;
+    const designId = getStringParam(req.params.designId);
 
     const result = await query(
       `DELETE FROM scratch_ticket_designs WHERE id = $1 RETURNING id`,

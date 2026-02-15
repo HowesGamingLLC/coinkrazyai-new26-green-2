@@ -48,9 +48,9 @@ interface PullTabTransaction {
 }
 
 export default function PullTabs() {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, refreshProfile } = useAuth();
   const navigate = useNavigate();
-  const { wallet, refreshWallet } = useWallet();
+  const { wallet } = useWallet();
   const [activeTab, setActiveTab] = useState('shop');
   const [designs, setDesigns] = useState<PullTabDesign[]>([]);
   const [myTickets, setMyTickets] = useState<PullTabTicketData[]>([]);
@@ -87,9 +87,9 @@ export default function PullTabs() {
   const loadDesigns = async () => {
     try {
       setIsLoadingDesigns(true);
-      const response = await apiCall('/pull-tabs/designs');
+      const response = await apiCall<{ success: boolean; data?: any[] }>('/pull-tabs/designs');
       if (response.success) {
-        setDesigns(response.data);
+        setDesigns(response.data ?? []);
       } else {
         toast.error('Failed to load designs');
       }
@@ -104,11 +104,11 @@ export default function PullTabs() {
   const loadMyTickets = async () => {
     try {
       setIsLoadingTickets(true);
-      const response = await apiCall('/pull-tabs', {
+      const response = await apiCall<{ success: boolean; data?: any[] }>('/pull-tabs', {
         headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (response.success) {
-        setMyTickets(response.data);
+        setMyTickets(response.data ?? []);
       }
     } catch (error) {
       console.error('Failed to load tickets:', error);
@@ -120,11 +120,11 @@ export default function PullTabs() {
   const loadTransactions = async () => {
     try {
       setIsLoadingTransactions(true);
-      const response = await apiCall('/pull-tabs/history/transactions?limit=50', {
+      const response = await apiCall<{ success: boolean; data?: any[] }>('/pull-tabs/history/transactions?limit=50', {
         headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (response.success) {
-        setTransactions(response.data);
+        setTransactions(response.data ?? []);
       }
     } catch (error) {
       console.error('Failed to load transactions:', error);
@@ -141,7 +141,7 @@ export default function PullTabs() {
 
     try {
       setPurchasingDesignId(designId);
-      const response = await apiCall('/pull-tabs/purchase', {
+      const response = await apiCall<{ success: boolean; data?: any; error?: string }>('/pull-tabs/purchase', {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
         body: JSON.stringify({ designId }),
@@ -162,7 +162,7 @@ export default function PullTabs() {
 
         toast.success('Ticket purchased! Check your collection.');
         await loadMyTickets();
-        await refreshWallet();
+        await refreshProfile();
         // Switch to collection tab
         setActiveTab('collection');
       } else {

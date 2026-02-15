@@ -4,6 +4,12 @@ import { AuthService } from '../services/auth-service';
 import { SlackService } from '../services/slack-service';
 import { WalletService } from '../services/wallet-service';
 
+// Helper function to ensure param is a string
+const getStringParam = (param: string | string[] | undefined): string => {
+  if (Array.isArray(param)) return param[0];
+  return param || '';
+};
+
 // Helper function to resolve username to playerId
 export const resolvePlayerIdentifier = async (identifier: string): Promise<number | null> => {
   const isNumeric = /^\d+$/.test(identifier);
@@ -156,7 +162,7 @@ export const updatePlayerStatus: RequestHandler = async (req, res) => {
 
 export const updatePlayerBalance: RequestHandler = async (req, res) => {
   try {
-    const { playerId } = req.params;
+    const playerId = getStringParam(req.params.playerId);
     const { gcAmount, scAmount, reason } = req.body;
 
     const playerResult = await query('SELECT gc_balance, sc_balance FROM players WHERE id = $1', [playerId]);
@@ -202,7 +208,7 @@ export const updatePlayerBalance: RequestHandler = async (req, res) => {
 
 export const getPlayerTransactions: RequestHandler = async (req, res) => {
   try {
-    const { playerId } = req.params;
+    const playerId = getStringParam(req.params.playerId);
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = (page - 1) * limit;
@@ -247,7 +253,7 @@ export const submitKYC: RequestHandler = async (req, res) => {
 
 export const approveKYC: RequestHandler = async (req, res) => {
   try {
-    const { documentId } = req.params;
+    const documentId = getStringParam(req.params.documentId);
     const { notes } = req.body;
 
     const docResult = await query('SELECT player_id FROM kyc_documents WHERE id = $1', [documentId]);
@@ -281,7 +287,7 @@ export const approveKYC: RequestHandler = async (req, res) => {
 
 export const rejectKYC: RequestHandler = async (req, res) => {
   try {
-    const { documentId } = req.params;
+    const documentId = getStringParam(req.params.documentId);
     const { reason } = req.body;
 
     await query('UPDATE kyc_documents SET status = $1, notes = $2 WHERE id = $3', ['rejected', reason, documentId]);
@@ -297,7 +303,7 @@ export const rejectKYC: RequestHandler = async (req, res) => {
 
 export const getPlayerTransactionsByUsername: RequestHandler = async (req, res) => {
   try {
-    const { username } = req.params;
+    const username = getStringParam(req.params.username);
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = (page - 1) * limit;
@@ -331,7 +337,7 @@ export const getPlayerTransactionsByUsername: RequestHandler = async (req, res) 
 
 export const updatePlayerBalanceByUsername: RequestHandler = async (req, res) => {
   try {
-    const { username } = req.params;
+    const username = getStringParam(req.params.username);
     const { gcAmount, scAmount, reason } = req.body;
 
     // Resolve username to playerId
