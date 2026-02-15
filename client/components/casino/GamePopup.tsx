@@ -22,14 +22,15 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
   // Construct Roxor Games URL dynamically
-  const constructRoxorGamesUrl = (gameId: string): string => {
+  const constructRoxorGamesUrl = (gameId: string, gameKey?: string): string => {
     const baseUrl = 'https://cdn.na.roxor.games/static-assets/platform-assets/gs-wrapper/2.180.344/index.html';
-    const gameKey = `play-${gameId}`;
+    // Use provided gameKey or fall back to default format
+    const keyToUse = gameKey || `play-${gameId}`;
 
     const params = new URLSearchParams({
       country: 'CA',
       currency: 'CAD',
-      gameKey: gameKey,
+      gameKey: keyToUse,
       language: 'EN',
       playerGuestId: 'GUEST',
       playMode: 'GUEST',
@@ -52,9 +53,10 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
     }
 
     // Use Roxor Games for all casino games
-    const roxorUrl = constructRoxorGamesUrl(game.id);
+    const roxorUrl = constructRoxorGamesUrl(game.id, (game as any).gameKey);
     console.log('[GamePopup] Constructed Roxor Games URL:', {
       gameId: game.id,
+      gameKey: (game as any).gameKey,
       url: roxorUrl
     });
     return roxorUrl;
