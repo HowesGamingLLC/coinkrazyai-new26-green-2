@@ -1,5 +1,6 @@
 import { RequestHandler } from 'express';
 import { storeService } from '../services/store-service';
+import { query } from '../db/connection';
 
 // Helper to ensure param is a string
 const getStringParam = (param: string | string[] | undefined): string => {
@@ -28,6 +29,16 @@ export const createStorePackage: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // Get the next display_order by finding the max existing one
+    let nextOrder = 1;
+    if (display_order === undefined || display_order === null) {
+      const maxOrderResult = await query('SELECT MAX(display_order) as max_order FROM store_packs');
+      const maxOrder = maxOrderResult.rows[0]?.max_order;
+      nextOrder = (maxOrder ?? 0) + 1;
+    } else {
+      nextOrder = parseInt(display_order);
+    }
+
     const newPackage = await storeService.createPackage({
       title,
       description: description || '',
@@ -38,10 +49,11 @@ export const createStorePackage: RequestHandler = async (req, res) => {
       bonus_percentage: parseInt(bonus_percentage) || 0,
       is_popular: is_popular || false,
       is_best_value: is_best_value || false,
-      display_order: parseInt(display_order) || 1,
+      display_order: nextOrder,
       enabled: true,
     });
 
+    console.log('[Store Management] Created package:', { id: newPackage.id, title: newPackage.title, display_order: newPackage.display_order, enabled: newPackage.enabled });
     res.status(201).json({ success: true, data: newPackage });
   } catch (error) {
     console.error('Failed to create package:', error);

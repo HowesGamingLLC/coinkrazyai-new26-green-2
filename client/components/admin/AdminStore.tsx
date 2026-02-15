@@ -76,11 +76,6 @@ const AdminStore = () => {
         gold_coins: parseInt(formData.get('gc') as string),
         sweeps_coins: parseFloat(formData.get('sc') as string),
         bonus_sc: parseFloat(formData.get('bonus') as string),
-        bonus_percentage: 0,
-        is_popular: false,
-        is_best_value: false,
-        display_order: packages.length + 1,
-        enabled: true,
       };
       console.log('[AdminStore] Creating package with data:', newPackageData);
       const response = await adminV2.store.createPackage(newPackageData);

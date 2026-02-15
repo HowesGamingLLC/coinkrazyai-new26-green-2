@@ -10,6 +10,11 @@ export const handleGetPacks: RequestHandler = async (req, res) => {
     // Get packages from store service (includes admin-created packages)
     const packs = await storeService.getActivePackages();
 
+    console.log('[Store] getActivePackages returned:', {
+      count: packs.length,
+      packages: packs.map(p => ({ id: p.id, title: p.title, enabled: p.enabled, display_order: p.display_order }))
+    });
+
     res.json({
       success: true,
       data: packs
