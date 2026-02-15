@@ -4,7 +4,9 @@ import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, User, Calendar, Mail, Verified, Dice5, TrendingUp, TrendingDown } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, User, Calendar, Mail, Verified, Dice5, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { casino } from '@/lib/api';
 
 const Profile = () => {
@@ -13,6 +15,7 @@ const Profile = () => {
   const [spinStats, setSpinStats] = useState<any>(null);
   const [spinHistory, setSpinHistory] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -29,6 +32,7 @@ const Profile = () => {
   const loadCasinoData = async () => {
     try {
       setLoadingStats(true);
+      setStatsError(null);
       const [statsRes, historyRes] = await Promise.all([
         casino.getStats(),
         casino.getSpinHistory(10, 0)
@@ -36,12 +40,18 @@ const Profile = () => {
 
       if (statsRes.success) {
         setSpinStats(statsRes.data);
+      } else {
+        setStatsError('Failed to load casino statistics');
       }
+
       if (historyRes.success) {
-        setSpinHistory(historyRes.data.spins);
+        setSpinHistory(historyRes.data.spins || []);
       }
-    } catch (err) {
+    } catch (err: any) {
+      const message = err.message || 'Failed to load casino data';
       console.error('Failed to load casino data:', err);
+      setStatsError(message);
+      toast.error(message);
     } finally {
       setLoadingStats(false);
     }
@@ -171,6 +181,44 @@ const Profile = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Error Alert */}
+      {statsError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {statsError}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadCasinoData}
+              disabled={loadingStats}
+              className="ml-4"
+            >
+              {loadingStats ? (
+                <>
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  Retrying...
+                </>
+              ) : (
+                'Retry'
+              )}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Casino Statistics Loading */}
+      {loadingStats && !spinStats && (
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading casino statistics...</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Casino Statistics */}
       {spinStats && (

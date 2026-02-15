@@ -4,7 +4,9 @@ import { useAuth } from '@/lib/auth-context';
 import { leaderboards } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Trophy, Medal } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Loader2, Trophy, Medal, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { LeaderboardEntry } from '@shared/api';
 
@@ -14,6 +16,7 @@ const Leaderboards = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [myRank, setMyRank] = useState<LeaderboardEntry | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -23,15 +26,23 @@ const Leaderboards = () => {
 
     const fetchLeaderboards = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
         const [leaderboardRes, myRankRes] = await Promise.all([
           leaderboards.getLeaderboard(),
           leaderboards.getMyRank(),
         ]);
-        setLeaderboard(leaderboardRes.data?.entries || []);
-        setMyRank(myRankRes.data || null);
+        if (leaderboardRes.success && myRankRes.success) {
+          setLeaderboard(leaderboardRes.data?.entries || []);
+          setMyRank(myRankRes.data || null);
+        } else {
+          setError('Failed to load leaderboards');
+        }
       } catch (error: any) {
+        const message = error.message || 'Failed to load leaderboards';
         console.error('Failed to fetch leaderboards:', error);
-        toast.error('Failed to load leaderboards');
+        setError(message);
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
@@ -70,6 +81,38 @@ const Leaderboards = () => {
         <p className="text-muted-foreground">Top players ranked by score</p>
       </div>
 
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>{error}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+              className="ml-4"
+            >
+              <RefreshCw className="w-4 h-4 mr-1" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isLoading && !error && (
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading leaderboards...</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && !error && (
+        <>
       {/* My Rank */}
       {myRank && (
         <Card className="bg-gradient-to-r from-primary/20 to-primary/10 border-primary/30">
@@ -155,6 +198,8 @@ const Leaderboards = () => {
           <p>Top players receive exclusive rewards and recognition.</p>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 };
