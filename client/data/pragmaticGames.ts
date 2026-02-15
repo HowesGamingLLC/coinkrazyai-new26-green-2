@@ -961,7 +961,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-knights-vs-barbarians',
+    gameKey: 'vs10cenrlgdevl',
   },
   {
     id: 'fire-stampede-ultimate',
@@ -971,7 +971,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-fire-stampede-ultimate',
+    gameKey: 'vswaysfirest3',
   },
   {
     id: 'super-tiki-strike',
@@ -981,7 +981,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-super-tiki-strike',
+    gameKey: 'vs5tikistrike',
   },
   {
     id: 'sweet-burst',
@@ -991,7 +991,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-sweet-burst',
+    gameKey: 'vs10luckybnz',
   },
   {
     id: 'dragon-tiger-fortunes',
@@ -1001,7 +1001,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-dragon-tiger-fortunes',
+    gameKey: 'vswayshuffpbh',
   },
   {
     id: 'floating-dragon-wild-horses',
@@ -1011,7 +1011,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-floating-dragon-wild-horses',
+    gameKey: 'vs10fdwhorses',
   },
   {
     id: 'smokeem',
@@ -1021,7 +1021,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-smokeem',
+    gameKey: 'vs20smokegold',
   },
   {
     id: 'sugar-rush-super-scatter',
@@ -1031,7 +1031,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-sugar-rush-super-scatter',
+    gameKey: 'vs20sugrushss',
   },
   {
     id: 'hot-tuna',
@@ -1041,7 +1041,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-hot-tuna',
+    gameKey: 'vs10hottuna',
   },
   {
     id: 'lucky-fortune-tree',
@@ -1051,7 +1051,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-lucky-fortune-tree',
+    gameKey: 'vs5luckycol',
   },
   {
     id: 'wheel-of-happiness',
@@ -1061,7 +1061,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-wheel-of-happiness',
+    gameKey: 'vswayswildeq',
   },
   {
     id: 'jokers-jewels-hold-spin',
@@ -1071,7 +1071,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-jokers-jewels-hold-spin',
+    gameKey: 'vs5jokjewhs',
   },
   {
     id: 'anaconda-gold',
@@ -1081,7 +1081,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-anaconda-gold',
+    gameKey: 'vswaysacnd',
   },
   {
     id: 'dj-neko',
@@ -1091,7 +1091,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-dj-neko',
+    gameKey: 'vs10djneko',
   },
   {
     id: 'fortune-of-olympus',
@@ -1101,7 +1101,7 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-fortune-of-olympus',
+    gameKey: 'vs20olympgcl',
   },
   {
     id: 'hammerstorm',
@@ -1111,6 +1111,6 @@ export const PRAGMATIC_GAMES: PragmaticGame[] = [
     provider: 'Pragmatic',
     type: 'slots',
     costPerPlay: 0.01,
-    gameKey: 'play-hammerstorm',
+    gameKey: 'vs40hmrstrm',
   },
 ];
