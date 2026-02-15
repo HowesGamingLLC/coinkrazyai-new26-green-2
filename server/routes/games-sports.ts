@@ -8,28 +8,54 @@ import { SlackService } from '../services/slack-service';
 export const listGames: RequestHandler = async (req, res) => {
   try {
     const category = (req.query.category as string) || '';
-    let whereClause = 'WHERE enabled = true';
+    const params: any[] = [true]; // enabled = true
+    let whereClause = 'WHERE enabled = $1';
 
     if (category) {
-      whereClause += ` AND category = '${category}'`;
+      params.push(category);
+      whereClause += ` AND category = $${params.length}`;
     }
 
-    const result = await query(`SELECT * FROM games ${whereClause} ORDER BY name`);
+    const result = await query(`SELECT * FROM games ${whereClause} ORDER BY name`, params);
     res.json(result.rows);
   } catch (error) {
     console.error('List games error:', error);
-    res.status(500).json({ error: 'Failed to fetch games' });
+    res.status(500).json({ error: 'Failed to fetch games', details: (error as Error).message });
   }
 };
 
 export const createGame: RequestHandler = async (req, res) => {
   try {
-    const { name, category, provider, rtp, volatility, description, imageUrl } = req.body;
+    const { name, category, provider, rtp, volatility, description, image_url, imageUrl, enabled } = req.body;
+
+    // Validate required fields
+    if (!name) {
+      return res.status(400).json({ error: 'Game name is required' });
+    }
+    if (!category) {
+      return res.status(400).json({ error: 'Category is required' });
+    }
+    if (!image_url && !imageUrl) {
+      return res.status(400).json({ error: 'Image URL is required' });
+    }
+
+    // Use provided values or sensible defaults
+    const finalImageUrl = image_url || imageUrl;
+    const finalRtp = rtp !== undefined ? parseFloat(String(rtp)) : 95.0;
+    const finalVolatility = volatility || 'Medium';
+    const finalProvider = provider || 'Internal';
+    const finalDescription = description || `${name} - ${category}`;
+    const finalEnabled = enabled !== false;
+
+    // Validate RTP is within reasonable bounds
+    if (isNaN(finalRtp) || finalRtp < 70 || finalRtp > 98) {
+      return res.status(400).json({ error: 'RTP must be between 70 and 98' });
+    }
 
     const result = await query(
-      `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [name, category, provider, rtp, volatility, description, imageUrl]
+      `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url, enabled)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [name, category, finalProvider, finalRtp, finalVolatility, finalDescription, finalImageUrl, finalEnabled]
     );
 
     await SlackService.notifyAdminAction(req.user?.email || 'admin', 'Created game', `${name} - ${category}`);
@@ -37,20 +63,56 @@ export const createGame: RequestHandler = async (req, res) => {
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Create game error:', error);
-    res.status(500).json({ error: 'Failed to create game' });
+    res.status(500).json({ error: 'Failed to create game', details: (error as Error).message });
   }
 };
 
 export const updateGame: RequestHandler = async (req, res) => {
   try {
     const { gameId } = req.params;
-    const { name, category, rtp, volatility, description, imageUrl, enabled } = req.body;
+    const updates = req.body;
 
-    const result = await query(
-      `UPDATE games SET name = $1, category = $2, rtp = $3, volatility = $4, description = $5, 
-      image_url = $6, enabled = $7, updated_at = CURRENT_TIMESTAMP WHERE id = $8 RETURNING *`,
-      [name, category, rtp, volatility, description, imageUrl, enabled, gameId]
-    );
+    if (!updates || Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No fields to update provided' });
+    }
+
+    // Whitelist allowed fields to prevent injection
+    const allowedFields = ['name', 'category', 'rtp', 'volatility', 'description', 'image_url', 'enabled'];
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    let paramIndex = 1;
+
+    // Handle both camelCase and snake_case for image_url
+    const dataWithSnakeCase: any = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (key === 'imageUrl') {
+        dataWithSnakeCase['image_url'] = value;
+      } else {
+        dataWithSnakeCase[key] = value;
+      }
+    }
+
+    for (const field of allowedFields) {
+      if (field in dataWithSnakeCase) {
+        updateFields.push(`${field} = $${paramIndex}`);
+        updateValues.push(dataWithSnakeCase[field]);
+        paramIndex++;
+      }
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update provided' });
+    }
+
+    updateFields.push('updated_at = CURRENT_TIMESTAMP');
+    updateValues.push(gameId);
+
+    const sql = `UPDATE games SET ${updateFields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+    const result = await query(sql, updateValues);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
 
     res.json(result.rows[0]);
   } catch (error) {
@@ -62,8 +124,13 @@ export const updateGame: RequestHandler = async (req, res) => {
 export const deleteGame: RequestHandler = async (req, res) => {
   try {
     const { gameId } = req.params;
-    await query('UPDATE games SET enabled = false WHERE id = $1', [gameId]);
-    res.json({ success: true });
+    const result = await query('UPDATE games SET enabled = false WHERE id = $1 RETURNING id', [gameId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    res.json({ success: true, id: result.rows[0].id });
   } catch (error) {
     console.error('Delete game error:', error);
     res.status(500).json({ error: 'Failed to delete game' });
