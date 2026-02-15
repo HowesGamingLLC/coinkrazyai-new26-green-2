@@ -1,5 +1,6 @@
 import { RequestHandler } from 'express';
 import * as dbQueries from '../db/queries';
+import { emailService } from '../services/email-service';
 
 const DAILY_BONUS_AMOUNTS = [
   { day: 1, sc: 0.5, gc: 100 },
@@ -93,8 +94,23 @@ export const handleClaimDailyBonus: RequestHandler = async (req, res) => {
       `Daily Login Bonus - Day ${claimedBonus.bonus_day}`
     );
 
-    res.json({ 
-      success: true, 
+    // Get player email for notification
+    const playerResult = await dbQueries.getPlayerById(playerId);
+    if (playerResult.rows[0]) {
+      const player = playerResult.rows[0];
+      const nextDay = (claimedBonus.bonus_day % 7) + 1;
+
+      // Send email notification
+      await emailService.sendDailyBonusClaimedNotification(
+        player.email,
+        player.name || player.username,
+        claimedBonus.amount_sc,
+        nextDay
+      );
+    }
+
+    res.json({
+      success: true,
       bonus: claimedBonus,
       message: `You claimed ${claimedBonus.amount_sc} SC and ${claimedBonus.amount_gc} GC!`
     });
