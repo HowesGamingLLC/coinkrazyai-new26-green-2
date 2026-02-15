@@ -92,7 +92,7 @@ export default function Slots() {
             <div>
               <p className="text-gray-400 text-sm">Your Sweeps Coins Balance</p>
               <p className="text-3xl font-bold text-amber-400">
-                {(user.sc_balance || 0).toFixed(2)} SC
+                {Number(user.sc_balance || 0).toFixed(2)} SC
               </p>
             </div>
             <div className="text-4xl">💰</div>

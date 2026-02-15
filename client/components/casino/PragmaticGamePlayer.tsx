@@ -65,7 +65,7 @@ export function PragmaticGamePlayer({
           if (onGameEnded) {
             onGameEnded({
               winnings: data.winnings,
-              newBalance: user.sc_balance + data.winnings - betAmount,
+              newBalance: Number(user.sc_balance || 0) + data.winnings - betAmount,
             });
           }
           break;
@@ -84,7 +84,7 @@ export function PragmaticGamePlayer({
             {
               type: 'BALANCE_UPDATE',
               data: {
-                balance: user.sc_balance,
+                balance: Number(user.sc_balance || 0),
                 currency: 'SC',
               },
             },
@@ -106,7 +106,7 @@ export function PragmaticGamePlayer({
         gameId,
         gameName,
         betAmount,
-        playerBalance: user.sc_balance,
+        playerBalance: Number(user.sc_balance || 0),
         currency: 'SC',
         playerId: user.id,
       },
