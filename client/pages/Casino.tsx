@@ -18,27 +18,27 @@ export default function Casino() {
     }
   }, [user, isLoading, navigate]);
 
-  // Combine all games - prioritize NEW_SLOT_GAMES with provider URLs
+  // Combine all games - only include games with explicit game URLs
   const allGames = useMemo(() => {
     // Convert slot games to casino game format
-    const slotGamesConverted = NEW_SLOT_GAMES.map(g => ({
-      id: g.id,
-      name: g.title,
-      provider: g.provider,
-      thumbnail: g.image,
-      costPerPlay: 0.01,
-      type: 'slots' as const,
-      gameUrl: g.gameUrl,
-    }));
+    // Only include games with explicit gameUrl property
+    const slotGamesConverted = NEW_SLOT_GAMES
+      .filter(g => g.gameUrl) // Only games with explicit URLs
+      .map(g => ({
+        id: g.id,
+        name: g.title,
+        provider: g.provider,
+        thumbnail: g.image,
+        costPerPlay: 0.01,
+        type: 'slots' as const,
+        gameUrl: g.gameUrl,
+      }));
 
-    // Combine all games
+    // Combine all games - exclude games without explicit gameUrl
     const combined = [
       ...slotGamesConverted,
-      ...PRAGMATIC_GAMES.map(g => ({
-        ...g,
-        costPerPlay: g.costPerPlay,
-      })),
-      ...casinoGames,
+      // Exclude Pragmatic games and casinoGames that don't have explicit gameUrl
+      // as they may fall back to incorrect default URLs
     ];
 
     // Deduplicate by ID
@@ -46,18 +46,18 @@ export default function Casino() {
     const deduplicated: any[] = [];
 
     for (const game of combined) {
-      if (!seen.has(game.id)) {
+      if (!seen.has(game.id) && game.gameUrl) {
+        // Only include games with explicit gameUrl
         seen.add(game.id);
         deduplicated.push(game);
       }
     }
 
     console.log('[Casino] Games Loaded:', {
-      slotGamesCount: slotGamesConverted.length,
-      pragmaticCount: PRAGMATIC_GAMES.length,
-      casinoGamesCount: casinoGames.length,
+      slotGamesWithUrlCount: slotGamesConverted.length,
       totalAfterDedup: deduplicated.length,
       providers: [...new Set(deduplicated.map(g => g.provider))],
+      note: 'Only games with explicit gameUrl properties are displayed',
     });
 
     return deduplicated;

@@ -56,7 +56,7 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
     return `${baseUrl}?${params.toString()}`;
   };
 
-  // Derived game URL from thumbnail if not explicitly provided
+  // Get game URL - only use explicit gameUrl, avoid fallbacks
   const getGameUrl = () => {
     if (game.gameUrl) {
       console.log('[GamePopup] Using explicit gameUrl:', {
@@ -66,16 +66,15 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
       return game.gameUrl;
     }
 
-    // Use Roxor Games wrapper for all casino games
-    // It handles both Pragmatic Play and other providers
-    const roxorUrl = constructRoxorGamesUrl(game.id, (game as any).gameKey);
-    console.log('[GamePopup] Game URL:', {
+    // If no explicit gameUrl, log a warning
+    console.warn('[GamePopup] Game does not have explicit gameUrl:', {
       provider: game.provider,
       gameId: game.id,
-      gameKey: (game as any).gameKey,
-      url: roxorUrl,
+      gameName: game.name,
     });
-    return roxorUrl;
+
+    // Return null to indicate game cannot be played
+    return null;
   };
 
   // Update balance when user changes
@@ -322,6 +321,61 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
 
   if (popupState === 'playing') {
     const gameUrl = getGameUrl();
+
+    // If no valid game URL, show error and return to setup
+    if (!gameUrl) {
+      return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-xl w-full max-w-md shadow-2xl border border-red-500/30">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-600 to-red-500 px-6 py-4 flex items-center justify-between rounded-t-xl">
+              <div className="flex items-center gap-3">
+                <div className="text-2xl">⚠️</div>
+                <div className="text-sm text-red-100">Game Unavailable</div>
+              </div>
+              <button
+                onClick={onClose}
+                className="text-white hover:text-red-100 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-8 space-y-4">
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-white">{game.name}</h2>
+                <p className="text-sm text-gray-400">This game is currently unavailable</p>
+              </div>
+
+              <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
+                <p className="text-sm text-red-300">
+                  This game cannot be played right now. Please try another game.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  onClick={() => {
+                    setPopupState('setup');
+                  }}
+                  className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold"
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={onClose}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-0 md:p-4">
