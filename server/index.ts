@@ -249,6 +249,76 @@ import {
   getResults as getPullTabResults
 } from "./routes/pull-tabs-admin";
 
+// ===== NEW FEATURE ROUTES =====
+import {
+  handleRecordShare,
+  handleGetShareHistory,
+  handleRecordShareResponse,
+  handleGetShareStats
+} from "./routes/social-sharing";
+import {
+  handleGetDailyBonus,
+  handleClaimDailyBonus,
+  handleGetBonusStreak
+} from "./routes/daily-login-bonus";
+import {
+  handleGetOrCreateReferralLink,
+  handleRegisterWithReferral,
+  handleCompleteReferralClaim,
+  handleGetReferralStats
+} from "./routes/referral-system";
+import {
+  handleCreatePaymentMethod,
+  handleGetPaymentMethods,
+  handleSetPrimaryPaymentMethod,
+  handleDeletePaymentMethod,
+  handleVerifyPaymentMethod
+} from "./routes/payment-methods";
+import {
+  handleCreateNotification,
+  handleGetNotifications,
+  handleGetAllNotifications,
+  handleMarkAsRead,
+  handleUpdateNotificationStatus,
+  handleApproveNotification,
+  handleDenyNotification,
+  handleAssignNotification,
+  handleResolveNotification
+} from "./routes/admin-notifications";
+import {
+  handleGetOnboardingProgress,
+  handleUpdateOnboardingStep,
+  handleCompleteOnboarding,
+  handleSkipOnboarding,
+  handleGetOnboardingSteps
+} from "./routes/kyc-onboarding";
+import {
+  handleRecordSale,
+  handleGetSalesStats,
+  handleGetTotalRevenue,
+  handleGetGameTypeStats,
+  handleGetPlayerSalesHistory,
+  handleGetDailyRevenueSummary,
+  handleGetTopPerformingGames
+} from "./routes/sales-tracking";
+import {
+  handleGetBettingLimits,
+  handleUpdateBettingLimits,
+  handleValidateBet,
+  handleValidateWin,
+  handleValidateRedemption
+} from "./routes/betting-limits";
+import {
+  handleSendMessage,
+  handleGetMessages,
+  handleGetUnreadMessages,
+  handleMarkMessageAsRead,
+  handleGetConversation,
+  handleGetMessageThreads,
+  handleDeleteMessage,
+  handleGetMessageStats
+} from "./routes/user-messaging";
+
 export function createServer() {
   const app = express();
 
@@ -594,6 +664,76 @@ export function createServer() {
   // Store Settings
   app.get("/api/admin/v2/store/settings", verifyAdmin, getStoreSettings);
   app.put("/api/admin/v2/store/settings", verifyAdmin, updateStoreSettings);
+
+  // ===== NEW FEATURE ROUTES =====
+
+  // Social Sharing
+  app.post("/api/social/share", verifyPlayer, handleRecordShare);
+  app.get("/api/social/history", verifyPlayer, handleGetShareHistory);
+  app.post("/api/social/response", handleRecordShareResponse);
+  app.get("/api/admin/v2/social/stats", verifyAdmin, handleGetShareStats);
+
+  // Daily Login Bonus
+  app.get("/api/daily-bonus", verifyPlayer, handleGetDailyBonus);
+  app.post("/api/daily-bonus/claim", verifyPlayer, handleClaimDailyBonus);
+  app.get("/api/daily-bonus/streak", verifyPlayer, handleGetBonusStreak);
+
+  // Referral System
+  app.get("/api/referral/link", verifyPlayer, handleGetOrCreateReferralLink);
+  app.post("/api/referral/register", handleRegisterWithReferral);
+  app.post("/api/referral/claim/complete", handleCompleteReferralClaim);
+  app.get("/api/referral/stats", verifyPlayer, handleGetReferralStats);
+
+  // Payment Methods
+  app.post("/api/payment-methods", verifyPlayer, handleCreatePaymentMethod);
+  app.get("/api/payment-methods", verifyPlayer, handleGetPaymentMethods);
+  app.post("/api/payment-methods/primary", verifyPlayer, handleSetPrimaryPaymentMethod);
+  app.delete("/api/payment-methods/:methodId", verifyPlayer, handleDeletePaymentMethod);
+  app.post("/api/payment-methods/verify", verifyPlayer, handleVerifyPaymentMethod);
+
+  // Admin Notifications
+  app.post("/api/admin/notifications", verifyAdmin, handleCreateNotification);
+  app.get("/api/admin/notifications", verifyAdmin, handleGetNotifications);
+  app.get("/api/admin/v2/notifications/all", verifyAdmin, handleGetAllNotifications);
+  app.post("/api/admin/notifications/read", verifyAdmin, handleMarkAsRead);
+  app.post("/api/admin/notifications/status", verifyAdmin, handleUpdateNotificationStatus);
+  app.post("/api/admin/notifications/approve", verifyAdmin, handleApproveNotification);
+  app.post("/api/admin/notifications/deny", verifyAdmin, handleDenyNotification);
+  app.post("/api/admin/notifications/assign", verifyAdmin, handleAssignNotification);
+  app.post("/api/admin/notifications/resolve", verifyAdmin, handleResolveNotification);
+
+  // KYC Onboarding
+  app.get("/api/kyc/progress", verifyPlayer, handleGetOnboardingProgress);
+  app.post("/api/kyc/progress", verifyPlayer, handleUpdateOnboardingStep);
+  app.post("/api/kyc/complete", verifyPlayer, handleCompleteOnboarding);
+  app.post("/api/kyc/skip", verifyPlayer, handleSkipOnboarding);
+  app.get("/api/kyc/steps", handleGetOnboardingSteps);
+
+  // Sales Tracking
+  app.post("/api/sales/record", verifyPlayer, handleRecordSale);
+  app.get("/api/admin/v2/sales/stats", verifyAdmin, handleGetSalesStats);
+  app.get("/api/admin/v2/sales/revenue", verifyAdmin, handleGetTotalRevenue);
+  app.get("/api/admin/v2/sales/by-game", verifyAdmin, handleGetGameTypeStats);
+  app.get("/api/sales/history", verifyPlayer, handleGetPlayerSalesHistory);
+  app.get("/api/admin/v2/sales/daily", verifyAdmin, handleGetDailyRevenueSummary);
+  app.get("/api/admin/v2/sales/top-games", verifyAdmin, handleGetTopPerformingGames);
+
+  // Betting Limits
+  app.get("/api/betting/limits", handleGetBettingLimits);
+  app.put("/api/admin/v2/betting/limits", verifyAdmin, handleUpdateBettingLimits);
+  app.post("/api/betting/validate-bet", handleValidateBet);
+  app.post("/api/betting/validate-win", handleValidateWin);
+  app.post("/api/betting/validate-redemption", handleValidateRedemption);
+
+  // User Messaging
+  app.post("/api/messages/send", verifyPlayer, handleSendMessage);
+  app.get("/api/messages", verifyPlayer, handleGetMessages);
+  app.get("/api/messages/unread", verifyPlayer, handleGetUnreadMessages);
+  app.post("/api/messages/read", verifyPlayer, handleMarkMessageAsRead);
+  app.get("/api/messages/conversation", verifyPlayer, handleGetConversation);
+  app.get("/api/messages/threads", verifyPlayer, handleGetMessageThreads);
+  app.delete("/api/messages/:messageId", verifyPlayer, handleDeleteMessage);
+  app.get("/api/messages/stats", verifyPlayer, handleGetMessageStats);
 
   // ===== EXAMPLE ROUTES =====
   app.get("/api/ping", (_req, res) => {

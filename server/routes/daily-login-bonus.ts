@@ -1,290 +1,135 @@
 import { RequestHandler } from 'express';
-import { db } from '../db/connection';
-import { verifyPlayer } from '../middleware/auth';
+import * as dbQueries from '../db/queries';
 
-interface DailyBonusConfig {
-  amounts_sc: number[];
-  amounts_gc: number[];
-  max_streak: number;
-  reset_hour: number;
-}
+const DAILY_BONUS_AMOUNTS = [
+  { day: 1, sc: 0.5, gc: 100 },
+  { day: 2, sc: 1, gc: 200 },
+  { day: 3, sc: 1.5, gc: 300 },
+  { day: 4, sc: 2, gc: 400 },
+  { day: 5, sc: 2.5, gc: 500 },
+  { day: 6, sc: 3, gc: 750 },
+  { day: 7, sc: 5, gc: 1000 }, // 7th day bonus is better
+];
 
-const BONUS_CONFIG: DailyBonusConfig = {
-  amounts_sc: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 5.0], // 7 days
-  amounts_gc: [100, 200, 300, 400, 500, 600, 1000],
-  max_streak: 7,
-  reset_hour: 0, // Midnight UTC
-};
-
-/**
- * Check if player can claim daily login bonus
- */
-export const handleCheckDailyBonus: RequestHandler = async (req, res) => {
-  const playerId = (req as any).playerId;
-
-  if (!playerId) {
-    return res.status(401).json({ success: false, error: 'Unauthorized' });
-  }
-
+export const handleGetDailyBonus: RequestHandler = async (req, res) => {
   try {
-    // Get or create onboarding progress
-    let result = await db.query(
-      `SELECT * FROM kyc_onboarding_progress WHERE player_id = $1`,
-      [playerId]
-    );
+    const playerId = req.user?.id;
 
-    if (result.rows.length === 0) {
-      await db.query(
-        `INSERT INTO kyc_onboarding_progress (player_id) VALUES ($1)`,
-        [playerId]
+    if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
+
+    // Get the latest bonus record
+    const result = await dbQueries.getDailyLoginBonus(playerId);
+    const lastBonus = result.rows[0];
+
+    if (!lastBonus) {
+      // First time - create initial bonus
+      const nextAvailableAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+      const newBonus = await dbQueries.createDailyLoginBonus(playerId, 1, 0.5, 100, nextAvailableAt);
+      return res.json({ ...newBonus.rows[0], canClaim: true });
+    }
+
+    // Check if bonus is available to claim
+    const now = new Date();
+    const nextAvailable = new Date(lastBonus.next_available_at);
+    const canClaim = now >= nextAvailable && lastBonus.status === 'available';
+
+    if (canClaim && lastBonus.claimed_at) {
+      // Calculate next bonus day
+      const nextDay = (lastBonus.bonus_day % 7) + 1;
+      const nextBonusAmount = DAILY_BONUS_AMOUNTS[nextDay - 1];
+      const nextAvailableAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      
+      const newBonus = await dbQueries.createDailyLoginBonus(
+        playerId,
+        nextDay,
+        nextBonusAmount.sc,
+        nextBonusAmount.gc,
+        nextAvailableAt
       );
-    }
-
-    // Check for existing claim today
-    const today = new Date().toISOString().split('T')[0];
-    const claimResult = await db.query(
-      `SELECT * FROM daily_login_bonuses 
-       WHERE player_id = $1 
-       AND DATE(claimed_at) = $2 
-       AND status = 'claimed'`,
-      [playerId, today]
-    );
-
-    if (claimResult.rows.length > 0) {
-      return res.json({
-        success: true,
-        can_claim: false,
-        message: 'Already claimed today',
-        next_available: claimResult.rows[0].next_available_at,
-      });
-    }
-
-    // Get player's streak
-    const streakResult = await db.query(
-      `SELECT streak_count, bonus_day FROM daily_login_bonuses 
-       WHERE player_id = $1 
-       ORDER BY created_at DESC 
-       LIMIT 1`,
-      [playerId]
-    );
-
-    let currentDay = 1;
-    let currentStreak = 1;
-
-    if (streakResult.rows.length > 0) {
-      const lastBonus = streakResult.rows[0];
-      const lastClaimDate = new Date(lastBonus.created_at);
-      const today = new Date();
       
-      // Check if it's been more than 24 hours
-      const hoursDiff = (today.getTime() - lastClaimDate.getTime()) / (1000 * 60 * 60);
-      
-      if (hoursDiff > 24) {
-        currentDay = Math.min(lastBonus.bonus_day + 1, BONUS_CONFIG.max_streak);
-        currentStreak = lastBonus.streak_count + 1;
-      } else {
-        currentDay = lastBonus.bonus_day;
-        currentStreak = lastBonus.streak_count;
-      }
+      return res.json({ ...newBonus.rows[0], canClaim: true });
     }
 
-    const bonusIndex = (currentDay - 1) % BONUS_CONFIG.amounts_sc.length;
-    const amount_sc = BONUS_CONFIG.amounts_sc[bonusIndex];
-    const amount_gc = BONUS_CONFIG.amounts_gc[bonusIndex];
-
-    res.json({
-      success: true,
-      can_claim: true,
-      bonus: {
-        day: currentDay,
-        amount_sc,
-        amount_gc,
-        streak: currentStreak,
-      },
-    });
-  } catch (error: any) {
-    console.error('Failed to check daily bonus:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.json({ ...lastBonus, canClaim });
+  } catch (error) {
+    console.error('Error getting daily bonus:', error);
+    res.status(500).json({ error: 'Failed to get daily bonus' });
   }
 };
 
-/**
- * Claim daily login bonus
- */
 export const handleClaimDailyBonus: RequestHandler = async (req, res) => {
-  const playerId = (req as any).playerId;
-
-  if (!playerId) {
-    return res.status(401).json({ success: false, error: 'Unauthorized' });
-  }
-
   try {
-    // Check if already claimed today
-    const today = new Date().toISOString().split('T')[0];
-    const existingClaim = await db.query(
-      `SELECT * FROM daily_login_bonuses 
-       WHERE player_id = $1 
-       AND DATE(claimed_at) = $2 
-       AND status = 'claimed'`,
-      [playerId, today]
-    );
+    const playerId = req.user?.id;
 
-    if (existingClaim.rows.length > 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Already claimed today',
-      });
+    if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
+
+    // Get current bonus
+    const result = await dbQueries.getDailyLoginBonus(playerId);
+    const currentBonus = result.rows[0];
+
+    if (!currentBonus) {
+      return res.status(400).json({ error: 'No active bonus found' });
     }
 
-    // Get player's streak
-    const streakResult = await db.query(
-      `SELECT streak_count, bonus_day FROM daily_login_bonuses 
-       WHERE player_id = $1 
-       ORDER BY created_at DESC 
-       LIMIT 1`,
-      [playerId]
-    );
-
-    let currentDay = 1;
-    let currentStreak = 1;
-    let lastBonusDate: Date | null = null;
-
-    if (streakResult.rows.length > 0) {
-      const lastBonus = streakResult.rows[0];
-      lastBonusDate = new Date(lastBonus.created_at);
-      const now = new Date();
-      const hoursDiff = (now.getTime() - lastBonusDate.getTime()) / (1000 * 60 * 60);
-
-      if (hoursDiff > 24) {
-        currentDay = Math.min(lastBonus.bonus_day + 1, BONUS_CONFIG.max_streak);
-        currentStreak = lastBonus.streak_count + 1;
-      } else {
-        currentDay = lastBonus.bonus_day;
-        currentStreak = lastBonus.streak_count;
-      }
+    // Check if can claim
+    const now = new Date();
+    const nextAvailable = new Date(currentBonus.next_available_at);
+    
+    if (now < nextAvailable || currentBonus.status !== 'available') {
+      return res.status(400).json({ error: 'Bonus not yet available to claim' });
     }
 
-    const bonusIndex = (currentDay - 1) % BONUS_CONFIG.amounts_sc.length;
-    const amount_sc = BONUS_CONFIG.amounts_sc[bonusIndex];
-    const amount_gc = BONUS_CONFIG.amounts_gc[bonusIndex];
+    // Claim the bonus
     const nextAvailableAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const claimResult = await dbQueries.claimDailyLoginBonus(playerId, nextAvailableAt);
+    const claimedBonus = claimResult.rows[0];
 
-    // Insert bonus claim record
-    const bonusResult = await db.query(
-      `INSERT INTO daily_login_bonuses 
-       (player_id, bonus_day, amount_sc, amount_gc, claimed_at, next_available_at, streak_count, status)
-       VALUES ($1, $2, $3, $4, NOW(), $5, $6, 'claimed')
-       RETURNING *`,
-      [playerId, currentDay, amount_sc, amount_gc, nextAvailableAt, currentStreak]
+    // Add bonus to player's wallet
+    await dbQueries.recordWalletTransaction(
+      playerId,
+      'DailyLoginBonus',
+      claimedBonus.amount_gc,
+      claimedBonus.amount_sc,
+      `Daily Login Bonus - Day ${claimedBonus.bonus_day}`
     );
 
-    // Update player wallet
-    await db.query(
-      `UPDATE players 
-       SET sc_balance = sc_balance + $1, gc_balance = gc_balance + $2, updated_at = NOW()
-       WHERE id = $3`,
-      [amount_sc, amount_gc, playerId]
-    );
-
-    // Record transaction
-    await db.query(
-      `INSERT INTO wallet_transactions (player_id, type, amount, description)
-       VALUES ($1, 'Bonus', $2, $3)`,
-      [playerId, amount_sc, `Daily Login Bonus - Day ${currentDay}`]
-    );
-
-    res.json({
-      success: true,
-      data: {
-        bonus_claimed: bonusResult.rows[0],
-        new_wallet: {
-          sc_balance: (await db.query('SELECT sc_balance FROM players WHERE id = $1', [playerId])).rows[0].sc_balance,
-          gc_balance: (await db.query('SELECT gc_balance FROM players WHERE id = $1', [playerId])).rows[0].gc_balance,
-        },
-      },
+    res.json({ 
+      success: true, 
+      bonus: claimedBonus,
+      message: `You claimed ${claimedBonus.amount_sc} SC and ${claimedBonus.amount_gc} GC!`
     });
-  } catch (error: any) {
-    console.error('Failed to claim daily bonus:', error);
-    res.status(500).json({ success: false, error: error.message });
+  } catch (error) {
+    console.error('Error claiming daily bonus:', error);
+    res.status(500).json({ error: 'Failed to claim bonus' });
   }
 };
 
-/**
- * Get player's bonus history
- */
-export const handleGetBonusHistory: RequestHandler = async (req, res) => {
-  const playerId = (req as any).playerId;
-  const limit = parseInt(req.query.limit as string) || 30;
-  const offset = parseInt(req.query.offset as string) || 0;
-
-  if (!playerId) {
-    return res.status(401).json({ success: false, error: 'Unauthorized' });
-  }
-
+export const handleGetBonusStreak: RequestHandler = async (req, res) => {
   try {
-    const result = await db.query(
-      `SELECT * FROM daily_login_bonuses 
-       WHERE player_id = $1
-       ORDER BY created_at DESC
-       LIMIT $2 OFFSET $3`,
-      [playerId, limit, offset]
-    );
+    const playerId = req.user?.id;
 
-    const totalResult = await db.query(
-      `SELECT COUNT(*) FROM daily_login_bonuses WHERE player_id = $1`,
-      [playerId]
-    );
+    if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
 
-    res.json({
-      success: true,
-      data: result.rows,
-      total: parseInt(totalResult.rows[0].count),
-    });
-  } catch (error: any) {
-    console.error('Failed to fetch bonus history:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-};
+    const result = await dbQueries.getDailyLoginBonus(playerId);
+    const bonus = result.rows[0];
 
-/**
- * Send bonus reminder email/notification
- */
-export const handleSendBonusReminder: RequestHandler = async (req, res) => {
-  const playerId = (req as any).playerId;
-
-  if (!playerId) {
-    return res.status(401).json({ success: false, error: 'Unauthorized' });
-  }
-
-  try {
-    const playerResult = await db.query(
-      `SELECT email, username FROM players WHERE id = $1`,
-      [playerId]
-    );
-
-    if (playerResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Player not found' });
+    if (!bonus) {
+      return res.json({ streak: 0, nextBonus: DAILY_BONUS_AMOUNTS[0] });
     }
 
-    const player = playerResult.rows[0];
-
-    // TODO: Integrate with email service (SendGrid, Mailgun, etc)
-    // For now, just log it
-    console.log(`Bonus reminder would be sent to ${player.email}`);
-
-    // Create notification record
-    await db.query(
-      `INSERT INTO user_messages (sender_id, recipient_id, message_type, subject, message)
-       VALUES (NULL, $1, 'notification', 'Daily Bonus Reminder', $2)`,
-      [playerId, 'Your daily login bonus is waiting! Come back to claim it.']
-    );
+    const nextDay = (bonus.bonus_day % 7) + 1;
+    const nextBonus = DAILY_BONUS_AMOUNTS[nextDay - 1];
 
     res.json({
-      success: true,
-      message: 'Reminder sent',
+      currentDay: bonus.bonus_day,
+      currentBonus: { sc: bonus.amount_sc, gc: bonus.amount_gc },
+      nextDay,
+      nextBonus,
+      lastClaimedAt: bonus.claimed_at,
+      nextAvailableAt: bonus.next_available_at
     });
-  } catch (error: any) {
-    console.error('Failed to send reminder:', error);
-    res.status(500).json({ success: false, error: error.message });
+  } catch (error) {
+    console.error('Error getting streak:', error);
+    res.status(500).json({ error: 'Failed to get streak' });
   }
 };

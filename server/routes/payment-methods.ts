@@ -1,269 +1,148 @@
 import { RequestHandler } from 'express';
-import { db } from '../db/connection';
+import * as dbQueries from '../db/queries';
+import * as crypto from 'crypto';
 
-interface PaymentMethodRequest {
-  method_type: 'bank' | 'paypal' | 'cashapp';
-  is_primary?: boolean;
-  bank_account_holder?: string;
-  bank_name?: string;
-  account_number?: string;
-  routing_number?: string;
-  account_type?: string;
-  paypal_email?: string;
-  cashapp_handle?: string;
-}
+// Simple encryption for sensitive data (in production, use proper encryption)
+const encryptData = (data: string): string => {
+  const cipher = crypto.createCipher('aes-256-cbc', process.env.ENCRYPTION_KEY || 'secret-key');
+  let encrypted = cipher.update(data, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return encrypted;
+};
 
-/**
- * Add a payment method for player
- */
-export const handleAddPaymentMethod: RequestHandler = async (req, res) => {
-  const playerId = (req as any).playerId;
-  const { method_type, is_primary, ...details } = req.body as PaymentMethodRequest;
+const decryptData = (encrypted: string): string => {
+  const decipher = crypto.createDecipher('aes-256-cbc', process.env.ENCRYPTION_KEY || 'secret-key');
+  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+};
 
-  if (!playerId || !method_type) {
-    return res.status(400).json({ success: false, error: 'Missing required fields' });
-  }
-
+export const handleCreatePaymentMethod: RequestHandler = async (req, res) => {
   try {
-    // If marking as primary, unset other primaries
-    if (is_primary) {
-      await db.query(
-        `UPDATE player_payment_methods 
-         SET is_primary = FALSE
-         WHERE player_id = $1`,
-        [playerId]
-      );
-    }
+    const playerId = req.user?.id;
+    const { methodType, bankAccountHolder, bankName, accountNumber, routingNumber, accountType, paypalEmail, cashappHandle } = req.body;
 
-    const result = await db.query(
-      `INSERT INTO player_payment_methods (
-        player_id, method_type, is_primary,
-        bank_account_holder, bank_name, account_number, routing_number, account_type,
-        paypal_email, cashapp_handle
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING id, player_id, method_type, is_primary, paypal_email, cashapp_handle, account_type, created_at`,
-      [
-        playerId,
-        method_type,
-        is_primary || false,
-        details.bank_account_holder || null,
-        details.bank_name || null,
-        details.account_number ? encryptValue(details.account_number) : null,
-        details.routing_number ? encryptValue(details.routing_number) : null,
-        details.account_type || null,
-        details.paypal_email || null,
-        details.cashapp_handle || null,
-      ]
-    );
+    if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!methodType) return res.status(400).json({ error: 'Method type required' });
 
-    res.json({
-      success: true,
-      data: result.rows[0],
-      message: 'Payment method added successfully',
-    });
-  } catch (error: any) {
-    console.error('Failed to add payment method:', error);
-    res.status(500).json({ success: false, error: error.message });
+    // Encrypt sensitive data
+    const methodData = {
+      bankAccountHolder,
+      bankName,
+      accountNumber: accountNumber ? encryptData(accountNumber) : null,
+      routingNumber: routingNumber ? encryptData(routingNumber) : null,
+      accountType,
+      paypalEmail,
+      cashappHandle
+    };
+
+    const result = await dbQueries.createPaymentMethod(playerId, methodType, methodData);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating payment method:', error);
+    res.status(500).json({ error: 'Failed to create payment method' });
   }
 };
 
-/**
- * Update payment method
- */
-export const handleUpdatePaymentMethod: RequestHandler = async (req, res) => {
-  const playerId = (req as any).playerId;
-  const { methodId } = req.params;
-  const { is_primary, ...updates } = req.body;
-
-  if (!playerId || !methodId) {
-    return res.status(400).json({ success: false, error: 'Missing required fields' });
-  }
-
-  try {
-    // Verify ownership
-    const methodResult = await db.query(
-      `SELECT * FROM player_payment_methods WHERE id = $1 AND player_id = $2`,
-      [methodId, playerId]
-    );
-
-    if (methodResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Payment method not found' });
-    }
-
-    if (is_primary) {
-      await db.query(
-        `UPDATE player_payment_methods SET is_primary = FALSE WHERE player_id = $1`,
-        [playerId]
-      );
-    }
-
-    const result = await db.query(
-      `UPDATE player_payment_methods 
-       SET is_primary = COALESCE($1, is_primary),
-           paypal_email = COALESCE($2, paypal_email),
-           cashapp_handle = COALESCE($3, cashapp_handle),
-           updated_at = NOW()
-       WHERE id = $4 AND player_id = $5
-       RETURNING id, player_id, method_type, is_primary, paypal_email, cashapp_handle, updated_at`,
-      [
-        is_primary !== undefined ? is_primary : null,
-        updates.paypal_email || null,
-        updates.cashapp_handle || null,
-        methodId,
-        playerId,
-      ]
-    );
-
-    res.json({
-      success: true,
-      data: result.rows[0],
-    });
-  } catch (error: any) {
-    console.error('Failed to update payment method:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-};
-
-/**
- * Delete payment method
- */
-export const handleDeletePaymentMethod: RequestHandler = async (req, res) => {
-  const playerId = (req as any).playerId;
-  const { methodId } = req.params;
-
-  if (!playerId || !methodId) {
-    return res.status(400).json({ success: false, error: 'Missing required fields' });
-  }
-
-  try {
-    const result = await db.query(
-      `DELETE FROM player_payment_methods 
-       WHERE id = $1 AND player_id = $2
-       RETURNING id`,
-      [methodId, playerId]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Payment method not found' });
-    }
-
-    res.json({
-      success: true,
-      message: 'Payment method deleted',
-    });
-  } catch (error: any) {
-    console.error('Failed to delete payment method:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-};
-
-/**
- * Get player's payment methods
- */
 export const handleGetPaymentMethods: RequestHandler = async (req, res) => {
-  const playerId = (req as any).playerId;
-
-  if (!playerId) {
-    return res.status(401).json({ success: false, error: 'Unauthorized' });
-  }
-
   try {
-    const result = await db.query(
-      `SELECT 
-        id, player_id, method_type, is_primary, 
-        bank_name, account_type, paypal_email, cashapp_handle,
-        is_verified, verified_at, last_used_at, created_at
-       FROM player_payment_methods 
-       WHERE player_id = $1
-       ORDER BY is_primary DESC, created_at DESC`,
-      [playerId]
-    );
+    const playerId = req.user?.id;
 
-    res.json({
-      success: true,
-      data: result.rows,
-    });
-  } catch (error: any) {
-    console.error('Failed to fetch payment methods:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-};
+    if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
 
-/**
- * Get primary payment method
- */
-export const handleGetPrimaryPaymentMethod: RequestHandler = async (req, res) => {
-  const playerId = (req as any).playerId;
-
-  if (!playerId) {
-    return res.status(401).json({ success: false, error: 'Unauthorized' });
-  }
-
-  try {
-    const result = await db.query(
-      `SELECT 
-        id, player_id, method_type, is_primary,
-        bank_name, account_type, paypal_email, cashapp_handle,
-        is_verified, verified_at, last_used_at, created_at
-       FROM player_payment_methods 
-       WHERE player_id = $1 AND is_primary = TRUE
-       LIMIT 1`,
-      [playerId]
-    );
-
-    res.json({
-      success: true,
-      data: result.rows.length > 0 ? result.rows[0] : null,
-    });
-  } catch (error: any) {
-    console.error('Failed to fetch primary payment method:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-};
-
-/**
- * Verify payment method (microdeposit, etc)
- */
-export const handleVerifyPaymentMethod: RequestHandler = async (req, res) => {
-  const playerId = (req as any).playerId;
-  const { methodId } = req.params;
-  const { verification_code } = req.body;
-
-  if (!playerId || !methodId) {
-    return res.status(400).json({ success: false, error: 'Missing required fields' });
-  }
-
-  try {
-    // TODO: Integrate with payment processor to verify
-    // For now, just mark as verified
+    const result = await dbQueries.getPaymentMethods(playerId);
     
-    const result = await db.query(
+    // Don't return sensitive data in response
+    const methods = result.rows.map(m => ({
+      id: m.id,
+      methodType: m.method_type,
+      isPrimary: m.is_primary,
+      isVerified: m.is_verified,
+      lastDigits: m.method_type === 'bank' ? '****' : null,
+      paypalEmail: m.paypal_email ? m.paypal_email.replace(/(.{2})(.*)(@.*)/, '$1***$3') : null,
+      cashappHandle: m.cashapp_handle,
+      bankName: m.bank_name,
+      accountType: m.account_type,
+      verifiedAt: m.verified_at,
+      lastUsedAt: m.last_used_at,
+      createdAt: m.created_at
+    }));
+
+    res.json(methods);
+  } catch (error) {
+    console.error('Error fetching payment methods:', error);
+    res.status(500).json({ error: 'Failed to fetch payment methods' });
+  }
+};
+
+export const handleSetPrimaryPaymentMethod: RequestHandler = async (req, res) => {
+  try {
+    const playerId = req.user?.id;
+    const { methodId } = req.body;
+
+    if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!methodId) return res.status(400).json({ error: 'Method ID required' });
+
+    const result = await dbQueries.setPrimaryPaymentMethod(playerId, methodId);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error setting primary method:', error);
+    res.status(500).json({ error: 'Failed to set primary method' });
+  }
+};
+
+export const handleDeletePaymentMethod: RequestHandler = async (req, res) => {
+  try {
+    const playerId = req.user?.id;
+    const { methodId } = req.body;
+
+    if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!methodId) return res.status(400).json({ error: 'Method ID required' });
+
+    const result = await dbQueries.deletePaymentMethod(methodId, playerId);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Payment method not found' });
+    }
+
+    res.json({ success: true, message: 'Payment method deleted' });
+  } catch (error) {
+    console.error('Error deleting payment method:', error);
+    res.status(500).json({ error: 'Failed to delete payment method' });
+  }
+};
+
+export const handleVerifyPaymentMethod: RequestHandler = async (req, res) => {
+  try {
+    const playerId = req.user?.id;
+    const { methodId, verificationCode } = req.body;
+
+    if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!methodId || !verificationCode) {
+      return res.status(400).json({ error: 'Method ID and verification code required' });
+    }
+
+    // In production, verify with payment processor
+    // For now, we'll just mark as verified
+    const result = await dbQueries.query(
       `UPDATE player_payment_methods 
        SET is_verified = TRUE, verified_at = NOW()
        WHERE id = $1 AND player_id = $2
-       RETURNING id, is_verified, verified_at`,
+       RETURNING *`,
       [methodId, playerId]
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Payment method not found' });
+      return res.status(404).json({ error: 'Payment method not found' });
     }
 
-    res.json({
-      success: true,
-      data: result.rows[0],
+    res.json({ 
+      success: true, 
+      message: 'Payment method verified',
+      method: result.rows[0]
     });
-  } catch (error: any) {
-    console.error('Failed to verify payment method:', error);
-    res.status(500).json({ success: false, error: error.message });
+  } catch (error) {
+    console.error('Error verifying payment method:', error);
+    res.status(500).json({ error: 'Failed to verify payment method' });
   }
 };
-
-/**
- * Helper function to encrypt sensitive data
- */
-function encryptValue(value: string): string {
-  // TODO: Implement proper encryption using crypto module
-  // For now, return as-is (should be implemented with proper encryption)
-  return value;
-}

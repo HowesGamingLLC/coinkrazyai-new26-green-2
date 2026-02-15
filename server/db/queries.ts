@@ -738,3 +738,390 @@ export const getPullTabResults = async (limit = 100, offset = 0) => {
     [limit, offset]
   );
 };
+
+// ===== SOCIAL SHARES =====
+export const recordSocialShare = async (playerId: number, gameId: number | null, winAmount: number, gameName: string, platform: string, message: string, shareLink: string | null) => {
+  return query(
+    `INSERT INTO social_shares (player_id, game_id, win_amount, game_name, platform, message, share_link, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 'completed')
+     RETURNING *`,
+    [playerId, gameId, winAmount, gameName, platform, message, shareLink]
+  );
+};
+
+export const getSocialShareHistory = async (playerId: number, limit = 50) => {
+  return query(
+    `SELECT * FROM social_shares WHERE player_id = $1 ORDER BY created_at DESC LIMIT $2`,
+    [playerId, limit]
+  );
+};
+
+export const recordSocialShareResponse = async (socialShareId: number, responseType: string, responseData: any, respondentId: string | null) => {
+  return query(
+    `INSERT INTO social_share_responses (social_share_id, response_type, response_data, respondent_id)
+     VALUES ($1, $2, $3, $4)
+     RETURNING *`,
+    [socialShareId, responseType, JSON.stringify(responseData), respondentId]
+  );
+};
+
+export const getSocialShareStats = async () => {
+  return query(`
+    SELECT
+      COUNT(*) as total_shares,
+      COUNT(DISTINCT player_id) as players_shared,
+      SUM(win_amount) as total_shared_wins,
+      platform,
+      COUNT(*) as platform_count
+    FROM social_shares
+    GROUP BY platform
+  `);
+};
+
+// ===== DAILY LOGIN BONUS =====
+export const getDailyLoginBonus = async (playerId: number) => {
+  return query(
+    `SELECT * FROM daily_login_bonuses WHERE player_id = $1 ORDER BY updated_at DESC LIMIT 1`,
+    [playerId]
+  );
+};
+
+export const createDailyLoginBonus = async (playerId: number, bonusDay: number, amountSc: number, amountGc: number, nextAvailableAt: Date) => {
+  return query(
+    `INSERT INTO daily_login_bonuses (player_id, bonus_day, amount_sc, amount_gc, next_available_at, status)
+     VALUES ($1, $2, $3, $4, $5, 'available')
+     RETURNING *`,
+    [playerId, bonusDay, amountSc, amountGc, nextAvailableAt]
+  );
+};
+
+export const claimDailyLoginBonus = async (playerId: number, nextAvailableAt: Date) => {
+  return query(
+    `UPDATE daily_login_bonuses
+     SET claimed_at = NOW(), next_available_at = $1, status = 'claimed', updated_at = NOW()
+     WHERE player_id = $2 AND status = 'available'
+     RETURNING *`,
+    [nextAvailableAt, playerId]
+  );
+};
+
+// ===== REFERRAL SYSTEM =====
+export const createReferralLink = async (referrerId: number, uniqueCode: string) => {
+  return query(
+    `INSERT INTO referral_links (referrer_id, unique_code)
+     VALUES ($1, $2)
+     RETURNING *`,
+    [referrerId, uniqueCode]
+  );
+};
+
+export const getReferralLink = async (referrerId: number) => {
+  return query(
+    `SELECT * FROM referral_links WHERE referrer_id = $1 LIMIT 1`,
+    [referrerId]
+  );
+};
+
+export const getReferralLinkByCode = async (code: string) => {
+  return query(
+    `SELECT * FROM referral_links WHERE unique_code = $1`,
+    [code]
+  );
+};
+
+export const createReferralClaim = async (referrerId: number, referredPlayerId: number, referralCode: string, bonusSc: number, bonusGc: number) => {
+  return query(
+    `INSERT INTO referral_claims (referrer_id, referred_player_id, referral_code, referral_bonus_sc, referral_bonus_gc, status)
+     VALUES ($1, $2, $3, $4, $5, 'pending')
+     RETURNING *`,
+    [referrerId, referredPlayerId, referralCode, bonusSc, bonusGc]
+  );
+};
+
+export const completeReferralClaim = async (claimId: number) => {
+  return query(
+    `UPDATE referral_claims SET status = 'completed', claimed_at = NOW() WHERE id = $1 RETURNING *`,
+    [claimId]
+  );
+};
+
+export const getReferralStats = async (referrerId: number) => {
+  return query(
+    `SELECT
+      rl.unique_code,
+      COUNT(DISTINCT rc.referred_player_id) as total_referrals,
+      SUM(CASE WHEN rc.status = 'completed' THEN 1 ELSE 0 END) as completed_referrals,
+      SUM(rc.referral_bonus_sc) as total_sc_earned,
+      SUM(rc.referral_bonus_gc) as total_gc_earned
+     FROM referral_links rl
+     LEFT JOIN referral_claims rc ON rl.referrer_id = rc.referrer_id
+     WHERE rl.referrer_id = $1
+     GROUP BY rl.unique_code`,
+    [referrerId]
+  );
+};
+
+// ===== PAYMENT METHODS =====
+export const createPaymentMethod = async (playerId: number, methodType: string, methodData: any) => {
+  const { bankAccountHolder, bankName, accountNumber, routingNumber, accountType, paypalEmail, cashappHandle } = methodData;
+
+  return query(
+    `INSERT INTO player_payment_methods (player_id, method_type, bank_account_holder, bank_name, account_number, routing_number, account_type, paypal_email, cashapp_handle)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     RETURNING id, player_id, method_type, is_primary, is_verified, created_at`,
+    [playerId, methodType, bankAccountHolder, bankName, accountNumber, routingNumber, accountType, paypalEmail, cashappHandle]
+  );
+};
+
+export const getPaymentMethods = async (playerId: number) => {
+  return query(
+    `SELECT id, player_id, method_type, is_primary, is_verified, paypal_email, cashapp_handle, bank_name, account_type, verified_at, last_used_at, created_at
+     FROM player_payment_methods WHERE player_id = $1 ORDER BY is_primary DESC, created_at DESC`,
+    [playerId]
+  );
+};
+
+export const setPrimaryPaymentMethod = async (playerId: number, methodId: number) => {
+  // First, unset all other methods as primary
+  await query(
+    `UPDATE player_payment_methods SET is_primary = FALSE WHERE player_id = $1`,
+    [playerId]
+  );
+
+  // Then set the specified method as primary
+  return query(
+    `UPDATE player_payment_methods SET is_primary = TRUE WHERE id = $1 AND player_id = $2 RETURNING *`,
+    [methodId, playerId]
+  );
+};
+
+export const deletePaymentMethod = async (methodId: number, playerId: number) => {
+  return query(
+    `DELETE FROM player_payment_methods WHERE id = $1 AND player_id = $2 RETURNING *`,
+    [methodId, playerId]
+  );
+};
+
+// ===== SALES TRANSACTIONS =====
+export const recordSalesTransaction = async (playerId: number, gameType: string, designId: number | null, purchaseCostSc: number, winAmountSc: number) => {
+  const netAmount = purchaseCostSc - winAmountSc;
+
+  return query(
+    `INSERT INTO sales_transactions (player_id, game_type, design_id, purchase_cost_sc, win_amount_sc, net_amount_sc)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING *`,
+    [playerId, gameType, designId, purchaseCostSc, winAmountSc, netAmount]
+  );
+};
+
+export const getSalesStats = async (startDate: Date | null, endDate: Date | null) => {
+  if (!startDate || !endDate) {
+    return query(`
+      SELECT
+        DATE(created_at) as sale_date,
+        game_type,
+        COUNT(*) as total_sales,
+        SUM(purchase_cost_sc) as total_revenue_sc,
+        SUM(win_amount_sc) as total_payouts_sc,
+        SUM(net_amount_sc) as net_profit_sc
+      FROM sales_transactions
+      GROUP BY DATE(created_at), game_type
+      ORDER BY sale_date DESC
+    `);
+  }
+
+  return query(
+    `SELECT
+      DATE(created_at) as sale_date,
+      game_type,
+      COUNT(*) as total_sales,
+      SUM(purchase_cost_sc) as total_revenue_sc,
+      SUM(win_amount_sc) as total_payouts_sc,
+      SUM(net_amount_sc) as net_profit_sc
+     FROM sales_transactions
+     WHERE created_at >= $1 AND created_at <= $2
+     GROUP BY DATE(created_at), game_type
+     ORDER BY sale_date DESC`,
+    [startDate, endDate]
+  );
+};
+
+// ===== ADMIN NOTIFICATIONS =====
+export const createAdminNotification = async (adminId: number | null, aiEmployeeId: string, messageType: string, subject: string, message: string, relatedPlayerId: number | null, relatedGameId: number | null, priority: string) => {
+  return query(
+    `INSERT INTO admin_notifications (admin_id, ai_employee_id, message_type, subject, message, related_player_id, related_game_id, priority, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
+     RETURNING *`,
+    [adminId, aiEmployeeId, messageType, subject, message, relatedPlayerId, relatedGameId, priority]
+  );
+};
+
+export const getAdminNotifications = async (adminId: number | null, limit = 50) => {
+  if (adminId === null) {
+    return query(
+      `SELECT * FROM admin_notifications ORDER BY created_at DESC LIMIT $1`,
+      [limit]
+    );
+  }
+
+  return query(
+    `SELECT * FROM admin_notifications WHERE admin_id = $1 ORDER BY created_at DESC LIMIT $2`,
+    [adminId, limit]
+  );
+};
+
+export const markAdminNotificationAsRead = async (notificationId: number) => {
+  return query(
+    `UPDATE admin_notifications SET read_at = NOW() WHERE id = $1 RETURNING *`,
+    [notificationId]
+  );
+};
+
+export const updateAdminNotificationStatus = async (notificationId: number, status: string) => {
+  return query(
+    `UPDATE admin_notifications SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+    [status, notificationId]
+  );
+};
+
+export const recordNotificationAction = async (notificationId: number, actionType: string, actionData: any, takenByAdminId: number) => {
+  return query(
+    `INSERT INTO notification_actions (notification_id, action_type, action_data, taken_by_admin_id)
+     VALUES ($1, $2, $3, $4)
+     RETURNING *`,
+    [notificationId, actionType, JSON.stringify(actionData), takenByAdminId]
+  );
+};
+
+// ===== BETTING LIMITS =====
+export const getBettingLimits = async (gameType: string | null) => {
+  if (gameType) {
+    return query(
+      `SELECT * FROM betting_limits_config WHERE game_type = $1`,
+      [gameType]
+    );
+  }
+
+  return query(`SELECT * FROM betting_limits_config ORDER BY game_type`);
+};
+
+export const updateBettingLimits = async (gameType: string, limits: any) => {
+  const { minBetSc, maxBetSc, maxWinPerSpinSc, minRedemptionSc } = limits;
+
+  return query(
+    `UPDATE betting_limits_config
+     SET min_bet_sc = $1, max_bet_sc = $2, max_win_per_spin_sc = $3, min_redemption_sc = $4, updated_at = NOW()
+     WHERE game_type = $5
+     RETURNING *`,
+    [minBetSc, maxBetSc, maxWinPerSpinSc, minRedemptionSc, gameType]
+  );
+};
+
+// ===== KYC ONBOARDING =====
+export const createKYCOnboardingProgress = async (playerId: number) => {
+  return query(
+    `INSERT INTO kyc_onboarding_progress (player_id, current_step)
+     VALUES ($1, 1)
+     RETURNING *`,
+    [playerId]
+  );
+};
+
+export const getKYCOnboardingProgress = async (playerId: number) => {
+  return query(
+    `SELECT * FROM kyc_onboarding_progress WHERE player_id = $1`,
+    [playerId]
+  );
+};
+
+export const updateKYCOnboardingStep = async (playerId: number, step: number, verificationData: any) => {
+  const updates: string[] = [];
+  const values: any[] = [];
+  let paramIndex = 1;
+
+  updates.push(`current_step = $${paramIndex++}`);
+  values.push(step);
+
+  if (verificationData.identityVerified) {
+    updates.push(`identity_verified = $${paramIndex++}`);
+    values.push(true);
+  }
+  if (verificationData.addressVerified) {
+    updates.push(`address_verified = $${paramIndex++}`);
+    values.push(true);
+  }
+  if (verificationData.paymentVerified) {
+    updates.push(`payment_verified = $${paramIndex++}`);
+    values.push(true);
+  }
+  if (verificationData.emailVerified) {
+    updates.push(`email_verified = $${paramIndex++}`);
+    values.push(true);
+  }
+  if (verificationData.phoneVerified) {
+    updates.push(`phone_verified = $${paramIndex++}`);
+    values.push(true);
+  }
+
+  // Check if all verifications complete
+  const checkQuery = await query(
+    `SELECT identity_verified, address_verified, payment_verified, email_verified, phone_verified
+     FROM kyc_onboarding_progress WHERE player_id = $1`,
+    [playerId]
+  );
+
+  const allVerified = checkQuery.rows[0] &&
+    checkQuery.rows[0].identity_verified &&
+    checkQuery.rows[0].address_verified &&
+    checkQuery.rows[0].payment_verified &&
+    checkQuery.rows[0].email_verified &&
+    checkQuery.rows[0].phone_verified;
+
+  if (allVerified) {
+    updates.push(`completed_at = $${paramIndex++}`);
+    values.push(new Date());
+  }
+
+  updates.push(`last_prompted_at = NOW()`);
+  updates.push(`updated_at = NOW()`);
+  values.push(playerId);
+
+  const sql = `UPDATE kyc_onboarding_progress SET ${updates.join(', ')} WHERE player_id = $${paramIndex} RETURNING *`;
+  return query(sql, values);
+};
+
+// ===== USER MESSAGES =====
+export const sendUserMessage = async (senderId: number, recipientId: number | null, adminId: number | null, subject: string, message: string, messageType: string) => {
+  return query(
+    `INSERT INTO user_messages (sender_id, recipient_id, admin_id, subject, message, message_type)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING *`,
+    [senderId, recipientId, adminId, subject, message, messageType]
+  );
+};
+
+export const getUserMessages = async (userId: number, limit = 50) => {
+  return query(
+    `SELECT * FROM user_messages
+     WHERE (sender_id = $1 OR recipient_id = $1)
+     ORDER BY created_at DESC
+     LIMIT $2`,
+    [userId, limit]
+  );
+};
+
+export const markMessageAsRead = async (messageId: number) => {
+  return query(
+    `UPDATE user_messages SET is_read = TRUE, read_at = NOW() WHERE id = $1 RETURNING *`,
+    [messageId]
+  );
+};
+
+export const getUnreadMessages = async (userId: number) => {
+  return query(
+    `SELECT * FROM user_messages
+     WHERE recipient_id = $1 AND is_read = FALSE
+     ORDER BY created_at DESC`,
+    [userId]
+  );
+};

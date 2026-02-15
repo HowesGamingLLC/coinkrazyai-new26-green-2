@@ -120,8 +120,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const adminLogin = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      await auth.adminLogin(email, password);
+      const response = await auth.adminLogin(email, password);
       setIsAdmin(true);
+
+      // If sitewide admin is recognized (has player profile), set user profile too
+      if (response.playerProfile && response.playerToken) {
+        setUser(response.playerProfile);
+        localStorage.setItem('auth_token', response.playerToken);
+      }
+
       setIsLoading(false);
     } catch (error) {
       setIsLoading(false);

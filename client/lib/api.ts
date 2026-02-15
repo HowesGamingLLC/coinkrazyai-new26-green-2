@@ -121,9 +121,18 @@ export const auth = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
-    if (data.token) {
-      localStorage.setItem('admin_token', data.token);
+
+    // Handle both old and new response formats
+    const adminToken = data.adminToken || data.token;
+    if (adminToken) {
+      localStorage.setItem('admin_token', adminToken);
     }
+
+    // Store player token if available (sitewide admin)
+    if (data.playerToken) {
+      localStorage.setItem('auth_token', data.playerToken);
+    }
+
     return data;
   },
 
