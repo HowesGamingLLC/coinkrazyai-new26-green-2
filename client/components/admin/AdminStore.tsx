@@ -35,7 +35,7 @@ const AdminStore = () => {
   const [showNewPaymentForm, setShowNewPaymentForm] = useState(false);
   const [editingPackage, setEditingPackage] = useState<GoldCoinPackage | null>(null);
 
-  const totalRevenue = packages.reduce((sum, p) => sum + (p.price_usd || 0), 0);
+  const totalRevenue = packages.reduce((sum, p) => sum + (typeof p.price_usd === 'string' ? parseFloat(p.price_usd) : p.price_usd || 0), 0);
   const totalSales = packages.length;
 
   useEffect(() => {
@@ -157,8 +157,8 @@ const AdminStore = () => {
                         <h4 className="font-semibold">{pkg.title}</h4>
                         <p className="text-sm text-muted-foreground">{pkg.description}</p>
                         <div className="flex gap-4 mt-2 text-sm">
-                          <span className="text-primary font-semibold">${pkg.price_usd.toFixed(2)}</span>
-                          <span>{pkg.gold_coins.toLocaleString()} GC</span>
+                          <span className="text-primary font-semibold">${(typeof pkg.price_usd === 'string' ? parseFloat(pkg.price_usd) : pkg.price_usd).toFixed(2)}</span>
+                          <span>{(typeof pkg.gold_coins === 'string' ? parseInt(pkg.gold_coins) : pkg.gold_coins).toLocaleString()} GC</span>
                           <span>{pkg.sweeps_coins} SC</span>
                           <span className="text-green-600">+{pkg.bonus_sc} SC Bonus</span>
                         </div>
