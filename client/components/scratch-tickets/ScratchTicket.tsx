@@ -26,12 +26,14 @@ interface ScratchTicketData {
 interface ScratchTicketProps {
   ticket: ScratchTicketData;
   onRefresh: () => Promise<void>;
+  gameName?: string;
+  gameId?: number;
 }
 
 const SCRATCH_BRUSH_SIZE = 40;
 const SCRATCH_SENSITIVITY = 0.4;
 
-export const ScratchTicket: React.FC<ScratchTicketProps> = ({ ticket, onRefresh }) => {
+export const ScratchTicket: React.FC<ScratchTicketProps> = ({ ticket, onRefresh, gameName = 'Scratch Tickets', gameId }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [slots, setSlots] = useState<ScratchSlot[]>(ticket.slots);
@@ -330,6 +332,8 @@ export const ScratchTicket: React.FC<ScratchTicketProps> = ({ ticket, onRefresh 
       <WinningPopup
         isOpen={showWinPopup}
         winAmount={winAmount}
+        gameName={gameName}
+        gameId={gameId}
         onClaim={handleClaim}
         onClose={() => setShowWinPopup(false)}
         isClaiming={isClaiming}

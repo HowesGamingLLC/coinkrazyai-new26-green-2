@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Gift, Sparkles } from 'lucide-react';
+import { Loader2, Gift, Sparkles, Share2, Facebook } from 'lucide-react';
+import { toast } from 'sonner';
+import { apiCall } from '@/lib/api';
 
 interface WinningPopupProps {
   isOpen: boolean;
   winAmount: number;
+  gameName?: string;
+  gameId?: number;
   onClaim: () => Promise<void>;
   onClose: () => void;
   isClaiming: boolean;
@@ -14,10 +18,72 @@ interface WinningPopupProps {
 export const WinningPopup: React.FC<WinningPopupProps> = ({
   isOpen,
   winAmount,
+  gameName = 'CoinKrazy',
+  gameId,
   onClaim,
   onClose,
   isClaiming,
 }) => {
+  const [isSharing, setIsSharing] = useState(false);
+  const [hasShared, setHasShared] = useState(false);
+
+  const generateShareMessage = (): string => {
+    const game = gameName || 'CoinKrazy';
+    return `🎉 I just won ${winAmount} SC playing ${game} on CoinKrazy Social Casino! 🎰 Join me and win big! 💰 https://coinkrazy.io`;
+  };
+
+  const handleFacebookShare = async () => {
+    try {
+      setIsSharing(true);
+      const message = generateShareMessage();
+
+      // Record the share in the database
+      const response = await apiCall('/social/share', {
+        method: 'POST',
+        body: JSON.stringify({
+          gameId: gameId || null,
+          winAmount,
+          gameName: gameName || 'Unknown Game',
+          platform: 'facebook',
+          message,
+          shareLink: window.location.href,
+        }),
+      });
+
+      if (response.success) {
+        // Use Facebook SDK if available, otherwise open share dialog
+        if ((window as any).FB && (window as any).FB.ui) {
+          (window as any).FB.ui(
+            {
+              method: 'share',
+              href: 'https://coinkrazy.io',
+              quote: message,
+              hashtag: '#CoinKrazy',
+            },
+            function (response: any) {
+              if (response && !response.error_code) {
+                setHasShared(true);
+                toast.success('Thanks for sharing! 🎊');
+              }
+            }
+          );
+        } else {
+          // Fallback: open Facebook share dialog
+          const encodedMessage = encodeURIComponent(message);
+          const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=https://coinkrazy.io&quote=${encodedMessage}`;
+          window.open(facebookShareUrl, 'facebook-share', 'width=600,height=400');
+          setHasShared(true);
+          toast.success('Thanks for sharing! 🎊');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to share:', error);
+      toast.error('Failed to share on Facebook');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md border-2 border-yellow-400">
@@ -60,6 +126,38 @@ export const WinningPopup: React.FC<WinningPopupProps> = ({
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-500">
               Click the button below to add this amount to your wallet.
+            </p>
+          </div>
+
+          {/* Social Share Section */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 text-center">
+              Share Your Win! 🎉
+            </p>
+            <Button
+              onClick={handleFacebookShare}
+              disabled={isSharing || isClaiming}
+              className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isSharing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Sharing...
+                </>
+              ) : hasShared ? (
+                <>
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Shared on Facebook ✓
+                </>
+              ) : (
+                <>
+                  <Facebook className="w-4 h-4 mr-2" />
+                  Share on Facebook
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+              Let your friends know about your amazing win!
             </p>
           </div>
 
