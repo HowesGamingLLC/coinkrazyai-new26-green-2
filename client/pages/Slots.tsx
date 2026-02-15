@@ -25,16 +25,18 @@ export default function Slots() {
   // Get all providers for filter
   const providers = useMemo(() => {
     if (!allGames || allGames.length === 0) return [];
-    return [...new Set(allGames.map(g => g.provider))].sort();
+    return [...new Set(allGames.map(g => g.provider || '').filter(Boolean))].sort();
   }, [allGames]);
 
   // Filter games based on search and provider
   const filteredGames = useMemo(() => {
     if (!allGames) return [];
     return allGames.filter(game => {
-      const matchesSearch = game.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          game.provider.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesProvider = !filterProvider || game.provider === filterProvider;
+      const title = game.title || '';
+      const provider = game.provider || '';
+      const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          provider.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesProvider = !filterProvider || provider === filterProvider;
       return matchesSearch && matchesProvider;
     });
   }, [allGames, searchTerm, filterProvider]);
@@ -44,10 +46,11 @@ export default function Slots() {
     if (!filteredGames || filteredGames.length === 0) return [];
     const groups: Record<string, any[]> = {};
     filteredGames.forEach(game => {
-      if (!groups[game.provider]) {
-        groups[game.provider] = [];
+      const provider = game.provider || 'Unknown';
+      if (!groups[provider]) {
+        groups[provider] = [];
       }
-      groups[game.provider].push(game);
+      groups[provider].push(game);
     });
     return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
   }, [filteredGames]);
