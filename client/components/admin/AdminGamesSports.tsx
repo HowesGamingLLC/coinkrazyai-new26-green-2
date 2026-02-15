@@ -495,15 +495,24 @@ const AdminGamesSports = () => {
                     e.preventDefault();
                     const formData = new FormData(e.currentTarget);
                     try {
-                      const gameId = prompt('Enter game ID to ingest:');
-                      if (gameId) {
-                        await adminV2.games.ingestData(parseInt(gameId), {
-                          provider: formData.get('provider'),
-                          apiKey: formData.get('apiKey'),
-                        });
-                        toast.success('Game ingested successfully');
-                        fetchData();
+                      const gameIdInput = prompt('Enter game ID to ingest:');
+                      if (!gameIdInput) {
+                        toast.info('Ingestion cancelled');
+                        return;
                       }
+
+                      const gameId = parseInt(gameIdInput, 10);
+                      if (isNaN(gameId) || gameId <= 0) {
+                        toast.error('Please enter a valid game ID (number greater than 0)');
+                        return;
+                      }
+
+                      await adminV2.games.ingestData(gameId, {
+                        provider: formData.get('provider'),
+                        apiKey: formData.get('apiKey'),
+                      });
+                      toast.success('Game ingested successfully');
+                      fetchData();
                     } catch (error) {
                       toast.error('Failed to ingest game');
                     }

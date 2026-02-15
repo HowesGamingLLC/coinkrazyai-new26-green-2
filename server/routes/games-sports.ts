@@ -274,7 +274,18 @@ export const getSportsbookStats: RequestHandler = async (req, res) => {
 // GAME INGESTION
 export const ingestGameData: RequestHandler = async (req, res) => {
   try {
-    const { gameId, data } = req.body;
+    const gameIdParam = req.params.gameId;
+    const gameId = parseInt(gameIdParam, 10);
+    const { data } = req.body;
+
+    // Validate gameId
+    if (isNaN(gameId) || gameId <= 0) {
+      return res.status(400).json({ error: 'Invalid game ID provided' });
+    }
+
+    if (!data || typeof data !== 'object') {
+      return res.status(400).json({ error: 'Invalid data payload' });
+    }
 
     // Validate game exists
     const gameResult = await query('SELECT * FROM games WHERE id = $1', [gameId]);
