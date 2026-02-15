@@ -31,6 +31,34 @@ import PullTabs from "./pages/PullTabs";
 
 const queryClient = new QueryClient();
 
+// Component that wraps routes with Layout (needs to be inside Router)
+const AppRoutes = () => (
+  <Layout>
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/games" element={<Games />} />
+      <Route path="/casino" element={<Casino />} />
+      <Route path="/store" element={<Store />} />
+      <Route path="/slots" element={<Slots />} />
+      <Route path="/poker" element={<Poker />} />
+      <Route path="/bingo" element={<Bingo />} />
+      <Route path="/sportsbook" element={<Sportsbook />} />
+      <Route path="/scratch-tickets" element={<ScratchTickets />} />
+      <Route path="/pull-tabs" element={<PullTabs />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="/account" element={<Account />} />
+      <Route path="/wallet" element={<Wallet />} />
+      <Route path="/leaderboards" element={<Leaderboards />} />
+      <Route path="/achievements" element={<Achievements />} />
+      <Route path="/support" element={<Support />} />
+      <Route path="/admin" element={<Admin />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </Layout>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -38,30 +66,7 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <BrowserRouter>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/games" element={<Games />} />
-              <Route path="/casino" element={<Casino />} />
-              <Route path="/store" element={<Store />} />
-              <Route path="/slots" element={<Slots />} />
-              <Route path="/poker" element={<Poker />} />
-              <Route path="/bingo" element={<Bingo />} />
-              <Route path="/sportsbook" element={<Sportsbook />} />
-              <Route path="/scratch-tickets" element={<ScratchTickets />} />
-              <Route path="/pull-tabs" element={<PullTabs />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/account" element={<Account />} />
-              <Route path="/wallet" element={<Wallet />} />
-              <Route path="/leaderboards" element={<Leaderboards />} />
-              <Route path="/achievements" element={<Achievements />} />
-              <Route path="/support" element={<Support />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Layout>
+          <AppRoutes />
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
