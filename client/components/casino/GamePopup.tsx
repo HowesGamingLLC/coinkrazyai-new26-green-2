@@ -11,7 +11,7 @@ interface GamePopupProps {
   onClose: () => void;
 }
 
-type PopupState = 'setup' | 'playing' | 'outOfFunds';
+type PopupState = 'setup' | 'playing' | 'result' | 'outOfFunds';
 
 export function GamePopup({ game, onClose }: GamePopupProps) {
   const { user, refreshProfile } = useAuth();
@@ -20,6 +20,7 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentBalance, setCurrentBalance] = useState(Number(user?.sc_balance ?? 0));
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [gameResult, setGameResult] = useState<{ winnings: number; isWin: boolean } | null>(null);
 
   // Construct Roxor Games URL dynamically
   const constructRoxorGamesUrl = (gameId: string, gameKey?: string): string => {
@@ -114,21 +115,48 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
     setCurrentBalance(newBalance);
     setPopupState('playing');
 
-    // Process transaction in background
+    console.log('[GamePopup] Transitioned to playing state - game iframe should now load');
+    setIsProcessing(false);
+  };
+
+  const handleGameComplete = async (result: { winnings: number }) => {
+    console.log('[GamePopup] Game Completed:', {
+      gameId: game.id,
+      provider: game.provider,
+      betAmount,
+      winnings: result.winnings,
+      timestamp: new Date().toISOString(),
+    });
+
+    setIsProcessing(true);
+
+    // Get the deducted balance that we set when starting
+    const newBalance = currentBalance - betAmount;
+
+    // Process transaction result in background
     try {
       const response = await casino.playGame(game.id, betAmount);
-      console.log('[GamePopup] Game transaction successful:', {
+      console.log('[GamePopup] Game transaction recorded on server:', {
         gameId: game.id,
         provider: game.provider,
         betAmount,
-        winnings: response.winnings,
+        serverWinnings: response.winnings,
         timestamp: new Date().toISOString(),
       });
-      
-      // If game returns winnings, add them
-      if (response.winnings && response.winnings > 0) {
-        const winningBalance = newBalance + response.winnings;
-        setCurrentBalance(winningBalance);
+
+      // Use server response for final balance
+      const finalBalance = newBalance + response.winnings;
+      setCurrentBalance(finalBalance);
+
+      // Store result and transition to result screen
+      const isWin = response.winnings && response.winnings > 0;
+      setGameResult({
+        winnings: response.winnings,
+        isWin,
+      });
+
+      // Show result toast
+      if (isWin) {
         toast.success(`You won ${response.winnings.toFixed(2)} SC!`);
       } else {
         toast.error(`Better luck next time!`);
@@ -136,17 +164,20 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
 
       // Refresh user profile to sync with server
       await refreshProfile();
+
+      // Transition to result screen
+      setPopupState('result');
     } catch (err: any) {
-      console.error('[Casino] Game transaction failed:', err);
-      // Restore balance on error
-      setCurrentBalance(currentBalance);
+      console.error('[GamePopup] Game transaction failed:', err);
       toast.error('Failed to process game transaction');
+      setPopupState('setup');
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handlePlayAgain = () => {
+    setGameResult(null);
     if (currentBalance < CASINO_MIN_BET) {
       setPopupState('outOfFunds');
     } else {
@@ -341,12 +372,77 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
             />
           </div>
 
-          {/* Bottom Bar (Optional) */}
-          <div className="bg-gray-800/50 px-4 py-2 border-t border-gray-700 flex items-center justify-between text-[10px] md:text-xs text-gray-400 shrink-0">
-            <div>Provider: {game.provider}</div>
+          {/* Bottom Bar */}
+          <div className="bg-gray-800/50 px-4 py-3 border-t border-gray-700 flex items-center justify-between text-[10px] md:text-xs text-gray-400 shrink-0">
             <div className="flex items-center gap-4">
-              <span>Bet: {betAmount.toFixed(2)} SC</span>
-              <span>Balance: {currentBalance.toFixed(2)} SC</span>
+              <span>Provider: {game.provider}</span>
+              <span className="hidden sm:inline">|</span>
+              <span className="hidden sm:inline">Bet: {betAmount.toFixed(2)} SC</span>
+              <span className="hidden sm:inline">Balance: {currentBalance.toFixed(2)} SC</span>
+            </div>
+            <Button
+              onClick={() => handleGameComplete({ winnings: 0 })}
+              size="sm"
+              disabled={isProcessing}
+              className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isProcessing ? 'Processing...' : 'Finish Game'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (popupState === 'result' && gameResult) {
+    const resultIcon = gameResult.isWin ? '🎉' : '😅';
+    const resultColor = gameResult.isWin ? 'from-green-600 to-green-500' : 'from-orange-600 to-orange-500';
+
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className={`bg-gradient-to-br ${resultColor} rounded-xl w-full max-w-md shadow-2xl overflow-hidden border-2 ${gameResult.isWin ? 'border-green-400' : 'border-orange-400'}`}>
+          {/* Header */}
+          <div className="px-6 py-4">
+            <div className="text-6xl text-center mb-4">{resultIcon}</div>
+            <h2 className="text-3xl font-bold text-white text-center">
+              {gameResult.isWin ? 'YOU WIN!' : 'SPIN COMPLETE'}
+            </h2>
+          </div>
+
+          {/* Content */}
+          <div className="bg-gray-900/95 px-6 py-8 space-y-6">
+            <div className="space-y-2 text-center">
+              <p className="text-gray-400 text-sm">You wagered</p>
+              <p className="text-2xl font-bold text-amber-400">{betAmount.toFixed(2)} SC</p>
+            </div>
+
+            {gameResult.isWin && (
+              <div className="bg-green-900/30 border border-green-500/50 rounded-lg p-4 text-center space-y-1">
+                <p className="text-gray-400 text-sm">You won</p>
+                <p className="text-4xl font-bold text-green-400">{gameResult.winnings.toFixed(2)} SC</p>
+              </div>
+            )}
+
+            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+              <p className="text-gray-400 text-xs mb-1">Current Balance</p>
+              <p className="text-2xl font-bold text-amber-400">{currentBalance.toFixed(2)} SC</p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                onClick={onClose}
+                variant="outline"
+                className="flex-1"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={handlePlayAgain}
+                className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold"
+              >
+                Play Again
+              </Button>
             </div>
           </div>
         </div>
