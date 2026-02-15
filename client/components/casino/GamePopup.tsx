@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { X, AlertCircle, Loader } from 'lucide-react';
 import { casino } from '@/lib/api';
 import { toast } from 'sonner';
+import { WinNotification } from '@/components/WinNotification';
 
 interface GamePopupProps {
   game: CasinoGame;
@@ -18,9 +19,18 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
   const [popupState, setPopupState] = useState<PopupState>('setup');
   const [betAmount, setBetAmount] = useState(CASINO_MIN_BET);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentBalance, setCurrentBalance] = useState(Number(user?.sc_balance ?? 0));
+
+  // Safely initialize balance
+  const initialBalance = (() => {
+    const scBalance = user?.sc_balance ?? 0;
+    const numBalance = typeof scBalance === 'number' ? scBalance : Number(scBalance) || 0;
+    return isNaN(numBalance) ? 0 : numBalance;
+  })();
+
+  const [currentBalance, setCurrentBalance] = useState(initialBalance);
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [gameResult, setGameResult] = useState<{ winnings: number; isWin: boolean } | null>(null);
+  const [showWinNotification, setShowWinNotification] = useState(false);
 
   // Construct Roxor Games URL dynamically
   const constructRoxorGamesUrl = (gameId: string, gameKey?: string): string => {
@@ -71,7 +81,9 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
   // Update balance when user changes
   useEffect(() => {
     if (user) {
-      setCurrentBalance(Number(user.sc_balance ?? 0));
+      const scBalance = user.sc_balance ?? 0;
+      const numBalance = typeof scBalance === 'number' ? scBalance : Number(scBalance) || 0;
+      setCurrentBalance(isNaN(numBalance) ? 0 : numBalance);
     }
   }, [user]);
 
@@ -143,11 +155,12 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
         isWin,
       });
 
-      // Show result toast
+      // Show result notification
       if (isWin) {
-        toast.success(`You won ${response.winnings.toFixed(2)} SC!`);
+        setShowWinNotification(true);
+        toast.success(`🎉 You won ${response.winnings.toFixed(2)} SC!`);
       } else {
-        toast.error(`Better luck next time!`);
+        toast.info(`Better luck next time!`);
       }
 
       // Refresh user profile to sync with server
@@ -481,6 +494,18 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Win notification overlay (displayed on top of all states)
+  if (showWinNotification && gameResult && gameResult.isWin) {
+    return (
+      <WinNotification
+        amount={gameResult.winnings}
+        gameTitle={game.name}
+        onClose={() => setShowWinNotification(false)}
+        autoDismissMs={10000}
+      />
     );
   }
 

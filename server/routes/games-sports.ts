@@ -297,6 +297,29 @@ export const ingestGameData: RequestHandler = async (req, res) => {
   }
 };
 
+export const clearAllGames: RequestHandler = async (req, res) => {
+  try {
+    // Only allow admins to clear all games
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can clear all games' });
+    }
+
+    // Disable all games instead of deleting them
+    await query('UPDATE games SET enabled = false');
+
+    await SlackService.notifyAdminAction(
+      req.user?.email || 'admin',
+      'Cleared All Games',
+      'All games have been disabled'
+    );
+
+    res.json({ success: true, message: 'All games have been cleared' });
+  } catch (error) {
+    console.error('Clear all games error:', error);
+    res.status(500).json({ error: 'Failed to clear games' });
+  }
+};
+
 export const crawlSlots: RequestHandler = async (req, res) => {
   try {
     const { url } = req.body;

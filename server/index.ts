@@ -138,6 +138,7 @@ import {
   createGame,
   updateGame,
   deleteGame,
+  clearAllGames,
   listPokerTables,
   createPokerTable,
   updatePokerTable,
@@ -467,6 +468,7 @@ export function createServer() {
   app.put("/api/admin/v2/games/:gameId", verifyAdmin, updateGame);
   app.delete("/api/admin/v2/games/:gameId", verifyAdmin, deleteGame);
   app.post("/api/admin/v2/games/:gameId/ingest", verifyAdmin, ingestGameData);
+  app.post("/api/admin/v2/games/clear-all", verifyAdmin, clearAllGames);
   app.post("/api/admin/v2/games/crawl", verifyAdmin, crawlSlots);
 
   // Poker

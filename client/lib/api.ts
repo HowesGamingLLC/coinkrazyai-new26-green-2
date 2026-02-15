@@ -604,6 +604,12 @@ export const adminV2 = {
         body: JSON.stringify({ url }),
       });
     },
+    clearAll: async () => {
+      return adminApiCall<any>('/admin/v2/games/clear-all', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+    },
   },
 
   poker: {
