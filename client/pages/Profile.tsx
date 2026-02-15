@@ -248,27 +248,31 @@ const Profile = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {spinHistory.map((spin) => (
-                    <tr key={spin.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                      <td className="p-2">
-                        <span className="font-medium">{spin.game_name}</span>
-                      </td>
-                      <td className="p-2">{spin.bet_amount.toFixed(2)} SC</td>
-                      <td className="p-2">
-                        <Badge variant={spin.result === 'win' ? 'default' : 'destructive'}>
-                          {spin.result.toUpperCase()}
-                        </Badge>
-                      </td>
-                      <td className="p-2">
-                        <span className={spin.winnings > 0 ? 'text-green-500 font-bold' : 'text-red-500'}>
-                          {spin.winnings > 0 ? '+' : ''}{spin.winnings.toFixed(2)} SC
-                        </span>
-                      </td>
-                      <td className="p-2 text-muted-foreground text-xs">
-                        {new Date(spin.created_at).toLocaleDateString()} {new Date(spin.created_at).toLocaleTimeString()}
-                      </td>
-                    </tr>
-                  ))}
+                  {spinHistory.map((spin) => {
+                    const betAmount = Number(spin.bet_amount ?? 0);
+                    const winnings = Number(spin.winnings ?? 0);
+                    return (
+                      <tr key={spin.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+                        <td className="p-2">
+                          <span className="font-medium">{spin.game_name}</span>
+                        </td>
+                        <td className="p-2">{betAmount.toFixed(2)} SC</td>
+                        <td className="p-2">
+                          <Badge variant={spin.result === 'win' ? 'default' : 'destructive'}>
+                            {spin.result.toUpperCase()}
+                          </Badge>
+                        </td>
+                        <td className="p-2">
+                          <span className={winnings > 0 ? 'text-green-500 font-bold' : 'text-red-500'}>
+                            {winnings > 0 ? '+' : ''}{winnings.toFixed(2)} SC
+                          </span>
+                        </td>
+                        <td className="p-2 text-muted-foreground text-xs">
+                          {new Date(spin.created_at).toLocaleDateString()} {new Date(spin.created_at).toLocaleTimeString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
