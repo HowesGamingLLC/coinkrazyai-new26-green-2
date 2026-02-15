@@ -41,12 +41,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-300">
         <div className="container flex h-16 items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+          <Link to="/" className="flex items-center gap-2 transition-transform duration-300 hover:scale-105 active:scale-95">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center shadow-lg shadow-primary/20 transition-all duration-300 group-hover:shadow-primary/40">
               <span className="text-primary-foreground font-black text-xl italic">CK</span>
             </div>
-            <span className="font-bold text-2xl tracking-tighter hidden sm:inline-block">
-              CoinKrazy<span className="text-primary">AI2</span>
+            <span className="font-black text-xl tracking-tighter hidden sm:inline-block">
+              <span className="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                CoinKrazy
+              </span>
+              <span className="text-primary font-black">AI2</span>
             </span>
           </Link>
 
@@ -54,12 +57,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             {isAuthenticated ? (
               <>
                 {/* Currency Toggle */}
-                <div className="flex items-center bg-muted rounded-full p-1 border border-border">
+                <div className="flex items-center bg-muted/40 rounded-full p-1 border border-border/40 backdrop-blur">
                   <button
                     onClick={() => currency !== 'GC' && toggleCurrency()}
                     className={cn(
-                      "px-3 py-1 rounded-full text-xs font-bold transition-all",
-                      currency === 'GC' ? "bg-secondary text-secondary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      "px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 active:scale-95",
+                      currency === 'GC'
+                        ? "bg-gradient-to-r from-secondary to-secondary/80 text-secondary-foreground shadow-md shadow-secondary/20"
+                        : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     GC
@@ -67,8 +72,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <button
                     onClick={() => currency !== 'SC' && toggleCurrency()}
                     className={cn(
-                      "px-3 py-1 rounded-full text-xs font-bold transition-all",
-                      currency === 'SC' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      "px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 active:scale-95",
+                      currency === 'SC'
+                        ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/20"
+                        : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     SC
@@ -76,8 +83,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
 
                 {/* Balance Display */}
-                <div className="hidden sm:flex items-center gap-2 bg-muted/50 px-4 py-1.5 rounded-full border border-border">
-                  <Coins className={cn("w-4 h-4", currency === 'GC' ? "text-secondary" : "text-primary")} />
+                <div className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-muted/60 to-muted/20 px-4 py-2 rounded-full border border-border/40 backdrop-blur transition-all duration-300 hover:border-primary/20">
+                  <Coins className={cn(
+                    "w-4 h-4 transition-colors duration-300",
+                    currency === 'GC' ? "text-secondary" : "text-primary"
+                  )} />
                   <span className="font-mono font-bold">
                     {currency === 'GC'
                       ? Number(wallet?.goldCoins ?? 0).toLocaleString()
@@ -85,8 +95,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </span>
                 </div>
 
-                <Button asChild variant="default" className="hidden sm:flex">
-                  <Link to="/store">GET COINS</Link>
+                <Button asChild variant="default" className="hidden sm:flex gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
+                  <Link to="/store">
+                    <Coins className="w-4 h-4" />
+                    GET COINS
+                  </Link>
                 </Button>
 
                 {/* User Menu */}
