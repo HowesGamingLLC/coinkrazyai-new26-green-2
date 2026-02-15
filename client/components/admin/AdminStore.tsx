@@ -231,7 +231,7 @@ const AdminStore = () => {
                 <DollarSign className="w-4 h-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+                <div className="text-2xl font-bold">${Number(totalRevenue).toFixed(2)}</div>
               </CardContent>
             </Card>
             <Card>

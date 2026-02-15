@@ -102,7 +102,7 @@ export const JackpotManagement = () => {
         <Card className="border-border">
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground uppercase font-bold">Total in Pools</p>
-            <p className="text-3xl font-black">${stats.totalInPools.toFixed(2)}</p>
+            <p className="text-3xl font-black">${Number(stats.totalInPools).toFixed(2)}</p>
           </CardContent>
         </Card>
         <Card className="border-border">
@@ -187,7 +187,7 @@ export const JackpotManagement = () => {
                   <div className="grid grid-cols-3 gap-4 mb-3">
                     <div>
                       <p className="text-xs text-muted-foreground uppercase font-bold">Current Amount</p>
-                      <p className="text-lg font-black">${jackpot.currentAmount.toFixed(2)}</p>
+                      <p className="text-lg font-black">${Number(jackpot.currentAmount).toFixed(2)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground uppercase font-bold">Contribution</p>
@@ -239,7 +239,7 @@ export const JackpotManagement = () => {
                     <p className="font-bold">{win.playerName}</p>
                     <p className="text-xs text-muted-foreground">{win.jackpotName} • {win.wonAt}</p>
                   </div>
-                  <p className="font-black text-green-500">${win.amount.toFixed(2)}</p>
+                  <p className="font-black text-green-500">${Number(win.amount).toFixed(2)}</p>
                 </div>
               ))}
             </div>

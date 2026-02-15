@@ -138,7 +138,7 @@ const AdminWallet = () => {
             <DollarSign className="w-4 h-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-green-600">{totalSCCirculation.toFixed(2)}</div>
+            <div className="text-3xl font-black text-green-600">{Number(totalSCCirculation).toFixed(2)}</div>
             <p className="text-xs text-muted-foreground mt-1">Sweeps Coins distributed</p>
           </CardContent>
         </Card>

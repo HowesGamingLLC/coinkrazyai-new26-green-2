@@ -226,10 +226,10 @@ export const ScratchTicketHistory: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-sm">
-                      {transaction.balance_before.toFixed(2)} SC
+                      {Number(transaction.balance_before).toFixed(2)} SC
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-sm font-semibold">
-                      {transaction.balance_after.toFixed(2)} SC
+                      {Number(transaction.balance_after).toFixed(2)} SC
                     </td>
                     <td className="px-4 py-3 text-sm max-w-xs">
                       <p className="truncate" title={transaction.description}>

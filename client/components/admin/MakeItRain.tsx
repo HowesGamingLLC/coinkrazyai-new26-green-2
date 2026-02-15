@@ -112,7 +112,7 @@ export const MakeItRain = () => {
         <Card className="border-border">
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground uppercase font-bold">Distributed Today</p>
-            <p className="text-3xl font-black">${stats.distributedToday.toFixed(0)}</p>
+            <p className="text-3xl font-black">${Number(stats.distributedToday).toFixed(0)}</p>
             <p className="text-xs text-green-500 mt-2">{stats.activeCampaigns} active campaigns</p>
           </CardContent>
         </Card>
@@ -126,7 +126,7 @@ export const MakeItRain = () => {
         <Card className="border-border">
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground uppercase font-bold">Total Distributed</p>
-            <p className="text-3xl font-black">${stats.totalDistributed.toFixed(0)}</p>
+            <p className="text-3xl font-black">${Number(stats.totalDistributed).toFixed(0)}</p>
             <p className="text-xs text-green-500 mt-2">Lifetime</p>
           </CardContent>
         </Card>
@@ -233,7 +233,7 @@ export const MakeItRain = () => {
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                       <div>
                         <p className="text-xs text-muted-foreground uppercase font-bold">Amount</p>
-                        <p className="text-lg font-black">${campaign.amount.toFixed(2)}</p>
+                        <p className="text-lg font-black">${Number(campaign.amount).toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground uppercase font-bold">Target</p>
@@ -291,7 +291,7 @@ export const MakeItRain = () => {
                     <p className="text-xs text-muted-foreground">{campaign.createdAt} • {campaign.targetAudience}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-black">${campaign.amount.toFixed(2)}</p>
+                    <p className="font-black">${Number(campaign.amount).toFixed(2)}</p>
                     <Button size="sm" variant="ghost" className="h-6 text-xs">Edit</Button>
                   </div>
                 </div>

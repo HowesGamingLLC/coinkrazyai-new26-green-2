@@ -140,7 +140,7 @@ export const SalesTrackingDashboard: React.FC<SalesTrackingDashboardProps> = ({ 
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats?.total_revenue_sc?.toFixed(2) || '0'} SC
+              {Number(stats?.total_revenue_sc || 0).toFixed(2)} SC
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
               From {stats?.total_sales || 0} sales
@@ -156,7 +156,7 @@ export const SalesTrackingDashboard: React.FC<SalesTrackingDashboardProps> = ({ 
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {stats?.total_payouts_sc?.toFixed(2) || '0'} SC
+              {Number(stats?.total_payouts_sc || 0).toFixed(2)} SC
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
               Total prize winnings
@@ -172,7 +172,7 @@ export const SalesTrackingDashboard: React.FC<SalesTrackingDashboardProps> = ({ 
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {stats?.net_profit_sc?.toFixed(2) || '0'} SC
+              {Number(stats?.net_profit_sc || 0).toFixed(2)} SC
             </div>
             <p className="text-xs text-green-700 dark:text-green-300 mt-1">
               {profitMargin}% profit margin
@@ -188,7 +188,7 @@ export const SalesTrackingDashboard: React.FC<SalesTrackingDashboardProps> = ({ 
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats?.avg_win_amount?.toFixed(2) || '0'} SC
+              {Number(stats?.avg_win_amount || 0).toFixed(2)} SC
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
               Per winning transaction
@@ -217,21 +217,21 @@ export const SalesTrackingDashboard: React.FC<SalesTrackingDashboardProps> = ({ 
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold">
-                        {game.net_profit_sc.toFixed(2)} SC
+                        {Number(game.net_profit_sc).toFixed(2)} SC
                       </p>
                       <p className="text-xs text-gray-600 dark:text-gray-400">
-                        {(game.win_rate * 100).toFixed(1)}% win rate
+                        {(Number(game.win_rate) * 100).toFixed(1)}% win rate
                       </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="bg-green-50 dark:bg-green-900/20 rounded px-3 py-2">
                       <p className="text-xs text-gray-600 dark:text-gray-400">Revenue</p>
-                      <p className="font-semibold">{game.total_revenue_sc.toFixed(2)} SC</p>
+                      <p className="font-semibold">{Number(game.total_revenue_sc).toFixed(2)} SC</p>
                     </div>
                     <div className="bg-orange-50 dark:bg-orange-900/20 rounded px-3 py-2">
                       <p className="text-xs text-gray-600 dark:text-gray-400">Payouts</p>
-                      <p className="font-semibold text-orange-600">{game.total_payouts_sc.toFixed(2)} SC</p>
+                      <p className="font-semibold text-orange-600">{Number(game.total_payouts_sc).toFixed(2)} SC</p>
                     </div>
                   </div>
                 </div>
@@ -264,9 +264,9 @@ export const SalesTrackingDashboard: React.FC<SalesTrackingDashboardProps> = ({ 
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-green-600">{game.revenue_sc.toFixed(2)} SC</p>
+                    <p className="font-bold text-green-600">{Number(game.revenue_sc).toFixed(2)} SC</p>
                     <p className="text-xs text-orange-600">
-                      -{game.payouts_sc.toFixed(2)} SC payouts
+                      -{Number(game.payouts_sc).toFixed(2)} SC payouts
                     </p>
                   </div>
                 </div>
@@ -302,10 +302,10 @@ export const SalesTrackingDashboard: React.FC<SalesTrackingDashboardProps> = ({ 
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-green-600">
-                      +{day.total_revenue_sc.toFixed(2)} SC
+                      +{Number(day.total_revenue_sc).toFixed(2)} SC
                     </p>
                     <p className="text-xs text-orange-600">
-                      -{day.total_payouts_sc.toFixed(2)} SC payout
+                      -{Number(day.total_payouts_sc).toFixed(2)} SC payout
                     </p>
                   </div>
                 </div>

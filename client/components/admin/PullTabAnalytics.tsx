@@ -139,7 +139,7 @@ export function PullTabAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.win_percentage ? stats.win_percentage.toFixed(1) : 0}%
+                {stats.win_percentage ? Number(stats.win_percentage).toFixed(1) : 0}%
               </div>
               <p className="text-xs text-gray-500">
                 {stats.winning_tickets || 0} / {stats.total_tickets_purchased || 0} won

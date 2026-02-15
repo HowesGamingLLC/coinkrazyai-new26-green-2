@@ -101,21 +101,21 @@ export const RedemptionApprovals = () => {
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground uppercase font-bold">Pending</p>
             <p className="text-3xl font-black">{stats.pending}</p>
-            <p className="text-xs text-orange-500 mt-2">${stats.pendingAmount.toFixed(2)}</p>
+            <p className="text-xs text-orange-500 mt-2">${Number(stats.pendingAmount).toFixed(2)}</p>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground uppercase font-bold">Approved</p>
             <p className="text-3xl font-black">{stats.approved24h}</p>
-            <p className="text-xs text-green-500 mt-2">${stats.approvedAmount.toFixed(2)}</p>
+            <p className="text-xs text-green-500 mt-2">${Number(stats.approvedAmount).toFixed(2)}</p>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground uppercase font-bold">Rejected</p>
             <p className="text-3xl font-black">{stats.rejected24h}</p>
-            <p className="text-xs text-red-500 mt-2">${stats.rejectedAmount.toFixed(2)}</p>
+            <p className="text-xs text-red-500 mt-2">${Number(stats.rejectedAmount).toFixed(2)}</p>
           </CardContent>
         </Card>
         <Card className="border-border">
@@ -149,7 +149,7 @@ export const RedemptionApprovals = () => {
                       <p className="font-bold">{request.playerName}</p>
                       <p className="text-sm text-muted-foreground">{request.method} • {request.createdAt}</p>
                     </div>
-                    <p className="font-black text-lg">${request.amount.toFixed(2)}</p>
+                    <p className="font-black text-lg">${Number(request.amount).toFixed(2)}</p>
                   </div>
                   <div className="flex gap-2">
                     <Button 
@@ -198,7 +198,7 @@ export const RedemptionApprovals = () => {
                       <p className="font-bold text-sm">{request.playerName}</p>
                       <p className="text-xs text-muted-foreground">{request.method} • {request.createdAt}</p>
                     </div>
-                    <p className="font-black">${request.amount.toFixed(2)}</p>
+                    <p className="font-black">${Number(request.amount).toFixed(2)}</p>
                   </div>
                 ))}
             </div>

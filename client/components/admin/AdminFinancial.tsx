@@ -86,7 +86,7 @@ const AdminFinancial = () => {
                 <TrendingUp className="w-4 h-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${financialData.totalRevenue.toFixed(2)}</div>
+                <div className="text-2xl font-bold">${Number(financialData.totalRevenue).toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground">Last 30 days</p>
               </CardContent>
             </Card>
@@ -97,7 +97,7 @@ const AdminFinancial = () => {
                 <Wallet className="w-4 h-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${financialData.totalWagered.toFixed(2)}</div>
+                <div className="text-2xl font-bold">${Number(financialData.totalWagered).toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground">Player activity</p>
               </CardContent>
             </Card>
@@ -108,7 +108,7 @@ const AdminFinancial = () => {
                 <TrendingDown className="w-4 h-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${financialData.totalWinnings.toFixed(2)}</div>
+                <div className="text-2xl font-bold">${Number(financialData.totalWinnings).toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground">Paid to players</p>
               </CardContent>
             </Card>
@@ -119,7 +119,7 @@ const AdminFinancial = () => {
                 <DollarSign className="w-4 h-4 text-emerald-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${financialData.houseProfit.toFixed(2)}</div>
+                <div className="text-2xl font-bold">${Number(financialData.houseProfit).toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground">Net profit</p>
               </CardContent>
             </Card>
@@ -133,11 +133,11 @@ const AdminFinancial = () => {
               <div className="space-y-4">
                 <div className="flex justify-between border-b pb-3">
                   <span>Player Deposit Value</span>
-                  <span className="font-semibold">${financialData.playerDepositValue.toFixed(2)}</span>
+                  <span className="font-semibold">${Number(financialData.playerDepositValue).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between border-b pb-3">
                   <span>Withdrawals Pending</span>
-                  <span className="font-semibold text-orange-600">${financialData.withdrawalsPending.toFixed(2)}</span>
+                  <span className="font-semibold text-orange-600">${Number(financialData.withdrawalsPending).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between border-b pb-3">
                   <span>Payout Ratio</span>
@@ -215,7 +215,7 @@ const AdminFinancial = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-xl font-bold text-orange-600">
-                      ${financialData.withdrawalsPending.toFixed(2)}
+                      ${Number(financialData.withdrawalsPending).toFixed(2)}
                     </p>
                     <Button size="sm" variant="outline" className="mt-2">
                       Review
@@ -233,9 +233,9 @@ const AdminFinancial = () => {
                   <div className="text-right">
                     <p className="text-xl font-bold text-green-600">
                       $
-                      {redemptions
+                      {Number(redemptions
                         .filter(r => r.status === 'approved')
-                        .reduce((sum, r) => sum + (r.amount || 0), 0)
+                        .reduce((sum, r) => sum + (r.amount || 0), 0))
                         .toFixed(2)}
                     </p>
                     <Button size="sm" variant="outline" className="mt-2">
@@ -254,9 +254,9 @@ const AdminFinancial = () => {
                   <div className="text-right">
                     <p className="text-xl font-bold text-red-600">
                       $
-                      {redemptions
+                      {Number(redemptions
                         .filter(r => r.status === 'rejected')
-                        .reduce((sum, r) => sum + (r.amount || 0), 0)
+                        .reduce((sum, r) => sum + (r.amount || 0), 0))
                         .toFixed(2)}
                     </p>
                     <Button size="sm" variant="outline" className="mt-2">

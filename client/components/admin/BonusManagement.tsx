@@ -127,7 +127,7 @@ export const BonusManagement = () => {
         <Card className="border-border">
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground uppercase font-bold">Total Claimed</p>
-            <p className="text-3xl font-black">${stats.totalClaimed.toFixed(2)}</p>
+            <p className="text-3xl font-black">${Number(stats.totalClaimed).toFixed(2)}</p>
             <p className="text-xs text-muted-foreground mt-2">Lifetime</p>
           </CardContent>
         </Card>
@@ -237,7 +237,7 @@ export const BonusManagement = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div>
                         <p className="text-xs text-muted-foreground uppercase font-bold">Amount</p>
-                        <p className="text-lg font-black">${bonus.amount.toFixed(2)}</p>
+                        <p className="text-lg font-black">${Number(bonus.amount).toFixed(2)}</p>
                       </div>
                       {bonus.percentage && (
                         <div>
@@ -247,7 +247,7 @@ export const BonusManagement = () => {
                       )}
                       <div>
                         <p className="text-xs text-muted-foreground uppercase font-bold">Min Deposit</p>
-                        <p className="text-lg font-black">${bonus.minDeposit.toFixed(2)}</p>
+                        <p className="text-lg font-black">${Number(bonus.minDeposit).toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground uppercase font-bold">Usage</p>
