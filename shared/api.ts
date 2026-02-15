@@ -94,6 +94,19 @@ export interface GameInfo {
   activePlayers?: number;
 }
 
+// ===== SLOT GAMES =====
+export interface SlotGame {
+  id: string | number;
+  title: string;
+  provider: string;
+  image: string;
+  gameUrl: string;
+  badges: ('New' | 'Buy Bonus')[];
+  releaseDate?: string;
+  slug?: string;
+  thumbnail?: string;
+}
+
 // ===== SLOTS =====
 export interface SlotsSpinRequest {
   game_id: number;
