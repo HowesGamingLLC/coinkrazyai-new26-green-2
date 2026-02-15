@@ -27,28 +27,28 @@ class StoreService {
   // ===== PACKAGES =====
 
   async getPackages(): Promise<GoldCoinPackage[]> {
-    const result = await query('SELECT * FROM store_packs ORDER BY display_order ASC');
-    return result.rows;
+    const result = await query('SELECT * FROM store_packs ORDER BY position ASC');
+    return result.rows.map(row => this.mapRowToPackage(row));
   }
 
   async getActivePackages(): Promise<GoldCoinPackage[]> {
-    const result = await query('SELECT * FROM store_packs WHERE enabled = true ORDER BY display_order ASC');
-    return result.rows;
+    const result = await query('SELECT * FROM store_packs WHERE enabled = true ORDER BY position ASC');
+    return result.rows.map(row => this.mapRowToPackage(row));
   }
 
   async getPackageById(id: number): Promise<GoldCoinPackage | undefined> {
     const result = await query('SELECT * FROM store_packs WHERE id = $1', [id]);
-    return result.rows[0];
+    return result.rows[0] ? this.mapRowToPackage(result.rows[0]) : undefined;
   }
 
   async createPackage(data: Omit<GoldCoinPackage, 'id'>): Promise<GoldCoinPackage> {
     const result = await query(
-      `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_sc, bonus_percentage, is_popular, is_best_value, display_order, enabled)
+      `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_sc, bonus_percentage, is_popular, is_best_value, position, enabled)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
       [data.title, data.description, data.price_usd, data.gold_coins, data.sweeps_coins, data.bonus_sc, data.bonus_percentage, data.is_popular, data.is_best_value, data.display_order, data.enabled]
     );
-    return result.rows[0];
+    return this.mapRowToPackage(result.rows[0]);
   }
 
   async updatePackage(id: number, data: Partial<GoldCoinPackage>): Promise<GoldCoinPackage | undefined> {
@@ -57,7 +57,9 @@ class StoreService {
     let i = 1;
 
     Object.entries(data).forEach(([key, value]) => {
-      fields.push(`${key} = $${i++}`);
+      // Map display_order to position for database
+      const dbKey = key === 'display_order' ? 'position' : key;
+      fields.push(`${dbKey} = $${i++}`);
       values.push(value);
     });
 
@@ -68,12 +70,20 @@ class StoreService {
       `UPDATE store_packs SET ${fields.join(', ')}, updated_at = NOW() WHERE id = $${i} RETURNING *`,
       values
     );
-    return result.rows[0];
+    return result.rows[0] ? this.mapRowToPackage(result.rows[0]) : undefined;
   }
 
   async deletePackage(id: number): Promise<boolean> {
     const result = await query('DELETE FROM store_packs WHERE id = $1', [id]);
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // Helper to map database row to GoldCoinPackage interface
+  private mapRowToPackage(row: any): GoldCoinPackage {
+    return {
+      ...row,
+      display_order: row.position ?? row.display_order,
+    };
   }
 
   // ===== PAYMENT METHODS =====

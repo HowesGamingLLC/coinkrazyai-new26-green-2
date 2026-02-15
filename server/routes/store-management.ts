@@ -8,11 +8,24 @@ const getStringParam = (param: string | string[] | undefined): string => {
   return param || '';
 };
 
+
 // ===== GOLD COIN PACKAGES =====
 
 export const getStorePackages: RequestHandler = async (req, res) => {
   try {
     const packages = await storeService.getPackages();
+    console.log('[Store Management] getStorePackages (admin) returned:', {
+      count: packages.length,
+      packages: packages.map(p => ({
+        id: p.id,
+        title: p.title,
+        enabled: p.enabled,
+        display_order: p.display_order,
+        price_usd: p.price_usd,
+        gold_coins: p.gold_coins,
+        sweeps_coins: p.sweeps_coins
+      }))
+    });
     res.json({ success: true, data: packages });
   } catch (error) {
     console.error('Failed to get packages:', error);
@@ -22,11 +35,12 @@ export const getStorePackages: RequestHandler = async (req, res) => {
 
 export const createStorePackage: RequestHandler = async (req, res) => {
   try {
+    console.log('[Store Management] Creating package with request body:', req.body);
     const { title, description, price_usd, gold_coins, sweeps_coins, bonus_sc, bonus_percentage, is_popular, is_best_value, display_order } = req.body;
 
     // Validation
     if (!title || price_usd === undefined || gold_coins === undefined || sweeps_coins === undefined) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Missing required fields: title, price_usd, gold_coins, sweeps_coins' });
     }
 
     // Get the next display_order by finding the max existing one
@@ -35,11 +49,12 @@ export const createStorePackage: RequestHandler = async (req, res) => {
       const maxOrderResult = await query('SELECT MAX(display_order) as max_order FROM store_packs');
       const maxOrder = maxOrderResult.rows[0]?.max_order;
       nextOrder = (maxOrder ?? 0) + 1;
+      console.log('[Store Management] No display_order provided, calculated nextOrder:', nextOrder);
     } else {
       nextOrder = parseInt(display_order);
     }
 
-    const newPackage = await storeService.createPackage({
+    const packageData = {
       title,
       description: description || '',
       price_usd: parseFloat(price_usd),
@@ -51,13 +66,22 @@ export const createStorePackage: RequestHandler = async (req, res) => {
       is_best_value: is_best_value || false,
       display_order: nextOrder,
       enabled: true,
-    });
+    };
 
-    console.log('[Store Management] Created package:', { id: newPackage.id, title: newPackage.title, display_order: newPackage.display_order, enabled: newPackage.enabled });
+    console.log('[Store Management] Package data to insert:', packageData);
+    const newPackage = await storeService.createPackage(packageData);
+
+    console.log('[Store Management] Created package:', {
+      id: newPackage.id,
+      title: newPackage.title,
+      display_order: newPackage.display_order,
+      enabled: newPackage.enabled,
+      all_fields: newPackage
+    });
     res.status(201).json({ success: true, data: newPackage });
   } catch (error) {
-    console.error('Failed to create package:', error);
-    res.status(500).json({ error: 'Failed to create package' });
+    console.error('[Store Management] Failed to create package:', error);
+    res.status(500).json({ error: 'Failed to create package', details: String(error) });
   }
 };
 
@@ -73,7 +97,7 @@ export const updateStorePackage: RequestHandler = async (req, res) => {
       return res.status(404).json({ error: 'Package not found' });
     }
 
-    const updatedPackage = await storeService.updatePackage(packageId, {
+    const updateData = {
       title: title !== undefined ? title : existingPackage.title,
       description: description !== undefined ? description : existingPackage.description,
       price_usd: price_usd !== undefined ? parseFloat(price_usd) : existingPackage.price_usd,
@@ -84,7 +108,9 @@ export const updateStorePackage: RequestHandler = async (req, res) => {
       is_popular: is_popular !== undefined ? is_popular : existingPackage.is_popular,
       is_best_value: is_best_value !== undefined ? is_best_value : existingPackage.is_best_value,
       display_order: display_order !== undefined ? parseInt(display_order) : existingPackage.display_order,
-    });
+    };
+
+    const updatedPackage = await storeService.updatePackage(packageId, updateData);
 
     res.json({ success: true, data: updatedPackage });
   } catch (error) {

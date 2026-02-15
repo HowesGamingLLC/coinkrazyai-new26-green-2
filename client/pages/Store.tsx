@@ -66,10 +66,13 @@ const Store = () => {
 
     const fetchData = async () => {
       try {
+        console.log('[Store] Fetching packs...');
         const [packsRes, methodsRes] = await Promise.all([
           store.getPacks(),
           store.getPaymentMethods()
         ]);
+        console.log('[Store] Packs response:', packsRes);
+        console.log('[Store] Setting packs:', packsRes.data);
         setPacks(packsRes.data || []);
         const methodsData = methodsRes.data || [];
         const activeMethods = Array.isArray(methodsData) ? methodsData.filter((m: any) => m.is_active) : [];
