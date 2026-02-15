@@ -101,7 +101,7 @@ const ScratchTickets = () => {
     const design = designs.find(d => d.id === designId);
     if (!design) return;
 
-    if ((user.sc_balance || 0) < design.cost_sc) {
+    if (Number(user.sc_balance || 0) < design.cost_sc) {
       toast.error('Insufficient Sweeps Coins');
       return;
     }
