@@ -74,20 +74,24 @@ const AdminStore = () => {
         description: formData.get('description') as string,
         price_usd: parseFloat(formData.get('price') as string),
         gold_coins: parseInt(formData.get('gc') as string),
-        sweeps_coins: parseInt(formData.get('sc') as string),
-        bonus_sc: parseInt(formData.get('bonus') as string),
+        sweeps_coins: parseFloat(formData.get('sc') as string),
+        bonus_sc: parseFloat(formData.get('bonus') as string),
         bonus_percentage: 0,
         is_popular: false,
         is_best_value: false,
         display_order: packages.length + 1,
         enabled: true,
       };
-      await adminV2.store.createPackage(newPackageData);
+      console.log('[AdminStore] Creating package with data:', newPackageData);
+      const response = await adminV2.store.createPackage(newPackageData);
+      console.log('[AdminStore] Package created:', response);
       setShowNewPackageForm(false);
-      toast.success('Package created');
+      toast.success('Package created! Refreshing...');
       (e.target as HTMLFormElement).reset();
-      loadData();
+      await loadData();
+      toast.success('Package now visible in store');
     } catch (error: any) {
+      console.error('[AdminStore] Create package error:', error);
       toast.error(error.message || 'Failed to create package');
     } finally {
       setIsLoading(false);
