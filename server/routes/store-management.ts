@@ -15,11 +15,11 @@ export const getStorePackages: RequestHandler = async (req, res) => {
 
 export const createStorePackage: RequestHandler = async (req, res) => {
   try {
-    const { title, description, price_usd, gold_coins, sweeps_coins, bonus_sc, bonus_percentage, is_popular, is_best_value, display_order } = req.body;
+    const { title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, display_order } = req.body;
 
     // Validation
-    if (!title || price_usd === undefined || gold_coins === undefined || sweeps_coins === undefined) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!title || price_usd === undefined || gold_coins === undefined) {
+      return res.status(400).json({ error: 'Missing required fields: title, price_usd, gold_coins' });
     }
 
     const newPackage = await storeService.createPackage({
@@ -27,26 +27,26 @@ export const createStorePackage: RequestHandler = async (req, res) => {
       description: description || '',
       price_usd: parseFloat(price_usd),
       gold_coins: parseInt(gold_coins),
-      sweeps_coins: parseFloat(sweeps_coins),
-      bonus_sc: parseFloat(bonus_sc) || 0,
-      bonus_percentage: parseInt(bonus_percentage) || 0,
+      sweeps_coins: sweeps_coins ? parseFloat(sweeps_coins) : 0,
+      bonus_percentage: bonus_percentage ? parseInt(bonus_percentage) : 0,
       is_popular: is_popular || false,
       is_best_value: is_best_value || false,
-      display_order: parseInt(display_order) || 1,
+      display_order: display_order ? parseInt(display_order) : 0,
       enabled: true,
     });
 
+    console.log('[Store] Created new package:', newPackage);
     res.status(201).json({ success: true, data: newPackage });
   } catch (error) {
     console.error('Failed to create package:', error);
-    res.status(500).json({ error: 'Failed to create package' });
+    res.status(500).json({ error: 'Failed to create package', details: (error as Error).message });
   }
 };
 
 export const updateStorePackage: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, price_usd, gold_coins, sweeps_coins, bonus_sc, bonus_percentage, is_popular, is_best_value, display_order } = req.body;
+    const { title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, display_order } = req.body;
 
     const packageId = parseInt(id);
     const existingPackage = await storeService.getPackageById(packageId);
@@ -61,17 +61,18 @@ export const updateStorePackage: RequestHandler = async (req, res) => {
       price_usd: price_usd !== undefined ? parseFloat(price_usd) : existingPackage.price_usd,
       gold_coins: gold_coins !== undefined ? parseInt(gold_coins) : existingPackage.gold_coins,
       sweeps_coins: sweeps_coins !== undefined ? parseFloat(sweeps_coins) : existingPackage.sweeps_coins,
-      bonus_sc: bonus_sc !== undefined ? parseFloat(bonus_sc) : existingPackage.bonus_sc,
       bonus_percentage: bonus_percentage !== undefined ? parseInt(bonus_percentage) : existingPackage.bonus_percentage,
       is_popular: is_popular !== undefined ? is_popular : existingPackage.is_popular,
       is_best_value: is_best_value !== undefined ? is_best_value : existingPackage.is_best_value,
-      display_order: display_order !== undefined ? parseInt(display_order) : existingPackage.display_order,
+      display_order: display_order !== undefined ? parseInt(display_order) : (existingPackage.display_order || 0),
+      enabled: true,
     });
 
+    console.log('[Store] Updated package:', updatedPackage);
     res.json({ success: true, data: updatedPackage });
   } catch (error) {
     console.error('Failed to update package:', error);
-    res.status(500).json({ error: 'Failed to update package' });
+    res.status(500).json({ error: 'Failed to update package', details: (error as Error).message });
   }
 };
 

@@ -117,10 +117,8 @@ const Store = () => {
           store.getPaymentMethods()
         ]);
         const packsData = packsRes.data || [];
-        // Sort packs by price or position
-        const sortedPacks = Array.isArray(packsData)
-          ? packsData.sort((a: any, b: any) => (a.position || 0) - (b.position || 0))
-          : [];
+        // Packs are already sorted by display_order from backend
+        const sortedPacks = Array.isArray(packsData) ? packsData : [];
         setPacks(sortedPacks);
 
         const methodsData = methodsRes.data || [];

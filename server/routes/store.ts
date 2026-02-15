@@ -10,6 +10,14 @@ export const handleGetPacks: RequestHandler = async (req, res) => {
     // Get packages from store service (includes admin-created packages)
     const packs = await storeService.getActivePackages();
 
+    console.log(`[Store] Retrieved ${packs.length} active packs:`, packs.map(p => ({
+      id: p.id,
+      title: p.title,
+      enabled: p.enabled,
+      position: p.position,
+      price_usd: p.price_usd
+    })));
+
     res.json({
       success: true,
       data: packs
@@ -18,7 +26,8 @@ export const handleGetPacks: RequestHandler = async (req, res) => {
     console.error('[Store] Get packs error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to get packs'
+      error: 'Failed to get packs',
+      details: (error as Error).message
     });
   }
 };
