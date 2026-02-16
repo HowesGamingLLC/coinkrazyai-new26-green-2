@@ -50,18 +50,23 @@ export const importSingleGame: RequestHandler = async (req, res) => {
     // Insert game
     const result = await query(
       `INSERT INTO games (
-        name, 
-        provider, 
-        category, 
-        rtp, 
-        volatility, 
-        enabled, 
-        description, 
+        name,
+        provider,
+        category,
+        rtp,
+        volatility,
+        enabled,
+        description,
         image_url,
+        slug,
+        series,
+        family,
+        type,
+        embed_url,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-       RETURNING id, name, provider, category, rtp, image_url, enabled`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+       RETURNING id, name, provider, category, rtp, image_url, slug, series, family, type, embed_url, enabled`,
       [
         gameData.name,
         gameData.provider,
@@ -71,6 +76,11 @@ export const importSingleGame: RequestHandler = async (req, res) => {
         gameData.enabled !== false,
         gameData.description || `${gameData.name} by ${gameData.provider}`,
         gameData.image_url || gameData.thumbnail || null,
+        gameData.slug || null,
+        gameData.series || null,
+        gameData.family || null,
+        gameData.type || null,
+        gameData.embed_url || null,
       ]
     );
 
@@ -150,18 +160,23 @@ export const bulkImportGamesProvider: RequestHandler = async (req, res) => {
         // Insert game
         const result = await query(
           `INSERT INTO games (
-            name, 
-            provider, 
-            category, 
-            rtp, 
-            volatility, 
-            enabled, 
-            description, 
+            name,
+            provider,
+            category,
+            rtp,
+            volatility,
+            enabled,
+            description,
             image_url,
+            slug,
+            series,
+            family,
+            type,
+            embed_url,
             created_at,
             updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-           RETURNING id, name, provider, category, rtp, image_url, enabled`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+           RETURNING id, name, provider, category, rtp, image_url, slug, series, family, type, embed_url, enabled`,
           [
             game.name,
             game.provider,
@@ -171,6 +186,11 @@ export const bulkImportGamesProvider: RequestHandler = async (req, res) => {
             game.enabled !== false,
             game.description || `${game.name} by ${game.provider}`,
             game.image_url || game.thumbnail || null,
+            game.slug || null,
+            game.series || null,
+            game.family || null,
+            game.type || null,
+            game.embed_url || null,
           ]
         );
 

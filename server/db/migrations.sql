@@ -318,3 +318,25 @@ CREATE TABLE IF NOT EXISTS provider_api_logs (
 
 CREATE INDEX IF NOT EXISTS idx_provider_api_logs_provider_id ON provider_api_logs(provider_id);
 CREATE INDEX IF NOT EXISTS idx_provider_api_logs_created_at ON provider_api_logs(created_at);
+
+-- ===== MIGRATION: Add new game columns =====
+-- This migration adds support for the new game import format
+ALTER TABLE IF EXISTS games
+ADD COLUMN IF NOT EXISTS slug VARCHAR(255),
+ADD COLUMN IF NOT EXISTS series VARCHAR(255),
+ADD COLUMN IF NOT EXISTS family VARCHAR(255),
+ADD COLUMN IF NOT EXISTS type VARCHAR(100),
+ADD COLUMN IF NOT EXISTS embed_url VARCHAR(500);
+
+-- Add indexes for new columns
+CREATE INDEX IF NOT EXISTS idx_games_slug ON games(slug);
+CREATE INDEX IF NOT EXISTS idx_games_provider ON games(provider);
+
+-- ===== CLEAR ALL GAMES =====
+-- Delete all existing games to prepare for new import
+DELETE FROM games;
+TRUNCATE TABLE game_config CASCADE;
+TRUNCATE TABLE game_features CASCADE;
+TRUNCATE TABLE game_themes CASCADE;
+TRUNCATE TABLE game_feature_mappings CASCADE;
+TRUNCATE TABLE game_theme_mappings CASCADE;

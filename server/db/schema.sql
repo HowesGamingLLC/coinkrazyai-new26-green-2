@@ -81,12 +81,19 @@ CREATE TABLE IF NOT EXISTS games (
   enabled BOOLEAN DEFAULT TRUE,
   description TEXT,
   image_url VARCHAR(500),
+  slug VARCHAR(255),
+  series VARCHAR(255),
+  family VARCHAR(255),
+  type VARCHAR(100),
+  embed_url VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_games_category ON games(category);
 CREATE INDEX IF NOT EXISTS idx_games_enabled ON games(enabled);
+CREATE INDEX IF NOT EXISTS idx_games_slug ON games(slug);
+CREATE INDEX IF NOT EXISTS idx_games_provider ON games(provider);
 
 -- ===== PLAYER STATS TABLE =====
 CREATE TABLE IF NOT EXISTS player_stats (
