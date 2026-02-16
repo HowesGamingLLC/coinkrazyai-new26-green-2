@@ -11,6 +11,7 @@ import { ScratchTicketDesigner } from './ScratchTicketDesigner';
 import { PullTabDesigner } from './PullTabDesigner';
 import { PullTabAnalytics } from './PullTabAnalytics';
 import AdminGameAggregation from './AdminGameAggregation';
+import GameAggregationManager from './GameAggregationManager';
 
 const AdminGamesSports = () => {
   const [games, setGames] = useState<any[]>([]);
@@ -928,6 +929,11 @@ const AdminGamesSports = () => {
         {/* Scratch Tickets */}
         <TabsContent value="scratch" className="space-y-4">
           <ScratchTicketDesigner />
+        </TabsContent>
+
+        {/* Game Aggregation & Import */}
+        <TabsContent value="aggregation" className="space-y-4">
+          <GameAggregationManager />
         </TabsContent>
 
         {/* Game Ingestion */}

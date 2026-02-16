@@ -347,12 +347,13 @@ class GameAggregationService {
 
         if (existingResult.rows.length > 0) {
           await query(
-            `UPDATE games SET 
-             name = $1, description = $2, rtp = $3, volatility = $4,
-             image_url = $5, features = $6, updated_at = NOW()
-             WHERE external_id = $7 AND provider = $8`,
-            [game.name, game.description, game.rtp, game.volatility,
-             game.image_url, JSON.stringify(game.features), game.external_id, game.provider_name]
+            `UPDATE games SET
+             name = $1, description = $2, category = $3, rtp = $4, volatility = $5,
+             image_url = $6, features = $7, themes = $8, enabled = $9, updated_at = NOW()
+             WHERE external_id = $10 AND provider = $11`,
+            [game.name, game.description, game.category, game.rtp, game.volatility,
+             game.image_url, JSON.stringify(game.features), JSON.stringify(game.themes), game.enabled,
+             game.external_id, game.provider_name]
           );
           updated++;
         } else {
