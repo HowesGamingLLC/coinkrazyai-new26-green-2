@@ -31,32 +31,149 @@ import PullTabs from "./pages/PullTabs";
 
 const queryClient = new QueryClient();
 
-// Component that wraps routes with Layout (needs to be inside Router)
+// Component that wraps individual routes with Layout (needs to be inside Router AND AuthProvider)
 const AppRoutes = () => (
-  <Layout>
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/games" element={<Games />} />
-      <Route path="/casino" element={<Casino />} />
-      <Route path="/store" element={<Store />} />
-      <Route path="/slots" element={<Slots />} />
-      <Route path="/poker" element={<Poker />} />
-      <Route path="/bingo" element={<Bingo />} />
-      <Route path="/sportsbook" element={<Sportsbook />} />
-      <Route path="/scratch-tickets" element={<ScratchTickets />} />
-      <Route path="/pull-tabs" element={<PullTabs />} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/account" element={<Account />} />
-      <Route path="/wallet" element={<Wallet />} />
-      <Route path="/leaderboards" element={<Leaderboards />} />
-      <Route path="/achievements" element={<Achievements />} />
-      <Route path="/support" element={<Support />} />
-      <Route path="/admin" element={<Admin />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  </Layout>
+  <Routes>
+    <Route path="/login" element={<Login />} />
+    <Route path="/register" element={<Register />} />
+    <Route
+      path="/"
+      element={
+        <Layout>
+          <Index />
+        </Layout>
+      }
+    />
+    <Route
+      path="/games"
+      element={
+        <Layout>
+          <Games />
+        </Layout>
+      }
+    />
+    <Route
+      path="/casino"
+      element={
+        <Layout>
+          <Casino />
+        </Layout>
+      }
+    />
+    <Route
+      path="/store"
+      element={
+        <Layout>
+          <Store />
+        </Layout>
+      }
+    />
+    <Route
+      path="/slots"
+      element={
+        <Layout>
+          <Slots />
+        </Layout>
+      }
+    />
+    <Route
+      path="/poker"
+      element={
+        <Layout>
+          <Poker />
+        </Layout>
+      }
+    />
+    <Route
+      path="/bingo"
+      element={
+        <Layout>
+          <Bingo />
+        </Layout>
+      }
+    />
+    <Route
+      path="/sportsbook"
+      element={
+        <Layout>
+          <Sportsbook />
+        </Layout>
+      }
+    />
+    <Route
+      path="/scratch-tickets"
+      element={
+        <Layout>
+          <ScratchTickets />
+        </Layout>
+      }
+    />
+    <Route
+      path="/pull-tabs"
+      element={
+        <Layout>
+          <PullTabs />
+        </Layout>
+      }
+    />
+    <Route
+      path="/profile"
+      element={
+        <Layout>
+          <Profile />
+        </Layout>
+      }
+    />
+    <Route
+      path="/account"
+      element={
+        <Layout>
+          <Account />
+        </Layout>
+      }
+    />
+    <Route
+      path="/wallet"
+      element={
+        <Layout>
+          <Wallet />
+        </Layout>
+      }
+    />
+    <Route
+      path="/leaderboards"
+      element={
+        <Layout>
+          <Leaderboards />
+        </Layout>
+      }
+    />
+    <Route
+      path="/achievements"
+      element={
+        <Layout>
+          <Achievements />
+        </Layout>
+      }
+    />
+    <Route
+      path="/support"
+      element={
+        <Layout>
+          <Support />
+        </Layout>
+      }
+    />
+    <Route
+      path="/admin"
+      element={
+        <Layout>
+          <Admin />
+        </Layout>
+      }
+    />
+    <Route path="*" element={<NotFound />} />
+  </Routes>
 );
 
 const App = () => (
