@@ -53,6 +53,7 @@ import {
 } from "./routes/admin";
 import { handleSpin, handleGetConfig as getSlotsConfig, handleUpdateConfig as updateSlotsConfig } from "./routes/slots";
 import { handleImportGames } from "./routes/game-import";
+import { importSingleGame, bulkImportGamesProvider, getImportHistoryProvider, getGamesByProviderRoute } from "./routes/game-provider-import";
 import { handlePlayCasinoGame, handleGetSpinHistory, handleGetSpinStats } from "./routes/casino";
 import {
   handleGetPokerTables,
@@ -461,6 +462,12 @@ export function createServer() {
   app.get("/api/games/debug", handleDebugGetGames);
   app.get("/api/games", handleGetGames);
   app.get("/api/games/:id", handleGetGameById);
+
+  // ===== GAME IMPORT ROUTES =====
+  app.post("/api/admin/games/import/single", verifyAdmin, importSingleGame);
+  app.post("/api/admin/games/import/bulk", verifyAdmin, bulkImportGamesProvider);
+  app.get("/api/admin/games/import/history", verifyAdmin, getImportHistoryProvider);
+  app.get("/api/admin/games/provider/:provider", verifyAdmin, getGamesByProviderRoute);
 
   // ===== ADMIN ROUTES =====
   app.post("/api/admin/login", handleAdminLogin);

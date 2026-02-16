@@ -1,341 +1,186 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/lib/auth-context';
-import { games as gamesAPI } from '@/lib/api';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Star, Users, TrendingUp, Search, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
-import { GameInfo } from '@shared/api';
+import { Spinner } from '@/components/ui/spinner';
 import { toast } from 'sonner';
+import { Play } from 'lucide-react';
+
+interface Game {
+  id: number;
+  name: string;
+  provider: string;
+  category: string;
+  rtp?: number;
+  volatility?: string;
+  enabled: boolean;
+  image_url?: string;
+  description?: string;
+  created_at?: string;
+}
 
 const Games = () => {
-  const navigate = useNavigate();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const [gamesList, setGamesList] = useState<GameInfo[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | string>('all');
+  const [providers, setProviders] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      navigate('/login');
-      return;
-    }
+    fetchGames();
+  }, [filter]);
 
-    const fetchGames = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const res = await gamesAPI.getGames();
-        if (res.success || res.data) {
-          setGamesList(res.data || []);
-        } else {
-          setError('Failed to load games');
-        }
-      } catch (err: any) {
-        const message = err.message || 'Failed to load games';
-        console.error('Failed to fetch games:', err);
-        setError(message);
-        toast.error(message);
-      } finally {
-        setIsLoading(false);
+  const fetchGames = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/games');
+      if (!response.ok) throw new Error('Failed to fetch games');
+      
+      const data = await response.json();
+      let gamesList = data.games || data || [];
+      
+      // Filter enabled games only
+      gamesList = gamesList.filter((g: Game) => g.enabled !== false);
+
+      // Extract unique providers
+      const uniqueProviders = [...new Set(gamesList.map((g: Game) => g.provider))];
+      setProviders(uniqueProviders.sort());
+
+      // Apply filter
+      if (filter !== 'all') {
+        gamesList = gamesList.filter((g: Game) => g.provider === filter);
       }
-    };
 
-    if (isAuthenticated) {
-      fetchGames();
-    }
-  }, [isAuthenticated, authLoading, navigate]);
-
-  const categories = [
-    { id: 'all', label: 'All Games' },
-    { id: 'slots', label: 'Slots' },
-    { id: 'poker', label: 'Poker' },
-    { id: 'bingo', label: 'Bingo' },
-    { id: 'sportsbook', label: 'Sports' },
-    { id: 'scratch-tickets', label: 'Scratch Tickets' },
-    { id: 'pull-tabs', label: 'Pull Tabs' }
-  ];
-
-  // Lottery games (Scratch Tickets and Pull Tabs)
-  const lotteryGames = [
-    {
-      id: 'scratch-tickets',
-      name: 'Scratch Tickets',
-      type: 'scratch-tickets',
-      description: 'Scratch off to reveal instant prizes!',
-      icon: '🎫'
-    },
-    {
-      id: 'pull-tabs',
-      name: 'Pull Tab Lottery',
-      type: 'pull-tabs',
-      description: 'Pull tabs and win big SC prizes!',
-      icon: '🎟️'
-    }
-  ];
-
-  // Combine regular games with lottery games
-  const allGames = [...gamesList, ...lotteryGames];
-
-  const filtered = allGames.filter(g => {
-    const categoryMatch = selectedCategory === 'all' || (g.type && g.type.toLowerCase() === selectedCategory);
-    const searchMatch = g.name && g.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return categoryMatch && searchMatch;
-  });
-
-  const featured = allGames.slice(0, 4);
-
-  const handlePlayGame = (game: any) => {
-    const gameTypeMap: { [key: string]: string } = {
-      'slots': '/slots',
-      'poker': '/poker',
-      'bingo': '/bingo',
-      'sportsbook': '/sportsbook',
-      'scratch-tickets': '/scratch-tickets',
-      'pull-tabs': '/pull-tabs'
-    };
-
-    const route = gameTypeMap[game.type?.toLowerCase() || ''];
-    if (route) {
-      navigate(route);
-    } else {
-      toast.info('Game not available yet');
+      setGames(gamesList);
+    } catch (error) {
+      console.error('Error fetching games:', error);
+      toast.error('Failed to load games');
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/30">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 text-primary animate-spin" />
-          <p className="text-muted-foreground">Loading games...</p>
-        </div>
-      </div>
-    );
-  }
+  const getPlaceholderImage = (provider: string) => {
+    return `https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=300&h=300&fit=crop&q=80`;
+  };
+
+  const getCategoryColor = (category: string) => {
+    const colors: { [key: string]: string } = {
+      'Slots': 'bg-purple-100 text-purple-800',
+      'Table Games': 'bg-blue-100 text-blue-800',
+      'Casino Games': 'bg-green-100 text-green-800',
+      'Poker': 'bg-red-100 text-red-800',
+      'Bingo': 'bg-yellow-100 text-yellow-800',
+      'BlackJack': 'bg-indigo-100 text-indigo-800',
+      'Roulette': 'bg-pink-100 text-pink-800',
+    };
+    return colors[category] || 'bg-gray-100 text-gray-800';
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-4xl font-black">Game Library</h1>
-          <p className="text-muted-foreground mt-2">
-            {allGames.length} games available • Play now and win big!
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Game Library</h1>
+          <p className="text-gray-600">Explore our collection of premium games</p>
         </div>
 
-        {/* Error Alert */}
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="flex items-center justify-between">
-              <span>{error}</span>
+        {/* Filter Section */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-gray-600">Filter by Provider:</span>
+            <Button
+              variant={filter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('all')}
+            >
+              All ({games.length})
+            </Button>
+            {providers.map((provider) => (
               <Button
-                variant="outline"
+                key={provider}
+                variant={filter === provider ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => window.location.reload()}
-                className="ml-4"
+                onClick={() => setFilter(provider)}
               >
-                <RefreshCw className="w-4 h-4 mr-1" />
-                Retry
+                {provider}
               </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Featured Games */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-black flex items-center gap-2">
-            <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
-            Featured Games
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {featured.map((game) => (
-              <Card
-                key={game.id}
-                className="border-primary/20 cursor-pointer hover:border-primary/50 transition-all hover:scale-105 overflow-hidden group"
-                onClick={() => handlePlayGame(game)}
-              >
-                {/* Game Image */}
-                <div className="relative w-full aspect-video bg-muted overflow-hidden">
-                  {game.image ? (
-                    <img
-                      src={game.image}
-                      alt={game.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f0f0f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='20' fill='%23999'%3E${game.type === 'slots' ? '🎰' : game.type === 'poker' ? '♠️' : game.type === 'bingo' ? '🎲' : game.type === 'sportsbook' ? '⚽' : game.type === 'scratch-tickets' ? '🎫' : game.type === 'pull-tabs' ? '🎟️' : '🎮'}%3C/text%3E%3C/svg%3E`;
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-6xl bg-gradient-to-br from-muted to-muted/50">
-                      {game.type === 'slots' && '🎰'}
-                      {game.type === 'poker' && '♠️'}
-                      {game.type === 'bingo' && '🎲'}
-                      {game.type === 'sportsbook' && '⚽'}
-                      {game.type === 'scratch-tickets' && '🎫'}
-                      {game.type === 'pull-tabs' && '🎟️'}
-                      {game.icon && !['slots', 'poker', 'bingo', 'sportsbook', 'scratch-tickets', 'pull-tabs'].includes(game.type) && game.icon}
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
-                    <Button
-                      className="bg-primary hover:bg-primary/90 font-bold"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePlayGame(game);
-                      }}
-                    >
-                      Play Now
-                    </Button>
-                  </div>
-                </div>
-
-                <CardContent className="p-4 space-y-3">
-                  <h3 className="font-bold text-sm line-clamp-2">{game.name}</h3>
-                  <div className="flex items-center justify-between text-xs">
-                    <Badge className="text-xs bg-muted/50 border-none">
-                      {game.type?.toUpperCase()}
-                    </Badge>
-                    {game.rtp && (
-                      <div className="flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3 text-green-500" />
-                        <span className="font-bold text-green-500">{game.rtp}%</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {game.activePlayers && (
-                      <div className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {game.activePlayers} playing now
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Search and Filter */}
-        <div className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search games..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-muted/50"
-            />
-          </div>
-
-          {/* Category Filter */}
-          <div className="flex gap-2 overflow-x-auto">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-4 py-2 rounded-lg font-bold whitespace-nowrap transition-colors ${
-                  selectedCategory === cat.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-foreground hover:bg-muted/70'
-                }`}
-              >
-                {cat.label}
-              </button>
             ))}
           </div>
         </div>
 
         {/* Games Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.length > 0 ? (
-            filtered.map((game) => (
+        {loading ? (
+          <div className="flex justify-center items-center min-h-64">
+            <Spinner className="w-8 h-8" />
+          </div>
+        ) : games.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-gray-500 text-lg">No games found</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {games.map((game) => (
               <Card
                 key={game.id}
-                className="border-border cursor-pointer hover:border-primary/30 transition-all hover:scale-105 overflow-hidden group"
-                onClick={() => handlePlayGame(game)}
+                className="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer group"
               >
                 {/* Game Image */}
-                <div className="relative w-full aspect-video bg-muted overflow-hidden">
-                  {game.image ? (
-                    <img
-                      src={game.image}
-                      alt={game.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f0f0f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='20' fill='%23999'%3E${game.type === 'slots' ? '🎰' : game.type === 'poker' ? '♠️' : game.type === 'bingo' ? '🎲' : game.type === 'sportsbook' ? '⚽' : game.type === 'scratch-tickets' ? '🎫' : game.type === 'pull-tabs' ? '🎟️' : '🎮'}%3C/text%3E%3C/svg%3E`;
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-6xl bg-gradient-to-br from-muted to-muted/50">
-                      {game.type === 'slots' && '🎰'}
-                      {game.type === 'poker' && '♠️'}
-                      {game.type === 'bingo' && '🎲'}
-                      {game.type === 'sportsbook' && '⚽'}
-                      {game.type === 'scratch-tickets' && '🎫'}
-                      {game.type === 'pull-tabs' && '🎟️'}
-                      {game.icon && !['slots', 'poker', 'bingo', 'sportsbook', 'scratch-tickets', 'pull-tabs'].includes(game.type) && game.icon}
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                <div className="relative w-full aspect-square bg-gray-200 overflow-hidden">
+                  <img
+                    src={game.image_url || getPlaceholderImage(game.provider)}
+                    alt={game.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">
                     <Button
-                      className="bg-primary hover:bg-primary/90"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePlayGame(game);
-                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-blue-600 hover:bg-blue-700"
+                      size="sm"
                     >
-                      Play Now
+                      <Play className="w-4 h-4 mr-2" />
+                      Play
                     </Button>
                   </div>
                 </div>
 
-                <CardContent className="p-4 space-y-3">
-                  <h3 className="font-bold text-sm line-clamp-2">{game.name}</h3>
-                  <div className="flex items-center justify-between text-xs">
-                    <Badge className="text-xs bg-muted/50 border-none">
-                      {game.type?.toUpperCase()}
+                {/* Game Info */}
+                <div className="p-4">
+                  <h3 className="font-bold text-gray-900 mb-1 line-clamp-2">{game.name}</h3>
+                  <p className="text-sm text-gray-600 mb-3">{game.provider}</p>
+
+                  {/* Badges */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <Badge className={getCategoryColor(game.category)}>
+                      {game.category}
                     </Badge>
                     {game.rtp && (
-                      <div className="flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3 text-green-500" />
-                        <span className="font-bold text-green-500">{game.rtp}%</span>
-                      </div>
+                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                        RTP {game.rtp}%
+                      </Badge>
+                    )}
+                    {game.volatility && (
+                      <Badge variant="secondary">
+                        {game.volatility}
+                      </Badge>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground space-y-1">
-                    {game.description && (
-                      <p className="line-clamp-2">{game.description}</p>
-                    )}
-                    {game.activePlayers && (
-                      <div className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {game.activePlayers} playing now
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
+
+                  {/* Description */}
+                  {game.description && (
+                    <p className="text-xs text-gray-500 line-clamp-2 mb-3">
+                      {game.description}
+                    </p>
+                  )}
+
+                  {/* Play Button */}
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                    Play Now
+                  </Button>
+                </div>
               </Card>
-            ))
-          ) : (
-            <Card className="border-border/30 col-span-full">
-              <CardContent className="p-8 text-center">
-                <p className="text-muted-foreground text-lg">
-                  {searchTerm || selectedCategory !== 'all'
-                    ? 'No games found matching your search.'
-                    : 'No games available.'}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

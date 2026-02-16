@@ -576,6 +576,40 @@ const seedDatabase = async () => {
     } else {
       console.log('[DB] Pragmatic games already exist, skipping seed');
     }
+
+    // Ensure Novomatic games exist
+    const novomaticCount = await query(
+      'SELECT COUNT(*) as count FROM games WHERE provider = $1',
+      ['Novomatic']
+    );
+
+    if (parseInt(novomaticCount.rows[0].count) === 0) {
+      console.log('[DB] Seeding Novomatic games...');
+      const novomaticGames = [
+        ['Lord of the Ocean', 'Slots', 'Novomatic', 96.0, 'Medium', 'Underwater-themed video slot with oceanic treasures and exciting bonuses', true],
+        ['Book of Ra', 'Slots', 'Novomatic', 96.0, 'High', 'Classic Egyptian adventure with mystery symbol features', true],
+        ['Sizzling Hot', 'Slots', 'Novomatic', 96.0, 'Medium', 'Hot fruit-themed slot with instant win mechanics', true],
+        ['Deluxe Hot', 'Slots', 'Novomatic', 96.0, 'Medium', 'Enhanced version of classic hot fruit theme', true],
+        ['Magic Mirror', 'Slots', 'Novomatic', 96.0, 'High', 'Magical mirror that reveals hidden treasures', true],
+        ['Ultra Hot', 'Slots', 'Novomatic', 96.0, 'Medium', 'Extreme heat brings extreme wins', true],
+      ];
+
+      for (const game of novomaticGames) {
+        try {
+          await query(
+            `INSERT INTO games (name, category, provider, rtp, volatility, description, enabled)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            game
+          );
+        } catch (err: any) {
+          // Game might already exist, that's okay
+          if (err.code !== '23505') {
+            console.log('[DB] Error seeding game:', err.message?.substring(0, 100));
+          }
+        }
+      }
+      console.log('[DB] Novomatic games seeded successfully');
+    }
   } catch (error) {
     console.error('[DB] Seeding failed:', error);
     throw error;
