@@ -249,6 +249,24 @@ import {
   getMyTickets as getMyPullTabTickets,
   getTransactionHistory as getPullTabTransactionHistory
 } from "./routes/pull-tabs";
+
+// ===== PROVIDER MANAGEMENT =====
+import {
+  getProviders,
+  getProvider,
+  createProvider,
+  updateProvider,
+  deleteProvider,
+  testProvider,
+  syncProvider,
+  syncAllProviders,
+  getImportHistory,
+  getProviderLogs,
+  getAvailableProviders,
+  getProviderGames,
+  exportGames,
+  bulkImportGames
+} from "./routes/provider-management";
 import {
   getDesigns as getPullTabAdminDesigns,
   getDesign as getPullTabAdminDesign,
@@ -756,6 +774,22 @@ export function createServer() {
   app.get("/api/messages/threads", verifyPlayer, handleGetMessageThreads);
   app.delete("/api/messages/:messageId", verifyPlayer, handleDeleteMessage);
   app.get("/api/messages/stats", verifyPlayer, handleGetMessageStats);
+
+  // ===== PROVIDER MANAGEMENT & AGGREGATION =====
+  app.get("/api/admin/v2/aggregation/providers", verifyAdmin, getProviders);
+  app.get("/api/admin/v2/aggregation/providers/:providerId", verifyAdmin, getProvider);
+  app.post("/api/admin/v2/aggregation/providers", verifyAdmin, createProvider);
+  app.put("/api/admin/v2/aggregation/providers/:providerId", verifyAdmin, updateProvider);
+  app.delete("/api/admin/v2/aggregation/providers/:providerId", verifyAdmin, deleteProvider);
+  app.post("/api/admin/v2/aggregation/providers/:providerId/test", verifyAdmin, testProvider);
+  app.post("/api/admin/v2/aggregation/providers/:providerId/sync", verifyAdmin, syncProvider);
+  app.post("/api/admin/v2/aggregation/sync-all", verifyAdmin, syncAllProviders);
+  app.get("/api/admin/v2/aggregation/providers/:providerId/history", verifyAdmin, getImportHistory);
+  app.get("/api/admin/v2/aggregation/providers/:providerId/logs", verifyAdmin, getProviderLogs);
+  app.get("/api/admin/v2/aggregation/providers/:providerId/games", verifyAdmin, getProviderGames);
+  app.get("/api/admin/v2/aggregation/available-providers", verifyAdmin, getAvailableProviders);
+  app.get("/api/admin/v2/aggregation/export", verifyAdmin, exportGames);
+  app.post("/api/admin/v2/aggregation/bulk-import", verifyAdmin, bulkImportGames);
 
   // ===== DEBUG ROUTES =====
   app.get("/api/debug/store-packs", async (_req, res) => {

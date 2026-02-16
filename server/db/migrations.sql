@@ -227,3 +227,94 @@ CREATE TABLE IF NOT EXISTS kyc_onboarding_progress (
 );
 
 CREATE INDEX IF NOT EXISTS idx_kyc_onboarding_player_id ON kyc_onboarding_progress(player_id);
+
+-- ===== GAME PROVIDER MANAGEMENT =====
+CREATE TABLE IF NOT EXISTS game_providers (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL UNIQUE,
+  slug VARCHAR(255) UNIQUE NOT NULL,
+  type VARCHAR(50) NOT NULL, -- 'slots', 'table', 'live', 'sportsbook'
+  description TEXT,
+  logo_url VARCHAR(500),
+  website_url VARCHAR(500),
+  api_endpoint VARCHAR(500),
+  api_key VARCHAR(500),
+  api_secret VARCHAR(500),
+  is_enabled BOOLEAN DEFAULT TRUE,
+  status VARCHAR(50) DEFAULT 'inactive', -- 'inactive', 'connected', 'syncing', 'error'
+  last_sync_at TIMESTAMP,
+  total_games INTEGER DEFAULT 0,
+  supports_live_sync BOOLEAN DEFAULT FALSE,
+  sync_interval_minutes INTEGER DEFAULT 1440, -- Daily by default
+  rate_limit INTEGER DEFAULT 100, -- API calls per minute
+  request_timeout_seconds INTEGER DEFAULT 30,
+  authentication_type VARCHAR(50) DEFAULT 'api_key', -- 'api_key', 'oauth', 'username_password'
+  custom_config JSONB,
+  error_log TEXT,
+  created_by INTEGER REFERENCES admin_users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_error TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_game_providers_enabled ON game_providers(is_enabled);
+CREATE INDEX IF NOT EXISTS idx_game_providers_status ON game_providers(status);
+CREATE INDEX IF NOT EXISTS idx_game_providers_slug ON game_providers(slug);
+
+-- ===== PROVIDER GAMES MAPPING =====
+CREATE TABLE IF NOT EXISTS provider_games (
+  id SERIAL PRIMARY KEY,
+  provider_id INTEGER NOT NULL REFERENCES game_providers(id) ON DELETE CASCADE,
+  game_id INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  provider_game_id VARCHAR(500) NOT NULL, -- External provider's game ID
+  provider_game_name VARCHAR(500),
+  is_active BOOLEAN DEFAULT TRUE,
+  last_synced_at TIMESTAMP,
+  external_metadata JSONB, -- Store provider-specific data
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(provider_id, provider_game_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_provider_games_provider_id ON provider_games(provider_id);
+CREATE INDEX IF NOT EXISTS idx_provider_games_game_id ON provider_games(game_id);
+CREATE INDEX IF NOT EXISTS idx_provider_games_provider_game_id ON provider_games(provider_game_id);
+
+-- ===== GAME IMPORT HISTORY =====
+CREATE TABLE IF NOT EXISTS game_import_history (
+  id SERIAL PRIMARY KEY,
+  provider_id INTEGER NOT NULL REFERENCES game_providers(id) ON DELETE CASCADE,
+  import_type VARCHAR(50) NOT NULL, -- 'manual', 'scheduled', 'api_sync'
+  total_games_attempted INTEGER DEFAULT 0,
+  total_games_imported INTEGER DEFAULT 0,
+  total_games_updated INTEGER DEFAULT 0,
+  total_games_skipped INTEGER DEFAULT 0,
+  status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'in_progress', 'completed', 'failed'
+  started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  completed_at TIMESTAMP,
+  error_message TEXT,
+  import_duration_seconds INTEGER,
+  imported_by INTEGER REFERENCES admin_users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_game_import_history_provider_id ON game_import_history(provider_id);
+CREATE INDEX IF NOT EXISTS idx_game_import_history_status ON game_import_history(status);
+CREATE INDEX IF NOT EXISTS idx_game_import_history_created_at ON game_import_history(created_at);
+
+-- ===== PROVIDER API LOGS =====
+CREATE TABLE IF NOT EXISTS provider_api_logs (
+  id SERIAL PRIMARY KEY,
+  provider_id INTEGER NOT NULL REFERENCES game_providers(id) ON DELETE CASCADE,
+  endpoint VARCHAR(500),
+  method VARCHAR(10), -- GET, POST, PUT, DELETE
+  request_body JSONB,
+  response_code INTEGER,
+  response_body JSONB,
+  error_message TEXT,
+  duration_ms INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_provider_api_logs_provider_id ON provider_api_logs(provider_id);
+CREATE INDEX IF NOT EXISTS idx_provider_api_logs_created_at ON provider_api_logs(created_at);

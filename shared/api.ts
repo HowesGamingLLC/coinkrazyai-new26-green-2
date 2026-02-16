@@ -273,3 +273,84 @@ export interface TicketClaimResponse {
   };
   error?: string;
 }
+
+// ===== GAME PROVIDER AGGREGATION =====
+export interface GameProvider {
+  id: number;
+  name: string;
+  slug: string;
+  type: string;
+  description?: string;
+  logo_url?: string;
+  website_url?: string;
+  is_enabled: boolean;
+  status: 'inactive' | 'connected' | 'syncing' | 'error';
+  last_sync_at?: string;
+  total_games: number;
+  supports_live_sync: boolean;
+  sync_interval_minutes: number;
+  authentication_type: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProviderGame {
+  id: number;
+  provider_id: number;
+  game_id: number;
+  provider_game_id: string;
+  provider_game_name?: string;
+  is_active: boolean;
+  last_synced_at?: string;
+}
+
+export interface GameImportHistory {
+  id: number;
+  provider_id: number;
+  import_type: string;
+  total_games_attempted: number;
+  total_games_imported: number;
+  total_games_updated: number;
+  total_games_skipped: number;
+  status: string;
+  started_at: string;
+  completed_at?: string;
+  error_message?: string;
+  import_duration_seconds?: number;
+}
+
+export interface ProviderCreateRequest {
+  name: string;
+  slug: string;
+  type: string;
+  description?: string;
+  logo_url?: string;
+  website_url?: string;
+  api_endpoint?: string;
+  api_key?: string;
+  api_secret?: string;
+  authentication_type?: string;
+  sync_interval_minutes?: number;
+}
+
+export interface ProviderUpdateRequest {
+  name?: string;
+  description?: string;
+  is_enabled?: boolean;
+  api_endpoint?: string;
+  api_key?: string;
+  api_secret?: string;
+  sync_interval_minutes?: number;
+}
+
+export interface ImportGamesRequest {
+  provider_id: number;
+  import_type: 'manual' | 'scheduled' | 'api_sync';
+}
+
+export interface BulkImportResponse {
+  success: boolean;
+  import_id?: number;
+  message?: string;
+  error?: string;
+}
