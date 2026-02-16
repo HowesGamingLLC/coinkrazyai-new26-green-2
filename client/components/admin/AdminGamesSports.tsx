@@ -35,6 +35,11 @@ const AdminGamesSports = () => {
     rtp: '95.0',
     volatility: 'Medium',
     image_url: '',
+    slug: '',
+    series: '',
+    family: '',
+    type: '',
+    embed_url: '',
     enabled: true
   });
 
@@ -67,8 +72,8 @@ const AdminGamesSports = () => {
   }, []);
 
   const handleAddGame = async () => {
-    if (!formData.name || !formData.image_url) {
-      toast.error('Game name and image URL are required');
+    if (!formData.name) {
+      toast.error('Game name is required');
       return;
     }
 
@@ -80,7 +85,12 @@ const AdminGamesSports = () => {
         category: formData.category,
         rtp: parseFloat(formData.rtp),
         volatility: formData.volatility,
-        image_url: formData.image_url,
+        image_url: formData.image_url || null,
+        slug: formData.slug || null,
+        series: formData.series || null,
+        family: formData.family || null,
+        type: formData.type || null,
+        embed_url: formData.embed_url || null,
         enabled: formData.enabled
       });
       toast.success(`Game "${formData.name}" added successfully!`);
@@ -91,6 +101,11 @@ const AdminGamesSports = () => {
         rtp: '95.0',
         volatility: 'Medium',
         image_url: '',
+        slug: '',
+        series: '',
+        family: '',
+        type: '',
+        embed_url: '',
         enabled: true
       });
       setShowAddForm(false);
@@ -114,6 +129,21 @@ const AdminGamesSports = () => {
     }
   };
 
+  const handleClearAllGames = async () => {
+    if (!window.confirm('Are you absolutely sure? This will delete ALL games. This action cannot be undone!')) return;
+
+    try {
+      setIsLoading(true);
+      await adminV2.games.clearAll();
+      toast.success('All games cleared successfully');
+      await fetchData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to clear games');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleBulkImport = async () => {
     if (!bulkImportText.trim()) {
       toast.error('Please paste game data');
@@ -122,7 +152,7 @@ const AdminGamesSports = () => {
 
     setIsCreating(true);
     try {
-      // Parse JSON format: [{ name, provider, image_url }, ...]
+      // Parse JSON format with support for new fields
       const games = JSON.parse(bulkImportText);
       if (!Array.isArray(games)) {
         throw new Error('Data must be a JSON array');
@@ -134,10 +164,15 @@ const AdminGamesSports = () => {
           await adminV2.games.create({
             name: game.name,
             provider: game.provider || 'Pragmatic',
-            category: 'Slots',
+            category: game.category || 'Slots',
             rtp: game.rtp ? parseFloat(game.rtp) : 95.0,
             volatility: game.volatility || 'Medium',
-            image_url: game.image_url,
+            image_url: game.image_url || game.thumbnail || null,
+            slug: game.slug || null,
+            series: game.series || null,
+            family: game.family || null,
+            type: game.type || null,
+            embed_url: game.embed_url || null,
             enabled: game.enabled !== false
           });
           successCount++;
@@ -242,6 +277,15 @@ const AdminGamesSports = () => {
                     <Plus className="w-4 h-4" />
                     Add Game
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleClearAllGames}
+                    className="gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Clear All
+                  </Button>
                 </div>
               </div>
 
@@ -258,7 +302,7 @@ const AdminGamesSports = () => {
                     <div>
                       <label className="text-xs font-medium block mb-1">Game Name *</label>
                       <Input
-                        placeholder="e.g., Sweet Bonanza"
+                        placeholder="e.g., Lord of the Ocean"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       />
@@ -270,6 +314,7 @@ const AdminGamesSports = () => {
                         onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
                         className="w-full px-3 py-2 border rounded-md text-sm"
                       >
+                        <option>Novomatic</option>
                         <option>Pragmatic</option>
                         <option>NetEnt</option>
                         <option>Microgaming</option>
@@ -278,7 +323,31 @@ const AdminGamesSports = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-medium block mb-1">RTP % *</label>
+                      <label className="text-xs font-medium block mb-1">Slug</label>
+                      <Input
+                        placeholder="e.g., LordOfTheOcean"
+                        value={formData.slug}
+                        onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium block mb-1">Series</label>
+                      <Input
+                        placeholder="e.g., Ocean"
+                        value={formData.series}
+                        onChange={(e) => setFormData({ ...formData, series: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium block mb-1">Type</label>
+                      <Input
+                        placeholder="e.g., video slot"
+                        value={formData.type}
+                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium block mb-1">RTP %</label>
                       <Input
                         type="number"
                         step="0.1"
@@ -290,7 +359,7 @@ const AdminGamesSports = () => {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-medium block mb-1">Volatility *</label>
+                      <label className="text-xs font-medium block mb-1">Volatility</label>
                       <select
                         value={formData.volatility}
                         onChange={(e) => setFormData({ ...formData, volatility: e.target.value })}
@@ -302,7 +371,15 @@ const AdminGamesSports = () => {
                       </select>
                     </div>
                     <div className="md:col-span-2">
-                      <label className="text-xs font-medium block mb-1">Image URL *</label>
+                      <label className="text-xs font-medium block mb-1">Embed URL</label>
+                      <Input
+                        placeholder="https://free-slots.games/game/LordOfTheOcean/"
+                        value={formData.embed_url}
+                        onChange={(e) => setFormData({ ...formData, embed_url: e.target.value })}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="text-xs font-medium block mb-1">Image URL</label>
                       <Input
                         placeholder="https://..."
                         value={formData.image_url}
@@ -350,16 +427,26 @@ const AdminGamesSports = () => {
                     </button>
                   </div>
                   <div className="text-xs text-muted-foreground mb-2">
-                    <p className="mb-2">Paste JSON array of games. Example format:</p>
-                    <code className="block bg-black/20 p-2 rounded text-[11px] overflow-x-auto">
-                      [{"{"}"name":"Game 1","provider":"Pragmatic","image_url":"https://...","rtp":95.0,"volatility":"High"{"}"},...]
+                    <p className="mb-2">Paste JSON array of games. Supports new format with slug, series, type, embed_url:</p>
+                    <code className="block bg-black/20 p-2 rounded text-[11px] overflow-x-auto whitespace-pre-wrap break-words max-h-24 overflow-y-auto">
+{`[{
+  "provider": "Novomatic",
+  "name": "Lord of the Ocean",
+  "slug": "LordOfTheOcean",
+  "series": "Ocean",
+  "family": null,
+  "category": "slot",
+  "type": "video slot",
+  "thumbnail": null,
+  "embed_url": "https://free-slots.games/game/LordOfTheOcean/"
+}]`}
                     </code>
                   </div>
                   <textarea
                     value={bulkImportText}
                     onChange={(e) => setBulkImportText(e.target.value)}
-                    placeholder='[{"name":"Sweet Bonanza","provider":"Pragmatic","image_url":"https://...","rtp":96.49,"volatility":"High"}]'
-                    className="w-full px-3 py-2 border rounded-md font-mono text-xs h-32 resize-none"
+                    placeholder='[{"provider":"Novomatic","name":"Lord of the Ocean","slug":"LordOfTheOcean","series":"Ocean","family":null,"category":"slot","type":"video slot","thumbnail":null,"embed_url":"https://free-slots.games/game/LordOfTheOcean/"}]'
+                    className="w-full px-3 py-2 border rounded-md font-mono text-xs h-40 resize-none"
                   />
                   <div className="flex gap-2 justify-end pt-2">
                     <Button
@@ -411,10 +498,18 @@ const AdminGamesSports = () => {
                             <div>
                               <p className="font-semibold text-sm">{game.name}</p>
                               <p className="text-xs text-muted-foreground">{game.provider || 'Internal'}</p>
+                              {game.slug && <p className="text-[10px] text-muted-foreground">Slug: {game.slug}</p>}
                             </div>
                             <Badge variant={game.enabled ? 'default' : 'secondary'} className="text-[10px]">
                               {game.enabled ? 'Active' : 'Off'}
                             </Badge>
+                          </div>
+                          <div className="space-y-1 text-xs">
+                            {game.series && <p><span className="text-muted-foreground">Series:</span> {game.series}</p>}
+                            {game.type && <p><span className="text-muted-foreground">Type:</span> {game.type}</p>}
+                            {game.embed_url && (
+                              <p><span className="text-muted-foreground">URL:</span> <a href={game.embed_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 truncate block">{game.embed_url}</a></p>
+                            )}
                           </div>
                           <div className="grid grid-cols-3 gap-2 text-center text-xs">
                             <div className="bg-muted p-2 rounded">
@@ -495,7 +590,13 @@ const AdminGamesSports = () => {
                 <CardTitle>Game Library</CardTitle>
                 <CardDescription>Manage casino games and configurations</CardDescription>
               </div>
-              <Button size="sm" variant="outline" onClick={fetchData}>Refresh</Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={fetchData}>Refresh</Button>
+                <Button size="sm" variant="destructive" onClick={handleClearAllGames} className="gap-2">
+                  <Trash2 className="w-4 h-4" />
+                  Clear All
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <form onSubmit={async (e) => {
