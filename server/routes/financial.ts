@@ -30,7 +30,7 @@ export const createBonus: RequestHandler = async (req, res) => {
     const result = await query(
       `INSERT INTO bonuses (name, type, amount, percentage, min_deposit, max_claims, wagering_multiplier)
       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [name, type, amount || null, percentage || null, minDepositValue, maxClaimsValue, wageringMultiplierValue]
+      [name, type, amount ?? null, percentage ?? null, minDepositValue, maxClaimsValue, wageringMultiplierValue]
     );
 
     await SlackService.notifyAdminAction(req.user?.email || 'admin', 'Created bonus', `${name} - ${type}`);
