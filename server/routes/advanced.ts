@@ -7,9 +7,9 @@ export const listVIPTiers: RequestHandler = async (req, res) => {
   try {
     const result = await query('SELECT * FROM vip_tiers ORDER BY level ASC');
     res.json(result.rows);
-  } catch (error) {
-    console.error('List VIP tiers error:', error);
-    res.status(500).json({ error: 'Failed to fetch VIP tiers' });
+  } catch (error: any) {
+    console.error('List VIP tiers error:', error.message || error);
+    res.status(500).json({ error: 'Failed to fetch VIP tiers', details: error.message });
   }
 };
 
@@ -18,15 +18,15 @@ export const createVIPTier: RequestHandler = async (req, res) => {
     const { name, level, minWagered, monthlyReload, birthday, exclusiveGames, prioritySupport } = req.body;
 
     const result = await query(
-      `INSERT INTO vip_tiers (name, level, min_wagered, reload_bonus_percentage, birthday_bonus, exclusive_games, priority_support) 
+      `INSERT INTO vip_tiers (name, level, min_wagered, reload_bonus_percentage, birthday_bonus, exclusive_games, priority_support)
       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
       [name, level, minWagered, monthlyReload, birthday, exclusiveGames, prioritySupport]
     );
 
     res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Create VIP tier error:', error);
-    res.status(500).json({ error: 'Failed to create VIP tier' });
+  } catch (error: any) {
+    console.error('Create VIP tier error:', error.message || error);
+    res.status(500).json({ error: 'Failed to create VIP tier', details: error.message });
   }
 };
 
@@ -35,7 +35,7 @@ export const promotePlayerToVIP: RequestHandler = async (req, res) => {
     const { playerId, vipTierId } = req.body;
 
     const result = await query(
-      `INSERT INTO player_vip (player_id, vip_tier_id, promoted_at) 
+      `INSERT INTO player_vip (player_id, vip_tier_id, promoted_at)
       VALUES ($1, $2, CURRENT_TIMESTAMP)
       ON CONFLICT (player_id) DO UPDATE SET vip_tier_id = $2, promoted_at = CURRENT_TIMESTAMP
       RETURNING *`,
@@ -43,16 +43,16 @@ export const promotePlayerToVIP: RequestHandler = async (req, res) => {
     );
 
     res.json({ success: true, vipStatus: result.rows[0] });
-  } catch (error) {
-    console.error('Promote player to VIP error:', error);
-    res.status(500).json({ error: 'Failed to promote player' });
+  } catch (error: any) {
+    console.error('Promote player to VIP error:', error.message || error);
+    res.status(500).json({ error: 'Failed to promote player', details: error.message });
   }
 };
 
 export const getVIPPlayers: RequestHandler = async (req, res) => {
   try {
     const result = await query(
-      `SELECT p.id, p.username, p.email, pv.vip_tier_id, vt.name as tier_name, 
+      `SELECT p.id, p.username, p.email, pv.vip_tier_id, vt.name as tier_name,
       pv.vip_points, pv.month_wagered, pv.promoted_at
       FROM player_vip pv
       JOIN players p ON pv.player_id = p.id
@@ -61,9 +61,9 @@ export const getVIPPlayers: RequestHandler = async (req, res) => {
     );
 
     res.json(result.rows);
-  } catch (error) {
-    console.error('Get VIP players error:', error);
-    res.status(500).json({ error: 'Failed to fetch VIP players' });
+  } catch (error: any) {
+    console.error('Get VIP players error:', error.message || error);
+    res.status(500).json({ error: 'Failed to fetch VIP players', details: error.message });
   }
 };
 
@@ -72,9 +72,9 @@ export const listFraudPatterns: RequestHandler = async (req, res) => {
   try {
     const result = await query('SELECT * FROM fraud_patterns ORDER BY created_at DESC');
     res.json(result.rows);
-  } catch (error) {
-    console.error('List fraud patterns error:', error);
-    res.status(500).json({ error: 'Failed to fetch fraud patterns' });
+  } catch (error: any) {
+    console.error('List fraud patterns error:', error.message || error);
+    res.status(500).json({ error: 'Failed to fetch fraud patterns', details: error.message });
   }
 };
 
@@ -83,39 +83,41 @@ export const createFraudPattern: RequestHandler = async (req, res) => {
     const { patternName, description, ruleType, thresholdValue, action } = req.body;
 
     const result = await query(
-      `INSERT INTO fraud_patterns (pattern_name, description, rule_type, threshold_value, action) 
+      `INSERT INTO fraud_patterns (pattern_name, description, rule_type, threshold_value, action)
       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [patternName, description, ruleType, thresholdValue, action]
     );
 
     res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Create fraud pattern error:', error);
-    res.status(500).json({ error: 'Failed to create fraud pattern' });
+  } catch (error: any) {
+    console.error('Create fraud pattern error:', error.message || error);
+    res.status(500).json({ error: 'Failed to create fraud pattern', details: error.message });
   }
 };
 
 export const listFraudFlags: RequestHandler = async (req, res) => {
   try {
     const status = (req.query.status as string) || '';
+    const params: any[] = [];
     let whereClause = '';
 
     if (status) {
-      whereClause = `WHERE ff.status = '${status}'`;
+      params.push(status);
+      whereClause = ` WHERE ff.status = $${params.length}`;
     }
 
     const result = await query(
       `SELECT ff.*, p.email, p.username, fp.pattern_name FROM fraud_flags ff
       JOIN players p ON ff.player_id = p.id
-      LEFT JOIN fraud_patterns fp ON ff.pattern_id = fp.id
-      ${whereClause}
-      ORDER BY ff.created_at DESC`
+      LEFT JOIN fraud_patterns fp ON ff.pattern_id = fp.id${whereClause}
+      ORDER BY ff.created_at DESC`,
+      params.length > 0 ? params : undefined
     );
 
     res.json(result.rows);
-  } catch (error) {
-    console.error('List fraud flags error:', error);
-    res.status(500).json({ error: 'Failed to fetch fraud flags' });
+  } catch (error: any) {
+    console.error('List fraud flags error:', error.message || error);
+    res.status(500).json({ error: 'Failed to fetch fraud flags', details: error.message });
   }
 };
 
@@ -130,9 +132,9 @@ export const resolveFraudFlag: RequestHandler = async (req, res) => {
     );
 
     res.json({ success: true });
-  } catch (error) {
-    console.error('Resolve fraud flag error:', error);
-    res.status(500).json({ error: 'Failed to resolve fraud flag' });
+  } catch (error: any) {
+    console.error('Resolve fraud flag error:', error.message || error);
+    res.status(500).json({ error: 'Failed to resolve fraud flag', details: error.message });
   }
 };
 
@@ -140,20 +142,23 @@ export const resolveFraudFlag: RequestHandler = async (req, res) => {
 export const listAffiliatePartners: RequestHandler = async (req, res) => {
   try {
     const status = (req.query.status as string) || '';
+    const params: any[] = [];
     let whereClause = '';
 
     if (status) {
-      whereClause = `WHERE status = '${status}'`;
+      params.push(status);
+      whereClause = ` WHERE status = $${params.length}`;
     }
 
     const result = await query(
-      `SELECT * FROM affiliate_partners ${whereClause} ORDER BY created_at DESC`
+      `SELECT * FROM affiliate_partners${whereClause} ORDER BY created_at DESC`,
+      params.length > 0 ? params : undefined
     );
 
     res.json(result.rows);
-  } catch (error) {
-    console.error('List affiliate partners error:', error);
-    res.status(500).json({ error: 'Failed to fetch affiliate partners' });
+  } catch (error: any) {
+    console.error('List affiliate partners error:', error.message || error);
+    res.status(500).json({ error: 'Failed to fetch affiliate partners', details: error.message });
   }
 };
 
@@ -162,15 +167,15 @@ export const createAffiliatePartner: RequestHandler = async (req, res) => {
     const { name, email, phone, website, commissionPercentage } = req.body;
 
     const result = await query(
-      `INSERT INTO affiliate_partners (name, email, phone, website, commission_percentage) 
+      `INSERT INTO affiliate_partners (name, email, phone, website, commission_percentage)
       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [name, email, phone, website, commissionPercentage]
     );
 
     res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Create affiliate partner error:', error);
-    res.status(500).json({ error: 'Failed to create affiliate partner' });
+  } catch (error: any) {
+    console.error('Create affiliate partner error:', error.message || error);
+    res.status(500).json({ error: 'Failed to create affiliate partner', details: error.message });
   }
 };
 
@@ -195,9 +200,9 @@ export const approveAffiliatePartner: RequestHandler = async (req, res) => {
     );
 
     res.json({ success: true, link: linkResult.rows[0] });
-  } catch (error) {
-    console.error('Approve affiliate partner error:', error);
-    res.status(500).json({ error: 'Failed to approve affiliate partner' });
+  } catch (error: any) {
+    console.error('Approve affiliate partner error:', error.message || error);
+    res.status(500).json({ error: 'Failed to approve affiliate partner', details: error.message });
   }
 };
 
@@ -222,9 +227,9 @@ export const getAffiliateStats: RequestHandler = async (req, res) => {
       totalClicks: parseInt(linkClicksResult.rows[0]?.clicks || '0'),
       totalConversions: parseInt(linkClicksResult.rows[0]?.conversions || '0'),
     });
-  } catch (error) {
-    console.error('Get affiliate stats error:', error);
-    res.status(500).json({ error: 'Failed to fetch affiliate stats' });
+  } catch (error: any) {
+    console.error('Get affiliate stats error:', error.message || error);
+    res.status(500).json({ error: 'Failed to fetch affiliate stats', details: error.message });
   }
 };
 
@@ -251,13 +256,13 @@ export const listSupportTickets: RequestHandler = async (req, res) => {
       JOIN players p ON st.player_id = p.id
       WHERE 1=1 ${whereClause}
       ORDER BY st.created_at DESC`,
-      params
+      params.length > 0 ? params : undefined
     );
 
     res.json(result.rows);
-  } catch (error) {
-    console.error('List support tickets error:', error);
-    res.status(500).json({ error: 'Failed to fetch support tickets' });
+  } catch (error: any) {
+    console.error('List support tickets error:', error.message || error);
+    res.status(500).json({ error: 'Failed to fetch support tickets', details: error.message });
   }
 };
 
@@ -271,9 +276,9 @@ export const getTicketMessages: RequestHandler = async (req, res) => {
     );
 
     res.json(result.rows);
-  } catch (error) {
-    console.error('Get ticket messages error:', error);
-    res.status(500).json({ error: 'Failed to fetch ticket messages' });
+  } catch (error: any) {
+    console.error('Get ticket messages error:', error.message || error);
+    res.status(500).json({ error: 'Failed to fetch ticket messages', details: error.message });
   }
 };
 
@@ -288,9 +293,9 @@ export const assignTicket: RequestHandler = async (req, res) => {
     );
 
     res.json({ success: true });
-  } catch (error) {
-    console.error('Assign ticket error:', error);
-    res.status(500).json({ error: 'Failed to assign ticket' });
+  } catch (error: any) {
+    console.error('Assign ticket error:', error.message || error);
+    res.status(500).json({ error: 'Failed to assign ticket', details: error.message });
   }
 };
 
@@ -304,9 +309,9 @@ export const closeTicket: RequestHandler = async (req, res) => {
     );
 
     res.json({ success: true });
-  } catch (error) {
-    console.error('Close ticket error:', error);
-    res.status(500).json({ error: 'Failed to close ticket' });
+  } catch (error: any) {
+    console.error('Close ticket error:', error.message || error);
+    res.status(500).json({ error: 'Failed to close ticket', details: error.message });
   }
 };
 
@@ -342,7 +347,7 @@ export const listSystemLogs: RequestHandler = async (req, res) => {
       WHERE 1=1 ${whereClause}
       ORDER BY sl.created_at DESC
       LIMIT $${params.length - 1} OFFSET $${params.length}`,
-      params
+      params.length > 2 ? params : [limit, offset]
     );
 
     res.json({
@@ -350,9 +355,9 @@ export const listSystemLogs: RequestHandler = async (req, res) => {
       page,
       limit,
     });
-  } catch (error) {
-    console.error('List system logs error:', error);
-    res.status(500).json({ error: 'Failed to fetch system logs' });
+  } catch (error: any) {
+    console.error('List system logs error:', error.message || error);
+    res.status(500).json({ error: 'Failed to fetch system logs', details: error.message });
   }
 };
 
@@ -363,9 +368,9 @@ export const listAPIKeys: RequestHandler = async (req, res) => {
       'SELECT id, key_name, key_hash, admin_id, rate_limit, status, last_used_at, created_at, expires_at FROM api_keys ORDER BY created_at DESC'
     );
     res.json(result.rows);
-  } catch (error) {
-    console.error('List API keys error:', error);
-    res.status(500).json({ error: 'Failed to fetch API keys' });
+  } catch (error: any) {
+    console.error('List API keys error:', error.message || error);
+    res.status(500).json({ error: 'Failed to fetch API keys', details: error.message });
   }
 };
 
@@ -378,7 +383,7 @@ export const createAPIKey: RequestHandler = async (req, res) => {
     const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
 
     const result = await query(
-      `INSERT INTO api_keys (key_name, key_hash, admin_id, permissions, rate_limit) 
+      `INSERT INTO api_keys (key_name, key_hash, admin_id, permissions, rate_limit)
       VALUES ($1, $2, $3, $4, $5) RETURNING id, key_name, created_at`,
       [keyName, keyHash, req.user?.playerId, JSON.stringify(permissions || []), rateLimit || 1000]
     );
@@ -389,9 +394,9 @@ export const createAPIKey: RequestHandler = async (req, res) => {
       apiKey: apiKey, // Only shown once
       message: 'Save this API key securely, it will not be shown again',
     });
-  } catch (error) {
-    console.error('Create API key error:', error);
-    res.status(500).json({ error: 'Failed to create API key' });
+  } catch (error: any) {
+    console.error('Create API key error:', error.message || error);
+    res.status(500).json({ error: 'Failed to create API key', details: error.message });
   }
 };
 
@@ -402,9 +407,9 @@ export const revokeAPIKey: RequestHandler = async (req, res) => {
     await query('UPDATE api_keys SET status = $1 WHERE id = $2', ['revoked', keyId]);
 
     res.json({ success: true });
-  } catch (error) {
-    console.error('Revoke API key error:', error);
-    res.status(500).json({ error: 'Failed to revoke API key' });
+  } catch (error: any) {
+    console.error('Revoke API key error:', error.message || error);
+    res.status(500).json({ error: 'Failed to revoke API key', details: error.message });
   }
 };
 
@@ -413,9 +418,9 @@ export const listNotificationTemplates: RequestHandler = async (req, res) => {
   try {
     const result = await query('SELECT * FROM notification_templates ORDER BY created_at DESC');
     res.json(result.rows);
-  } catch (error) {
-    console.error('List notification templates error:', error);
-    res.status(500).json({ error: 'Failed to fetch notification templates' });
+  } catch (error: any) {
+    console.error('List notification templates error:', error.message || error);
+    res.status(500).json({ error: 'Failed to fetch notification templates', details: error.message });
   }
 };
 
@@ -424,15 +429,15 @@ export const createNotificationTemplate: RequestHandler = async (req, res) => {
     const { name, type, subject, template, variables } = req.body;
 
     const result = await query(
-      `INSERT INTO notification_templates (name, type, subject, template, variables) 
+      `INSERT INTO notification_templates (name, type, subject, template, variables)
       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [name, type, subject, template, JSON.stringify(variables || [])]
     );
 
     res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Create notification template error:', error);
-    res.status(500).json({ error: 'Failed to create notification template' });
+  } catch (error: any) {
+    console.error('Create notification template error:', error.message || error);
+    res.status(500).json({ error: 'Failed to create notification template', details: error.message });
   }
 };
 
@@ -446,9 +451,9 @@ export const listComplianceLogs: RequestHandler = async (req, res) => {
     );
 
     res.json(result.rows);
-  } catch (error) {
-    console.error('List compliance logs error:', error);
-    res.status(500).json({ error: 'Failed to fetch compliance logs' });
+  } catch (error: any) {
+    console.error('List compliance logs error:', error.message || error);
+    res.status(500).json({ error: 'Failed to fetch compliance logs', details: error.message });
   }
 };
 
@@ -461,9 +466,9 @@ export const listAMLChecks: RequestHandler = async (req, res) => {
     );
 
     res.json(result.rows);
-  } catch (error) {
-    console.error('List AML checks error:', error);
-    res.status(500).json({ error: 'Failed to fetch AML checks' });
+  } catch (error: any) {
+    console.error('List AML checks error:', error.message || error);
+    res.status(500).json({ error: 'Failed to fetch AML checks', details: error.message });
   }
 };
 
@@ -478,8 +483,8 @@ export const verifyAMLCheck: RequestHandler = async (req, res) => {
     );
 
     res.json({ success: true });
-  } catch (error) {
-    console.error('Verify AML check error:', error);
-    res.status(500).json({ error: 'Failed to verify AML check' });
+  } catch (error: any) {
+    console.error('Verify AML check error:', error.message || error);
+    res.status(500).json({ error: 'Failed to verify AML check', details: error.message });
   }
 };
