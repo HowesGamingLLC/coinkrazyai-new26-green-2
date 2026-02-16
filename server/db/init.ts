@@ -314,7 +314,7 @@ const seedDatabase = async () => {
 
       for (const pack of storePacks) {
         await query(
-          `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, enabled, position)
+          `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, enabled, display_order)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           pack
         );
@@ -432,7 +432,7 @@ const seedDatabase = async () => {
 
       for (const pack of storePacks) {
         await query(
-          `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, enabled, position)
+          `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, enabled, display_order)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           pack
         );

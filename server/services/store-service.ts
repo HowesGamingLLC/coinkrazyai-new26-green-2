@@ -119,7 +119,7 @@ class StoreService {
         bonus_percentage: Number(row.bonus_percentage || 0),
         is_popular: Boolean(row.is_popular),
         is_best_value: Boolean(row.is_best_value),
-        display_order: Number(row.display_order || row.position || 0),
+        display_order: Number(row.display_order || 0),
         enabled: Boolean(row.enabled),
       };
       console.log('[StoreService] Mapped package:', { id: mapped.id, title: mapped.title, display_order: mapped.display_order });
