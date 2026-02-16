@@ -157,8 +157,12 @@ const Store = () => {
 
     setIsPurchasing(selectedPack.id);
     try {
+      console.log('[Store] Processing purchase:', { packId: selectedPack.id, method: selectedPaymentMethod.provider });
       const response = await store.purchase(selectedPack.id, selectedPaymentMethod.provider);
+      console.log('[Store] Purchase response:', response);
+
       if (response.success && response.data?.checkoutUrl) {
+        console.log('[Store] Redirecting to checkout URL');
         window.location.href = response.data.checkoutUrl;
         return;
       }
@@ -168,7 +172,14 @@ const Store = () => {
       // Optionally refresh packs or navigate
       setTimeout(() => navigate('/wallet'), 1500);
     } catch (error: any) {
-      toast.error(error.message || 'Purchase failed');
+      console.error('[Store] Purchase error caught:', error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : (typeof error === 'object' && error?.message)
+          ? error.message
+          : 'Purchase failed';
+      console.error('[Store] Final error message:', errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsPurchasing(null);
     }

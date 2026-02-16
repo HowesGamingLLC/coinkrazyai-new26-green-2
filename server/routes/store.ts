@@ -37,6 +37,8 @@ export const handleGetPacks: RequestHandler = async (req, res) => {
 // Purchase a coin pack
 export const handlePurchase: RequestHandler = async (req, res) => {
   try {
+    console.log('[Store] handlePurchase called with body:', req.body);
+
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -44,22 +46,26 @@ export const handlePurchase: RequestHandler = async (req, res) => {
       });
     }
 
-    const { packId, payment_method } = req.body;
+    const { packId, pack_id, payment_method } = req.body;
+    const packageId = packId || pack_id;
 
-    if (!packId) {
+    if (!packageId) {
       return res.status(400).json({
         success: false,
         error: 'Pack ID required'
       });
     }
 
+    console.log('[Store] Processing purchase for pack:', packageId, 'player:', req.user.playerId);
+
     // Get pack details
     const packResult = await query(
       'SELECT * FROM store_packs WHERE id = $1 AND enabled = true',
-      [packId]
+      [packageId]
     );
 
     if (packResult.rows.length === 0) {
+      console.log('[Store] Pack not found:', packageId);
       return res.status(404).json({
         success: false,
         error: 'Pack not found'
@@ -67,14 +73,16 @@ export const handlePurchase: RequestHandler = async (req, res) => {
     }
 
     const pack = packResult.rows[0];
+    console.log('[Store] Found pack:', { id: pack.id, title: pack.title, price_usd: pack.price_usd });
 
     // Get the base URL from the request or environment
     const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
+    console.log('[Store] Using base URL:', baseUrl);
 
     // Create Stripe checkout session
     const checkoutResult = await StripeService.createCheckoutSession(
       req.user.playerId,
-      packId,
+      packageId,
       {
         title: pack.title,
         price_usd: pack.price_usd,
@@ -84,10 +92,14 @@ export const handlePurchase: RequestHandler = async (req, res) => {
       baseUrl
     );
 
+    console.log('[Store] Stripe checkout result:', { success: checkoutResult.success, hasUrl: !!checkoutResult.checkoutUrl });
+
     if (!checkoutResult.success) {
+      const errorMsg = typeof checkoutResult.error === 'string' ? checkoutResult.error : String(checkoutResult.error);
+      console.error('[Store] Checkout failed:', errorMsg);
       return res.status(400).json({
         success: false,
-        error: checkoutResult.error
+        error: errorMsg
       });
     }
 
@@ -100,10 +112,11 @@ export const handlePurchase: RequestHandler = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Store] Purchase error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('[Store] Purchase error:', { message: errorMessage, error });
     res.status(500).json({
       success: false,
-      error: 'Failed to process purchase'
+      error: errorMessage || 'Failed to process purchase'
     });
   }
 };
