@@ -65,7 +65,7 @@ const ScratchTickets = () => {
   const fetchDesigns = async () => {
     try {
       setIsLoadingDesigns(true);
-      const response = await apiCall('/scratch-tickets/designs');
+      const response = await apiCall<{ success: boolean; data?: any[] }>('/scratch-tickets/designs');
       if (response.success) {
         setDesigns(response.data || []);
       }
@@ -80,7 +80,7 @@ const ScratchTickets = () => {
   const fetchMyTickets = async () => {
     try {
       setIsLoadingTickets(true);
-      const response = await apiCall('/scratch-tickets');
+      const response = await apiCall<{ success: boolean; data?: any[] }>('/scratch-tickets');
       if (response.success) {
         setMyTickets(response.data || []);
       }
@@ -108,12 +108,12 @@ const ScratchTickets = () => {
 
     try {
       setIsCreatingTicket(true);
-      const response = await apiCall('/scratch-tickets/purchase', {
+      const response = await apiCall<{ success: boolean; data?: any; error?: string }>('/scratch-tickets/purchase', {
         method: 'POST',
         body: JSON.stringify({ designId }),
       });
 
-      if (response.success) {
+      if (response.success && response.data) {
         toast.success('🎉 Ticket purchased! Start scratching!');
         setSelectedTicket(response.data);
         setActiveTab('mytickets');

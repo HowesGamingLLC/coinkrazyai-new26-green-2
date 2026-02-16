@@ -126,9 +126,10 @@ export const handleGetGameById: RequestHandler = async (req, res) => {
   } catch (error) {
     console.error("[Games] Error fetching game:", error);
     // Try to find game in mock data as fallback
-    const game = mockGames.find(g => g.id === parseInt(req.params.id));
+    const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const game = mockGames.find(g => g.id === parseInt(idParam));
     if (game) {
-      console.log("[Games] Using mock data fallback for game:", req.params.id);
+      console.log("[Games] Using mock data fallback for game:", idParam);
       return res.json({
         success: true,
         data: game,

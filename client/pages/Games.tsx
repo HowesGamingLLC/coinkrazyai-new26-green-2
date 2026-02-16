@@ -5,7 +5,8 @@ import { games as gamesAPI } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, Users, TrendingUp, Search, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Star, Users, TrendingUp, Search, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { GameInfo } from '@shared/api';
 import { toast } from 'sonner';
 
@@ -16,6 +17,7 @@ const Games = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -25,11 +27,19 @@ const Games = () => {
 
     const fetchGames = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
         const res = await gamesAPI.getGames();
-        setGamesList(res.data || []);
-      } catch (error) {
-        console.error('Failed to fetch games:', error);
-        toast.error('Failed to load games');
+        if (res.success || res.data) {
+          setGamesList(res.data || []);
+        } else {
+          setError('Failed to load games');
+        }
+      } catch (err: any) {
+        const message = err.message || 'Failed to load games';
+        console.error('Failed to fetch games:', err);
+        setError(message);
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
@@ -117,6 +127,25 @@ const Games = () => {
             {allGames.length} games available • Play now and win big!
           </p>
         </div>
+
+        {/* Error Alert */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>{error}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.reload()}
+                className="ml-4"
+              >
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Featured Games */}
         <div className="space-y-4">

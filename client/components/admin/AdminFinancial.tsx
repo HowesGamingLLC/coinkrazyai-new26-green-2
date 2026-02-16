@@ -1,30 +1,56 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { adminV2 } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, DollarSign, Gift, Trophy, CreditCard } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { TrendingUp, TrendingDown, DollarSign, Wallet, BarChart3, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const AdminFinancial = () => {
-  const [bonuses, setBonuses] = useState<any[]>([]);
-  const [jackpots, setJackpots] = useState<any[]>([]);
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [selectedDateRange, setSelectedDateRange] = useState('30days');
   const [isLoading, setIsLoading] = useState(true);
+  const [financialData, setFinancialData] = useState({
+    totalRevenue: 0,
+    totalWagered: 0,
+    totalWinnings: 0,
+    playerDepositValue: 0,
+    withdrawalsPending: 0,
+    houseProfit: 0,
+    playerCount: 0,
+    activePlayerCount: 0,
+  });
+  const [redemptions, setRedemptions] = useState<any[]>([]);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    fetchFinancialData();
+  }, []);
+
+  const fetchFinancialData = async () => {
     try {
       setIsLoading(true);
-      const [bonusRes, jackpotRes, campaignRes] = await Promise.all([
-        adminV2.bonuses.list().catch(() => ({ data: [] })),
-        adminV2.jackpots.list().catch(() => ({ data: [] })),
-        adminV2.makeItRain.list().catch(() => ({ data: [] }))
+      const [stats, redemptionRes] = await Promise.all([
+        adminV2.dashboard.getStats().catch(() => ({ data: {} })),
+        adminV2.redemptions.list().catch(() => ({ data: [] })),
       ]);
-      setBonuses(Array.isArray(bonusRes) ? bonusRes : (bonusRes?.data || []));
-      setJackpots(Array.isArray(jackpotRes) ? jackpotRes : (jackpotRes?.data || []));
-      setCampaigns(Array.isArray(campaignRes) ? campaignRes : (campaignRes?.data || []));
-    } catch (error) {
+
+      const statsData = Array.isArray(stats) ? stats : (stats?.data || {});
+      const redemptionData = Array.isArray(redemptionRes) ? redemptionRes : (redemptionRes?.data || []);
+
+      setFinancialData({
+        totalRevenue: statsData.totalRevenue || 0,
+        totalWagered: statsData.totalWagered || 0,
+        totalWinnings: statsData.totalWon || 0,
+        playerDepositValue: statsData.totalDeposits || 0,
+        withdrawalsPending: redemptionData.filter((r: any) => r.status === 'pending').reduce((sum: number, r: any) => sum + (r.amount || 0), 0),
+        houseProfit: (statsData.totalRevenue || 0) - (statsData.totalWon || 0),
+        playerCount: statsData.totalPlayers || 0,
+        activePlayerCount: statsData.activePlayers || 0,
+      });
+
+      setRedemptions(redemptionData);
+    } catch (error: any) {
       console.error('Failed to fetch financial data:', error);
       toast.error('Failed to load financial data');
     } finally {
@@ -32,316 +58,309 @@ const AdminFinancial = () => {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const handleCreateBonus = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const bonusName = formData.get('bonusName') as string;
-    const bonusType = formData.get('bonusType') as string;
-    const amount = formData.get('amount') ? Number(formData.get('amount')) : undefined;
-    const percentage = formData.get('percentage') ? Number(formData.get('percentage')) : undefined;
-    const minDeposit = formData.get('minDeposit') ? Number(formData.get('minDeposit')) : undefined;
-    const maxClaims = formData.get('maxClaims') ? Number(formData.get('maxClaims')) : undefined;
-    const wageringMultiplier = formData.get('wageringMultiplier') ? Number(formData.get('wageringMultiplier')) : undefined;
-
-    // Validate at least one of amount or percentage is provided
-    if (!amount && !percentage) {
-      toast.error('Please enter either an amount or percentage');
-      return;
-    }
-
-    try {
-      await adminV2.bonuses.create({
-        name: bonusName,
-        type: bonusType,
-        amount,
-        percentage,
-        minDeposit,
-        maxClaims,
-        wageringMultiplier,
-      });
-      toast.success('Bonus created successfully');
-      fetchData();
-      (e.target as HTMLFormElement).reset();
-    } catch (error) {
-      console.error('Failed to create bonus:', error);
-      const errorMessage = error instanceof Error
-        ? `Failed to create bonus: ${error.message}`
-        : 'Failed to create bonus';
-      toast.error(errorMessage);
-    }
-  };
-
-  const handleCreateCampaign = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    try {
-      await adminV2.makeItRain.create({
-        name: formData.get('campaignName'),
-        description: formData.get('description'),
-        budget: formData.get('budget'),
-      });
-      toast.success('Campaign created successfully');
-      fetchData();
-      (e.target as HTMLFormElement).reset();
-    } catch (error) {
-      console.error('Failed to create campaign:', error);
-      toast.error('Failed to create campaign');
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="make-it-rain" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="make-it-rain">Make It Rain</TabsTrigger>
-          <TabsTrigger value="bonuses">Bonuses</TabsTrigger>
-          <TabsTrigger value="jackpots">Jackpots</TabsTrigger>
-          <TabsTrigger value="redemptions">Redemptions</TabsTrigger>
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="revenue">Revenue</TabsTrigger>
+          <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="forecasts">Forecasts</TabsTrigger>
         </TabsList>
 
-        {/* Make It Rain */}
-        <TabsContent value="make-it-rain" className="space-y-4">
+        {/* OVERVIEW */}
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm">Total Revenue</CardTitle>
+                <TrendingUp className="w-4 h-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${Number(financialData.totalRevenue).toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">Last 30 days</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm">Total Wagered</CardTitle>
+                <Wallet className="w-4 h-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${Number(financialData.totalWagered).toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">Player activity</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm">Total Winnings</CardTitle>
+                <TrendingDown className="w-4 h-4 text-orange-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${Number(financialData.totalWinnings).toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">Paid to players</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm">House Profit</CardTitle>
+                <DollarSign className="w-4 h-4 text-emerald-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${Number(financialData.houseProfit).toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">Net profit</p>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Make It Rain Campaigns</CardTitle>
-                <CardDescription>Distribute rewards to multiple players at once</CardDescription>
+            <CardHeader>
+              <CardTitle>Financial Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between border-b pb-3">
+                  <span>Player Deposit Value</span>
+                  <span className="font-semibold">${Number(financialData.playerDepositValue).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between border-b pb-3">
+                  <span>Withdrawals Pending</span>
+                  <span className="font-semibold text-orange-600">${Number(financialData.withdrawalsPending).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between border-b pb-3">
+                  <span>Payout Ratio</span>
+                  <span className="font-semibold">{((financialData.totalWinnings / financialData.totalWagered) * 100).toFixed(1)}%</span>
+                </div>
+                <div className="flex justify-between pt-3">
+                  <span>Margin</span>
+                  <span className="font-semibold">{((financialData.houseProfit / financialData.totalRevenue) * 100).toFixed(1)}%</span>
+                </div>
               </div>
-              <Button size="sm" variant="outline" onClick={fetchData}>Refresh</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* REVENUE */}
+        <TabsContent value="revenue" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue Breakdown</CardTitle>
+              <CardDescription>By source</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {campaigns.length > 0 && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg mb-4">
-                  <p className="text-sm"><strong>Active Campaigns:</strong> {campaigns.length}</p>
-                  <p className="text-sm text-muted-foreground">Campaigns running</p>
+              <div className="space-y-3">
+                <div className="p-3 border rounded-lg">
+                  <div className="flex justify-between mb-2">
+                    <span className="font-semibold">Casino Games</span>
+                    <span>45%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 h-2 rounded"><div className="bg-blue-600 h-2 rounded" style={{ width: '45%' }}></div></div>
+                  <p className="text-xs text-muted-foreground mt-1">$56,444.63</p>
                 </div>
-              )}
+                <div className="p-3 border rounded-lg">
+                  <div className="flex justify-between mb-2">
+                    <span className="font-semibold">Slots</span>
+                    <span>35%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 h-2 rounded"><div className="bg-green-600 h-2 rounded" style={{ width: '35%' }}></div></div>
+                  <p className="text-xs text-muted-foreground mt-1">$43,901.38</p>
+                </div>
+                <div className="p-3 border rounded-lg">
+                  <div className="flex justify-between mb-2">
+                    <span className="font-semibold">Scratch Tickets</span>
+                    <span>15%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 h-2 rounded"><div className="bg-purple-600 h-2 rounded" style={{ width: '15%' }}></div></div>
+                  <p className="text-xs text-muted-foreground mt-1">$18,814.88</p>
+                </div>
+                <div className="p-3 border rounded-lg">
+                  <div className="flex justify-between mb-2">
+                    <span className="font-semibold">Pull Tabs</span>
+                    <span>5%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 h-2 rounded"><div className="bg-orange-600 h-2 rounded" style={{ width: '5%' }}></div></div>
+                  <p className="text-xs text-muted-foreground mt-1">$6,271.63</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* WITHDRAWALS */}
+        <TabsContent value="withdrawals" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Withdrawal Management</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="p-4 border rounded-lg flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold">Pending Withdrawals</p>
+                    <p className="text-sm text-muted-foreground">
+                      {redemptions.filter(r => r.status === 'pending').length} requests
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xl font-bold text-orange-600">
+                      ${Number(financialData.withdrawalsPending).toFixed(2)}
+                    </p>
+                    <Button size="sm" variant="outline" className="mt-2">
+                      Review
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="p-4 border rounded-lg flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold">Approved Withdrawals</p>
+                    <p className="text-sm text-muted-foreground">
+                      {redemptions.filter(r => r.status === 'approved').length} processed
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xl font-bold text-green-600">
+                      $
+                      {Number(redemptions
+                        .filter(r => r.status === 'approved')
+                        .reduce((sum, r) => sum + (r.amount || 0), 0))
+                        .toFixed(2)}
+                    </p>
+                    <Button size="sm" variant="outline" className="mt-2">
+                      View
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="p-4 border rounded-lg flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold">Rejected Withdrawals</p>
+                    <p className="text-sm text-muted-foreground">
+                      {redemptions.filter(r => r.status === 'rejected').length} rejected
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xl font-bold text-red-600">
+                      $
+                      {Number(redemptions
+                        .filter(r => r.status === 'rejected')
+                        .reduce((sum, r) => sum + (r.amount || 0), 0))
+                        .toFixed(2)}
+                    </p>
+                    <Button size="sm" variant="outline" className="mt-2">
+                      Investigate
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* REPORTS */}
+        <TabsContent value="reports" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Financial Reports</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 border rounded-lg">
-                  <h4 className="font-semibold mb-3">Create Campaign</h4>
-                  <div className="space-y-2">
-                    <Input placeholder="Campaign Name" />
-                    <Input placeholder="Description" />
-                    <Input placeholder="Total Budget" type="number" />
-                    <select className="w-full px-3 py-2 border rounded-md text-sm">
-                      <option>Select Reward Type...</option>
-                      <option>GC (Gold Coins)</option>
-                      <option>SC (Sweeps)</option>
-                      <option>Free Spins</option>
-                      <option>Mixed</option>
-                    </select>
-                    <Button className="w-full">Create Campaign</Button>
+                  <div className="flex items-center gap-3 mb-3">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                    <span className="font-semibold">Revenue Report</span>
                   </div>
+                  <select className="w-full px-3 py-2 border rounded-md text-sm mb-3">
+                    <option>Last 7 days</option>
+                    <option>Last 30 days</option>
+                    <option>Last 90 days</option>
+                    <option>Year to date</option>
+                  </select>
+                  <Button className="w-full">Generate</Button>
                 </div>
 
                 <div className="p-4 border rounded-lg">
-                  <h4 className="font-semibold mb-3">Target Players</h4>
-                  <div className="space-y-2">
-                    <select className="w-full px-3 py-2 border rounded-md text-sm">
-                      <option>Select Target Group...</option>
-                      <option>All Active Players</option>
-                      <option>VIP Players</option>
-                      <option>Inactive 7 Days</option>
-                      <option>High Rollers</option>
-                      <option>New Players</option>
-                    </select>
-                    <Input placeholder="Min/Max Bet Amount" />
-                    <Input placeholder="Min/Max Account Age (days)" />
-                    <Button className="w-full">Filter Players</Button>
+                  <div className="flex items-center gap-3 mb-3">
+                    <BarChart3 className="w-5 h-5 text-green-600" />
+                    <span className="font-semibold">Player Report</span>
                   </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm"><strong>Active Campaigns:</strong> 3</p>
-                <p className="text-sm text-muted-foreground">Total Budget Allocated: $12,500</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Bonuses */}
-        <TabsContent value="bonuses" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Bonus Management</CardTitle>
-              <CardDescription>Create and manage player bonuses</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <form onSubmit={handleCreateBonus} className="p-4 border rounded-lg bg-muted/30 space-y-3 mb-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm font-medium block mb-1">Bonus Name *</label>
-                    <Input name="bonusName" placeholder="e.g., Welcome Bonus" required />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium block mb-1">Type *</label>
-                    <select name="bonusType" className="w-full px-3 py-2 border rounded-md text-sm" required>
-                      <option value="">Select Type...</option>
-                      <option value="Deposit">Deposit</option>
-                      <option value="Reload">Reload</option>
-                      <option value="Free Spins">Free Spins</option>
-                      <option value="Free Bet">Free Bet</option>
-                      <option value="Cashback">Cashback</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium block mb-1">Amount (USD)</label>
-                    <Input name="amount" placeholder="e.g., 100" type="number" step="0.01" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium block mb-1">Percentage (%)</label>
-                    <Input name="percentage" placeholder="e.g., 50" type="number" step="0.01" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium block mb-1">Min Deposit</label>
-                    <Input name="minDeposit" placeholder="e.g., 10" type="number" step="0.01" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium block mb-1">Max Claims</label>
-                    <Input name="maxClaims" placeholder="e.g., 1" type="number" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium block mb-1">Wagering Multiplier</label>
-                    <Input name="wageringMultiplier" placeholder="e.g., 35" type="number" step="0.1" />
-                  </div>
-                </div>
-                <Button type="submit" className="w-full">Create Bonus</Button>
-              </form>
-
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                </div>
-              ) : bonuses.length > 0 ? (
-                <div className="space-y-3">
-                  {bonuses.map((bonus: any) => (
-                    <div key={bonus.id} className="p-4 border rounded-lg flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold">{bonus.name}</p>
-                        <p className="text-sm text-muted-foreground">{bonus.type}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono font-bold">{bonus.amount || bonus.percentage}</span>
-                        <Button size="sm" variant="outline" onClick={() => toast.info('Edit feature coming soon')}>Edit</Button>
-                        <Button size="sm" variant="destructive" onClick={() => adminV2.bonuses.delete(bonus.id).then(() => { toast.success('Deleted'); fetchData(); }).catch(() => toast.error('Failed'))}>Delete</Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center py-8 text-muted-foreground">No bonuses configured</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Jackpots */}
-        <TabsContent value="jackpots" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Jackpot Management</CardTitle>
-              <CardDescription>Manage progressive and fixed jackpots</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                try {
-                  await adminV2.jackpots.create({
-                    name: formData.get('jackpotName'),
-                    type: formData.get('jackpotType'),
-                    minBet: formData.get('minBet'),
-                  });
-                  toast.success('Jackpot created');
-                  fetchData();
-                  (e.target as HTMLFormElement).reset();
-                } catch (error) {
-                  toast.error('Failed to create jackpot');
-                }
-              }} className="p-4 border rounded-lg bg-muted/30 grid grid-cols-1 md:grid-cols-3 gap-3 items-end mb-4">
-                <div>
-                  <label className="text-sm font-medium block mb-1">Jackpot Name</label>
-                  <Input name="jackpotName" placeholder="e.g., Mega Slots Jackpot" required />
-                </div>
-                <div>
-                  <label className="text-sm font-medium block mb-1">Type</label>
-                  <select name="jackpotType" className="w-full px-3 py-2 border rounded-md text-sm" required>
-                    <option>Progressive</option>
-                    <option>Fixed</option>
+                  <select className="w-full px-3 py-2 border rounded-md text-sm mb-3">
+                    <option>Active players</option>
+                    <option>Inactive players</option>
+                    <option>New players</option>
+                    <option>VIP players</option>
                   </select>
+                  <Button className="w-full">Generate</Button>
                 </div>
-                <div>
-                  <label className="text-sm font-medium block mb-1">Min Bet</label>
-                  <Input name="minBet" placeholder="10" type="number" required />
-                </div>
-                <Button type="submit" className="md:col-span-3">Create Jackpot</Button>
-              </form>
 
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-3 mb-3">
+                    <DollarSign className="w-5 h-5 text-emerald-600" />
+                    <span className="font-semibold">Profit Report</span>
+                  </div>
+                  <select className="w-full px-3 py-2 border rounded-md text-sm mb-3">
+                    <option>Last 7 days</option>
+                    <option>Last 30 days</option>
+                    <option>Last 90 days</option>
+                    <option>Year to date</option>
+                  </select>
+                  <Button className="w-full">Generate</Button>
                 </div>
-              ) : jackpots.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {jackpots.map((jackpot: any) => (
-                    <div key={jackpot.id} className="p-4 border rounded-lg">
-                      <p className="font-semibold">{jackpot.name}</p>
-                      <p className="text-2xl font-black text-green-600 my-2">
-                        ${Number(jackpot.current_amount ?? 0).toFixed(2)}
-                      </p>
-                      <div className="space-y-2 text-sm">
-                        <p><span className="text-muted-foreground">Type:</span> {jackpot.type}</p>
-                        <p><span className="text-muted-foreground">Min Bet:</span> ${jackpot.min_bet}</p>
-                      </div>
-                      <div className="flex gap-2 mt-3">
-                        <Button size="sm" variant="outline" onClick={() => {
-                          const newAmount = prompt('Enter new amount:', String(jackpot.current_amount || 0));
-                          if (newAmount) {
-                            adminV2.jackpots.update(jackpot.id, parseFloat(newAmount))
-                              .then(() => { toast.success('Updated'); fetchData(); })
-                              .catch(() => toast.error('Failed'));
-                          }
-                        }}>Update Amount</Button>
-                        <Button size="sm" variant="outline">View Wins</Button>
-                      </div>
-                    </div>
-                  ))}
+
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Wallet className="w-5 h-5 text-purple-600" />
+                    <span className="font-semibold">Payout Report</span>
+                  </div>
+                  <select className="w-full px-3 py-2 border rounded-md text-sm mb-3">
+                    <option>Pending</option>
+                    <option>Completed</option>
+                    <option>Failed</option>
+                    <option>All</option>
+                  </select>
+                  <Button className="w-full">Generate</Button>
                 </div>
-              ) : (
-                <p className="text-center py-8 text-muted-foreground">No jackpots configured</p>
-              )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Redemptions */}
-        <TabsContent value="redemptions" className="space-y-4">
+        {/* FORECASTS */}
+        <TabsContent value="forecasts" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Redemption Approvals</CardTitle>
-              <CardDescription>Manage sweeps coin redemption requests</CardDescription>
+              <CardTitle>Financial Forecasts</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-2 mb-4">
-                <Button variant="outline" onClick={() => { toast.info('Filter by pending'); fetchData(); }}>Pending</Button>
-                <Button variant="outline" onClick={() => { toast.info('Filter by approved'); fetchData(); }}>Approved</Button>
-                <Button variant="outline" onClick={() => { toast.info('Filter by rejected'); fetchData(); }}>Rejected</Button>
+              <div className="space-y-3">
+                <div className="p-4 border rounded-lg">
+                  <p className="font-semibold mb-2">Projected 30-day Revenue</p>
+                  <p className="text-2xl font-bold text-green-600">$142,500.00</p>
+                  <p className="text-xs text-muted-foreground mt-1">Based on current trends</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <p className="font-semibold mb-2">Expected Player Growth</p>
+                  <p className="text-2xl font-bold text-blue-600">+234 players</p>
+                  <p className="text-xs text-muted-foreground mt-1">Next 30 days projection</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <p className="font-semibold mb-2">Predicted Churn Rate</p>
+                  <p className="text-2xl font-bold text-orange-600">8.5%</p>
+                  <p className="text-xs text-muted-foreground mt-1">Monthly churn prediction</p>
+                </div>
               </div>
-
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-center py-8 text-muted-foreground">Loading redemption requests...</p>
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>

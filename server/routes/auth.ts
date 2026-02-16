@@ -100,7 +100,7 @@ export const handleLogin: RequestHandler = async (req, res) => {
   }
 };
 
-// Admin login
+// Admin login - with sitewide admin recognition
 export const handleAdminLogin: RequestHandler = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -127,10 +127,43 @@ export const handleAdminLogin: RequestHandler = async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000 // 1 day
     });
 
+    // Try to find a player account with the same email (sitewide admin recognition)
+    let playerProfile = null;
+    let playerToken = null;
+
+    try {
+      const dbQueries = await import('../db/queries');
+      const playerResult = await dbQueries.getPlayerByEmail(email);
+
+      if (playerResult.rows.length > 0) {
+        const player = playerResult.rows[0];
+        // Generate a player token for sitewide access
+        playerToken = AuthService.generateJWT({ playerId: player.id, role: 'player' }, false);
+        playerProfile = {
+          id: player.id,
+          username: player.username,
+          name: player.name,
+          email: player.email,
+          gc_balance: player.gc_balance,
+          sc_balance: player.sc_balance,
+          status: player.status,
+          kyc_level: player.kyc_level,
+          kyc_verified: player.kyc_verified,
+          created_at: player.created_at,
+          last_login: player.last_login
+        };
+      }
+    } catch (e) {
+      console.warn('[Auth] Could not find associated player account for admin');
+    }
+
     res.json({
       success: true,
-      token: result.token,
-      admin: result.admin
+      adminToken: result.token,
+      playerToken: playerToken || null,
+      admin: result.admin,
+      playerProfile: playerProfile || null,
+      isSitewideAdmin: !!playerProfile
     });
   } catch (error) {
     console.error('[Auth] Admin login error:', error);

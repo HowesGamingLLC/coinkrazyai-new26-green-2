@@ -1,6 +1,7 @@
 import { RequestHandler } from 'express';
 import * as dbQueries from '../db/queries';
 import { query } from '../db/connection';
+import { emitWalletUpdate } from '../socket';
 
 export const handlePlayCasinoGame: RequestHandler = async (req, res) => {
   const { game_id, bet_amount: raw_bet_amount } = req.body;
@@ -92,6 +93,15 @@ export const handlePlayCasinoGame: RequestHandler = async (req, res) => {
       console.error('[Casino] Failed to record spin:', err);
       // Don't fail the request if tracking fails
     }
+
+    // Emit wallet update via Socket.io for real-time balance updates
+    emitWalletUpdate(playerId, {
+      userId: playerId,
+      sweepsCoins: newBalance,
+      goldCoins: 0,
+      type: 'casino_game',
+      timestamp: new Date().toISOString()
+    });
 
     return res.json({
       success: true,

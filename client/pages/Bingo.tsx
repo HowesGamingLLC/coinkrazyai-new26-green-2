@@ -5,7 +5,8 @@ import { bingo } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Users, Trophy } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Users, Trophy, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { BingoGame } from '@shared/api';
 
@@ -14,6 +15,8 @@ const Bingo = () => {
   const navigate = useNavigate();
   const [games, setGames] = useState<BingoGame[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [purchasingTickets, setPurchasingTickets] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -23,11 +26,19 @@ const Bingo = () => {
 
     const fetchGames = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
         const response = await bingo.getRooms();
-        setGames(response.data || []);
+        if (response.success) {
+          setGames(response.data || []);
+        } else {
+          setError('Failed to load bingo rooms');
+        }
       } catch (error: any) {
+        const message = error.message || 'Failed to load bingo games';
         console.error('Failed to fetch bingo games:', error);
-        toast.error('Failed to load bingo games');
+        setError(message);
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
@@ -39,11 +50,28 @@ const Bingo = () => {
   }, [isAuthenticated, authLoading, navigate]);
 
   const handleBuyTicket = async (gameId: number) => {
+    setPurchasingTickets(prev => new Set([...prev, gameId]));
     try {
-      await bingo.buyTicket(gameId);
-      toast.success('Ticket purchased!');
+      const response = await bingo.buyTicket(gameId);
+      if (response.success) {
+        toast.success('Ticket purchased! Check your active games.');
+        // Refresh the games list
+        const updatedResponse = await bingo.getRooms();
+        if (updatedResponse.success) {
+          setGames(updatedResponse.data || []);
+        }
+      } else {
+        toast.error('Failed to purchase ticket');
+      }
     } catch (error: any) {
-      toast.error(error.message || 'Failed to purchase ticket');
+      const message = error.message || 'Failed to purchase ticket';
+      toast.error(message);
+    } finally {
+      setPurchasingTickets(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(gameId);
+        return newSet;
+      });
     }
   };
 
@@ -61,6 +89,25 @@ const Bingo = () => {
         <h1 className="text-4xl font-black tracking-tight">BINGO ROOMS</h1>
         <p className="text-muted-foreground">Join a room and play bingo for amazing jackpots</p>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>{error}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+              className="ml-4"
+            >
+              <RefreshCw className="w-4 h-4 mr-1" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {games.map(game => (
@@ -98,9 +145,17 @@ const Bingo = () => {
 
               <Button
                 onClick={() => handleBuyTicket(game.id)}
+                disabled={purchasingTickets.has(game.id)}
                 className="w-full"
               >
-                Buy Ticket
+                {purchasingTickets.has(game.id) ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Purchasing...
+                  </>
+                ) : (
+                  'Buy Ticket'
+                )}
               </Button>
             </CardContent>
           </Card>

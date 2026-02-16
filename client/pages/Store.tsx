@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
 import { store } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Zap, Gift, TrendingUp, CreditCard, Check } from 'lucide-react';
+import { Loader2, Zap, Gift, TrendingUp, CreditCard, Check, Filter, ArrowUpDown, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { StorePack } from '@shared/api';
 import { ReceiptModal } from '@/components/ui/ReceiptModal';
@@ -28,8 +28,9 @@ const Store = () => {
   const [isPurchasing, setIsPurchasing] = useState<number | null>(null);
   const [selectedPack, setSelectedPack] = useState<StorePack | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
-  const [googlePayReady, setGooglePayReady] = useState(false);
-  const googlePayButtonRef = useRef<HTMLDivElement>(null);
+  const [wishlist, setWishlist] = useState<Set<number>>(new Set());
+  const [sortBy, setSortBy] = useState<'price' | 'value' | 'popular'>('popular');
+  const [filterByPrice, setFilterByPrice] = useState<'all' | 'under50' | 'under100' | 'over100'>('all');
 
   // Receipt State
   const [showReceipt, setShowReceipt] = useState(false);
@@ -112,15 +113,14 @@ const Store = () => {
 
     const fetchData = async () => {
       try {
+        console.log('[Store] Fetching packs...');
         const [packsRes, methodsRes] = await Promise.all([
           store.getPacks(),
           store.getPaymentMethods()
         ]);
-        const packsData = packsRes.data || [];
-        // Packs are already sorted by display_order from backend
-        const sortedPacks = Array.isArray(packsData) ? packsData : [];
-        setPacks(sortedPacks);
-
+        console.log('[Store] Packs response:', packsRes);
+        console.log('[Store] Setting packs:', packsRes.data);
+        setPacks(packsRes.data || []);
         const methodsData = methodsRes.data || [];
         const activeMethods = Array.isArray(methodsData) ? methodsData.filter((m: any) => m.is_active) : [];
         setPaymentMethods(activeMethods);
@@ -143,6 +143,42 @@ const Store = () => {
     }
   }, [isAuthenticated, authLoading, navigate]);
 
+  // Filter and sort packs
+  const filteredAndSortedPacks = useMemo(() => {
+    let filtered = [...(packs || [])];
+
+    // Filter by price
+    if (filterByPrice === 'under50') {
+      filtered = filtered.filter(p => Number(p.price_usd ?? 0) < 50);
+    } else if (filterByPrice === 'under100') {
+      filtered = filtered.filter(p => Number(p.price_usd ?? 0) < 100);
+    } else if (filterByPrice === 'over100') {
+      filtered = filtered.filter(p => Number(p.price_usd ?? 0) >= 100);
+    }
+
+    // Sort
+    if (sortBy === 'price') {
+      filtered.sort((a, b) => Number(a.price_usd ?? 0) - Number(b.price_usd ?? 0));
+    } else if (sortBy === 'value') {
+      // Calculate value per dollar (coins per dollar)
+      filtered.sort((a, b) => {
+        const aValue = (Number(a.gold_coins ?? 0) + Number(a.sweeps_coins ?? 0)) / Number(a.price_usd ?? 1);
+        const bValue = (Number(b.gold_coins ?? 0) + Number(b.sweeps_coins ?? 0)) / Number(b.price_usd ?? 1);
+        return bValue - aValue;
+      });
+    } else if (sortBy === 'popular') {
+      // Popular first, then by value
+      filtered.sort((a, b) => {
+        if (a.is_popular !== b.is_popular) return (b.is_popular ? 1 : 0) - (a.is_popular ? 1 : 0);
+        const aValue = (Number(a.gold_coins ?? 0) + Number(a.sweeps_coins ?? 0)) / Number(a.price_usd ?? 1);
+        const bValue = (Number(b.gold_coins ?? 0) + Number(b.sweeps_coins ?? 0)) / Number(b.price_usd ?? 1);
+        return bValue - aValue;
+      });
+    }
+
+    return filtered;
+  }, [packs, sortBy, filterByPrice]);
+
   const handlePurchase = async (pack: StorePack) => {
     setSelectedPack(pack);
     if (paymentMethods.length === 0) {
@@ -154,78 +190,16 @@ const Store = () => {
     }
   };
 
-  const processGooglePayPayment = async () => {
-    if (!selectedPack) {
-      toast.error('No package selected');
-      return;
-    }
-
-    try {
-      setIsPurchasing(selectedPack.id);
-      const paymentsClient = new (window as any).google.payments.api.PaymentsClient({
-        environment: 'PRODUCTION'
-      });
-
-      const paymentDataRequest = {
-        apiVersion: 2,
-        apiVersionMinor: 0,
-        allowedPaymentMethods: [
-          {
-            type: 'CARD',
-            parameters: {
-              allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
-              allowedCardNetworks: ['MASTERCARD', 'VISA', 'AMEX', 'DISCOVER']
-            },
-            tokenizationSpecification: {
-              type: 'PAYMENT_GATEWAY',
-              parameters: {
-                gateway: 'stripe',
-                'stripe:version': '2020-08',
-                'stripe:publishableKey': import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_live_default'
-              }
-            }
-          }
-        ],
-        transactionInfo: {
-          totalPriceStatus: 'FINAL',
-          totalPrice: Number(selectedPack.price_usd || 0).toFixed(2),
-          currencyCode: 'USD'
-        },
-        merchantInfo: {
-          merchantId: GOOGLE_PAY_MERCHANT_ID,
-          merchantName: 'Coinkrazy'
-        }
-      };
-
-      const paymentData = await paymentsClient.loadPaymentData(paymentDataRequest);
-
-      if (paymentData) {
-        // Use Stripe payment token from Google Pay
-        const token = paymentData.paymentMethodData.tokenizationData.token;
-
-        // Send to backend for Stripe processing
-        const response = await store.purchase(selectedPack.id, 'google_pay', token);
-        if (response.success && response.data?.checkoutUrl) {
-          window.location.href = response.data.checkoutUrl;
-          return;
-        }
-
-        toast.success(`Purchase of ${selectedPack.title} completed! Coins added to your wallet.`);
-        setSelectedPack(null);
-        setSelectedPaymentMethod(null);
-        setTimeout(() => navigate('/wallet'), 2000);
-      }
-    } catch (error: any) {
-      // Handle Google Pay cancellation gracefully
-      if (error.statusCode === 'CANCELED') {
-        toast.info('Google Pay payment cancelled');
+  const toggleWishlist = (packId: number) => {
+    setWishlist(prev => {
+      const newWishlist = new Set(prev);
+      if (newWishlist.has(packId)) {
+        newWishlist.delete(packId);
       } else {
-        console.error('[GooglePay] Payment error:', error);
-        toast.error(error.statusMessage || 'Google Pay payment failed');
+        newWishlist.add(packId);
       }
-    } finally {
-      setIsPurchasing(null);
-    }
+      return newWishlist;
+    });
   };
 
   const processPurchase = async () => {
@@ -246,8 +220,12 @@ const Store = () => {
 
     setIsPurchasing(selectedPack.id);
     try {
+      console.log('[Store] Processing purchase:', { packId: selectedPack.id, method: selectedPaymentMethod.provider });
       const response = await store.purchase(selectedPack.id, selectedPaymentMethod.provider);
+      console.log('[Store] Purchase response:', response);
+
       if (response.success && response.data?.checkoutUrl) {
+        console.log('[Store] Redirecting to checkout URL');
         window.location.href = response.data.checkoutUrl;
         return;
       }
@@ -257,7 +235,14 @@ const Store = () => {
       // Optionally refresh packs or navigate
       setTimeout(() => navigate('/wallet'), 1500);
     } catch (error: any) {
-      toast.error(error.message || 'Purchase failed');
+      console.error('[Store] Purchase error caught:', error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : (typeof error === 'object' && error?.message)
+          ? error.message
+          : 'Purchase failed';
+      console.error('[Store] Final error message:', errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsPurchasing(null);
     }
@@ -294,12 +279,52 @@ const Store = () => {
         </CardContent>
       </Card>
 
+      {/* Filter and Sort Controls */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Choose Your Pack</h2>
+          <div className="text-sm text-muted-foreground">
+            {filteredAndSortedPacks.length} of {packs.length} available
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-4 bg-muted/30 p-4 rounded-lg">
+          {/* Sort */}
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'price' | 'value' | 'popular')}
+              className="text-sm px-3 py-1 border rounded-md bg-background"
+            >
+              <option value="popular">Most Popular</option>
+              <option value="value">Best Value</option>
+              <option value="price">Price: Low to High</option>
+            </select>
+          </div>
+
+          {/* Price Filter */}
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <select
+              value={filterByPrice}
+              onChange={(e) => setFilterByPrice(e.target.value as any)}
+              className="text-sm px-3 py-1 border rounded-md bg-background"
+            >
+              <option value="all">All Prices</option>
+              <option value="under50">Under $50</option>
+              <option value="under100">Under $100</option>
+              <option value="over100">$100 and Up</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Packs Grid */}
       <div>
-        <h2 className="text-2xl font-bold mb-6">Choose Your Pack</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {packs && packs.length > 0 ? (
-            packs.map((pack) => (
+          {filteredAndSortedPacks && filteredAndSortedPacks.length > 0 ? (
+            filteredAndSortedPacks.map((pack) => (
               <Card
                 key={pack.id}
                 className={`relative overflow-hidden border-2 transition-all hover:shadow-lg ${
@@ -315,10 +340,24 @@ const Store = () => {
                     BEST VALUE
                   </div>
                 )}
-                
+
                 {pack.is_popular && !pack.is_best_value && (
                   <Badge className="absolute top-4 right-4 bg-blue-500">Popular</Badge>
                 )}
+
+                {/* Wishlist Button */}
+                <button
+                  onClick={() => toggleWishlist(pack.id)}
+                  className={`absolute top-4 ${pack.is_popular && !pack.is_best_value ? 'right-24' : 'right-4'} transition-all z-10`}
+                >
+                  <Heart
+                    className={`w-5 h-5 ${
+                      wishlist.has(pack.id)
+                        ? 'fill-red-500 text-red-500'
+                        : 'text-muted-foreground hover:text-red-500'
+                    }`}
+                  />
+                </button>
 
                 <CardHeader>
                   <CardTitle className="text-2xl">${Number(pack.price_usd ?? 0).toFixed(2)}</CardTitle>

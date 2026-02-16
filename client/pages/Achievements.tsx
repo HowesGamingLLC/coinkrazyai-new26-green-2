@@ -5,7 +5,9 @@ import { achievements } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Star, Lock } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Loader2, Star, Lock, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Achievement } from '@shared/api';
 
@@ -15,6 +17,7 @@ const Achievements = () => {
   const [allAchievements, setAllAchievements] = useState<Achievement[]>([]);
   const [myAchievements, setMyAchievements] = useState<Achievement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -24,15 +27,23 @@ const Achievements = () => {
 
     const fetchAchievements = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
         const [allRes, myRes] = await Promise.all([
           achievements.getAll(),
           achievements.getMyAchievements(),
         ]);
-        setAllAchievements(allRes.data || []);
-        setMyAchievements(myRes.data || []);
+        if (allRes.success && myRes.success) {
+          setAllAchievements(allRes.data || []);
+          setMyAchievements(myRes.data || []);
+        } else {
+          setError('Failed to load achievements');
+        }
       } catch (error: any) {
+        const message = error.message || 'Failed to load achievements';
         console.error('Failed to fetch achievements:', error);
-        toast.error('Failed to load achievements');
+        setError(message);
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
@@ -62,6 +73,38 @@ const Achievements = () => {
         <p className="text-muted-foreground">Unlock badges and earn rewards</p>
       </div>
 
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>{error}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+              className="ml-4"
+            >
+              <RefreshCw className="w-4 h-4 mr-1" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isLoading && !error && (
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading achievements...</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && !error && (
+        <>
       {/* Stats */}
       <Card>
         <CardHeader>
@@ -175,6 +218,8 @@ const Achievements = () => {
           <p>You'll be notified in-game when you unlock an achievement!</p>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 };

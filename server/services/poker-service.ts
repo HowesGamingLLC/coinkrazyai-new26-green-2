@@ -40,7 +40,7 @@ interface PokerGame {
   maxBuyIn: number;
   maxPlayers: number;
   createdAt: Date;
-  roundTimer?: NodeJS.Timer;
+  roundTimer?: NodeJS.Timeout;
 }
 
 const activeTables: Map<number, PokerGame> = new Map();

@@ -35,6 +35,7 @@ export interface PlayerProfile {
   kyc_verified: boolean;
   join_date: string;
   last_login?: string;
+  password?: string;
 }
 
 export interface Wallet {
@@ -87,6 +88,7 @@ export interface GameInfo {
   title?: string;
   description?: string;
   image?: string;
+  icon?: string;
   category?: string;
   rtp?: number;
   volatility?: string;
@@ -119,6 +121,16 @@ export interface SlotsSpinResult {
   winnings: number;
   multiplier: number;
   isWin: boolean;
+  wallet: Wallet;
+}
+
+// ===== CASINO =====
+export interface CasinoPlayResponse {
+  game_id: string | number;
+  bet_amount: number;
+  winnings: number;
+  result: 'win' | 'loss';
+  new_balance: number;
   wallet: Wallet;
 }
 
@@ -228,4 +240,36 @@ export interface WalletResponse {
   gc_balance: number;
   sc_balance: number;
   last_updated: string;
+}
+
+// ===== TICKET GAMES =====
+export interface TicketPurchaseResponse {
+  success: boolean;
+  data?: {
+    ticket_id: string;
+    design_id: number;
+    cost_sc: number;
+    slots: any[];
+  };
+  error?: string;
+}
+
+export interface TicketRevealResponse {
+  success: boolean;
+  data?: {
+    slot_index: number;
+    revealed: any;
+    is_winner: boolean;
+    prize_sc: number;
+  };
+  error?: string;
+}
+
+export interface TicketClaimResponse {
+  success: boolean;
+  data?: {
+    prize_sc: number;
+    new_balance: number;
+  };
+  error?: string;
 }

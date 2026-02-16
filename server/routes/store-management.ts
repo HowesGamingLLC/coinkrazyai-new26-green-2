@@ -1,11 +1,31 @@
 import { RequestHandler } from 'express';
 import { storeService } from '../services/store-service';
+import { query } from '../db/connection';
+
+// Helper to ensure param is a string
+const getStringParam = (param: string | string[] | undefined): string => {
+  if (Array.isArray(param)) return param[0];
+  return param || '';
+};
+
 
 // ===== GOLD COIN PACKAGES =====
 
 export const getStorePackages: RequestHandler = async (req, res) => {
   try {
     const packages = await storeService.getPackages();
+    console.log('[Store Management] getStorePackages (admin) returned:', {
+      count: packages.length,
+      packages: packages.map(p => ({
+        id: p.id,
+        title: p.title,
+        enabled: p.enabled,
+        display_order: p.display_order,
+        price_usd: p.price_usd,
+        gold_coins: p.gold_coins,
+        sweeps_coins: p.sweeps_coins
+      }))
+    });
     res.json({ success: true, data: packages });
   } catch (error) {
     console.error('Failed to get packages:', error);
@@ -15,14 +35,26 @@ export const getStorePackages: RequestHandler = async (req, res) => {
 
 export const createStorePackage: RequestHandler = async (req, res) => {
   try {
-    const { title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, display_order } = req.body;
+    console.log('[Store Management] Creating package with request body:', req.body);
+    const { title, description, price_usd, gold_coins, sweeps_coins, bonus_sc, bonus_percentage, is_popular, is_best_value, display_order } = req.body;
 
     // Validation
-    if (!title || price_usd === undefined || gold_coins === undefined) {
-      return res.status(400).json({ error: 'Missing required fields: title, price_usd, gold_coins' });
+    if (!title || price_usd === undefined || gold_coins === undefined || sweeps_coins === undefined) {
+      return res.status(400).json({ error: 'Missing required fields: title, price_usd, gold_coins, sweeps_coins' });
     }
 
-    const newPackage = await storeService.createPackage({
+    // Get the next display_order by finding the max existing one
+    let nextOrder = 1;
+    if (display_order === undefined || display_order === null) {
+      const maxOrderResult = await query('SELECT MAX(display_order) as max_order FROM store_packs');
+      const maxOrder = maxOrderResult.rows[0]?.max_order;
+      nextOrder = (maxOrder ?? 0) + 1;
+      console.log('[Store Management] No display_order provided, calculated nextOrder:', nextOrder);
+    } else {
+      nextOrder = parseInt(display_order);
+    }
+
+    const packageData = {
       title,
       description: description || '',
       price_usd: parseFloat(price_usd),
@@ -31,22 +63,31 @@ export const createStorePackage: RequestHandler = async (req, res) => {
       bonus_percentage: bonus_percentage ? parseInt(bonus_percentage) : 0,
       is_popular: is_popular || false,
       is_best_value: is_best_value || false,
-      display_order: display_order ? parseInt(display_order) : 0,
+      display_order: nextOrder,
       enabled: true,
-    });
+    };
 
-    console.log('[Store] Created new package:', newPackage);
+    console.log('[Store Management] Package data to insert:', packageData);
+    const newPackage = await storeService.createPackage(packageData);
+
+    console.log('[Store Management] Created package:', {
+      id: newPackage.id,
+      title: newPackage.title,
+      display_order: newPackage.display_order,
+      enabled: newPackage.enabled,
+      all_fields: newPackage
+    });
     res.status(201).json({ success: true, data: newPackage });
   } catch (error) {
-    console.error('Failed to create package:', error);
-    res.status(500).json({ error: 'Failed to create package', details: (error as Error).message });
+    console.error('[Store Management] Failed to create package:', error);
+    res.status(500).json({ error: 'Failed to create package', details: String(error) });
   }
 };
 
 export const updateStorePackage: RequestHandler = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, display_order } = req.body;
+    const id = getStringParam(req.params.id);
+    const { title, description, price_usd, gold_coins, sweeps_coins, bonus_sc, bonus_percentage, is_popular, is_best_value, display_order } = req.body;
 
     const packageId = parseInt(id);
     const existingPackage = await storeService.getPackageById(packageId);
@@ -55,7 +96,7 @@ export const updateStorePackage: RequestHandler = async (req, res) => {
       return res.status(404).json({ error: 'Package not found' });
     }
 
-    const updatedPackage = await storeService.updatePackage(packageId, {
+    const updateData = {
       title: title !== undefined ? title : existingPackage.title,
       description: description !== undefined ? description : existingPackage.description,
       price_usd: price_usd !== undefined ? parseFloat(price_usd) : existingPackage.price_usd,
@@ -64,9 +105,10 @@ export const updateStorePackage: RequestHandler = async (req, res) => {
       bonus_percentage: bonus_percentage !== undefined ? parseInt(bonus_percentage) : existingPackage.bonus_percentage,
       is_popular: is_popular !== undefined ? is_popular : existingPackage.is_popular,
       is_best_value: is_best_value !== undefined ? is_best_value : existingPackage.is_best_value,
-      display_order: display_order !== undefined ? parseInt(display_order) : (existingPackage.display_order || 0),
-      enabled: true,
-    });
+      display_order: display_order !== undefined ? parseInt(display_order) : existingPackage.display_order,
+    };
+
+    const updatedPackage = await storeService.updatePackage(packageId, updateData);
 
     console.log('[Store] Updated package:', updatedPackage);
     res.json({ success: true, data: updatedPackage });
@@ -78,7 +120,7 @@ export const updateStorePackage: RequestHandler = async (req, res) => {
 
 export const deleteStorePackage: RequestHandler = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = getStringParam(req.params.id);
     const packageId = parseInt(id);
 
     const success = await storeService.deletePackage(packageId);
@@ -129,7 +171,7 @@ export const createPaymentMethod: RequestHandler = async (req, res) => {
 
 export const updatePaymentMethod: RequestHandler = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = getStringParam(req.params.id);
     const { name, provider, config, is_active } = req.body;
 
     const methodId = parseInt(id);
@@ -155,7 +197,7 @@ export const updatePaymentMethod: RequestHandler = async (req, res) => {
 
 export const deletePaymentMethod: RequestHandler = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = getStringParam(req.params.id);
     const methodId = parseInt(id);
 
     const success = await storeService.deletePaymentMethod(methodId);

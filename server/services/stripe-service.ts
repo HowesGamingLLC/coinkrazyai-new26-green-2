@@ -8,9 +8,7 @@ function getStripe(): Stripe {
     if (!apiKey) {
       throw new Error('STRIPE_SECRET_KEY environment variable is not set');
     }
-    stripe = new Stripe(apiKey, {
-      apiVersion: '2023-10-16',
-    });
+    stripe = new Stripe(apiKey);
   }
   return stripe;
 }
@@ -130,7 +128,9 @@ export class StripeService {
     baseUrl: string
   ) {
     try {
+      console.log('[Stripe] Creating checkout session for:', { playerId, packId, title: pack.title, price: pack.price_usd });
       const stripeClient = getStripe();
+
       const session = await stripeClient.checkout.sessions.create({
         line_items: [
           {
@@ -156,10 +156,12 @@ export class StripeService {
         },
       });
 
+      console.log('[Stripe] Checkout session created:', { sessionId: session.id, url: session.url ? 'generated' : 'missing' });
       return { success: true, checkoutUrl: session.url, sessionId: session.id };
-    } catch (error) {
-      console.error('Stripe checkout session error:', error);
-      return { success: false, error: String(error) };
+    } catch (error: any) {
+      const errorMessage = error?.message || error?.error?.message || String(error);
+      console.error('[Stripe] Checkout session error:', { message: errorMessage, error });
+      return { success: false, error: errorMessage };
     }
   }
 

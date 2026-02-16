@@ -1,72 +1,64 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
-import { NEW_SLOT_GAMES, UPCOMING_SLOT_GAMES } from '@/data/slotGames';
+import { useGames } from '@/lib/hooks';
 import { GameCard } from '@/components/casino/GameCard';
 import { GamePopup } from '@/components/casino/GamePopup';
 import { Button } from '@/components/ui/button';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, Loader2 } from 'lucide-react';
 
 export default function Slots() {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterProvider, setFilterProvider] = useState<string | null>(null);
   const [showUpcoming, setShowUpcoming] = useState(false);
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { data: allGames = [], isLoading: gamesLoading } = useGames();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!authLoading && !user) {
       navigate('/login');
     }
-  }, [user, isLoading, navigate]);
-
-  // Combine all games
-  const allGames = useMemo(() => {
-    const games = showUpcoming ? [...NEW_SLOT_GAMES, ...UPCOMING_SLOT_GAMES] : NEW_SLOT_GAMES;
-    return games.map(g => ({
-      ...g,
-      id: g.id,
-      name: g.title,
-      provider: g.provider,
-      thumbnail: g.image,
-      costPerPlay: 0.01,
-      type: 'slots' as const,
-      gameUrl: g.gameUrl,
-    }));
-  }, [showUpcoming]);
+  }, [user, authLoading, navigate]);
 
   // Get all providers for filter
   const providers = useMemo(() => {
-    return [...new Set(allGames.map(g => g.provider))].sort();
+    if (!allGames || allGames.length === 0) return [];
+    return [...new Set(allGames.map(g => g.provider || '').filter(Boolean))].sort();
   }, [allGames]);
 
   // Filter games based on search and provider
   const filteredGames = useMemo(() => {
+    if (!allGames) return [];
     return allGames.filter(game => {
-      const matchesSearch = game.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          game.provider.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesProvider = !filterProvider || game.provider === filterProvider;
+      const title = game.title || '';
+      const provider = game.provider || '';
+      const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          provider.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesProvider = !filterProvider || provider === filterProvider;
       return matchesSearch && matchesProvider;
     });
   }, [allGames, searchTerm, filterProvider]);
 
   // Group games by provider
   const gamesByProvider = useMemo(() => {
+    if (!filteredGames || filteredGames.length === 0) return [];
     const groups: Record<string, any[]> = {};
     filteredGames.forEach(game => {
-      if (!groups[game.provider]) {
-        groups[game.provider] = [];
+      const provider = game.provider || 'Unknown';
+      if (!groups[provider]) {
+        groups[provider] = [];
       }
-      groups[game.provider].push(game);
+      groups[provider].push(game);
     });
     return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
   }, [filteredGames]);
 
-  if (isLoading) {
+  if (authLoading || gamesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -82,7 +74,7 @@ export default function Slots() {
         <div className="space-y-2">
           <h1 className="text-4xl font-bold text-white">Slot Games</h1>
           <p className="text-gray-400">
-            Play our collection of {NEW_SLOT_GAMES.length} premium slot games with Sweeps Coins (SC)
+            Play our collection of {allGames.length} premium slot games with Sweeps Coins (SC)
           </p>
         </div>
 
@@ -192,7 +184,7 @@ export default function Slots() {
 
       {/* Game Popup */}
       {selectedGame && (() => {
-        const game = [...NEW_SLOT_GAMES, ...UPCOMING_SLOT_GAMES].find(g => g.id === selectedGame);
+        const game = allGames.find(g => String(g.id) === selectedGame);
         if (!game) return null;
 
         const casinoGame = {
@@ -202,7 +194,7 @@ export default function Slots() {
           thumbnail: game.image,
           costPerPlay: 0.01,
           type: 'slots' as const,
-          gameUrl: game.gameUrl,
+          gameUrl: game.game_url || undefined,
         };
 
         return (

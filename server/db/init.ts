@@ -33,6 +33,31 @@ export const initializeDatabase = async () => {
 
     console.log('[DB] Schema initialized successfully');
 
+    // Read and execute migrations
+    const migrationsPath = path.join(__dirname, 'migrations.sql');
+    const migrations = fs.readFileSync(migrationsPath, 'utf-8');
+
+    // Split and execute each statement
+    const migrationStatements = migrations.split(';').filter(stmt => stmt.trim());
+
+    for (const statement of migrationStatements) {
+      if (statement.trim()) {
+        try {
+          await query(statement);
+        } catch (err: any) {
+          // Log but don't fail on migration errors - tables might already exist
+          // 42703 = column does not exist, 42701 = duplicate column, 42P07 = table exists, 42710 = type exists
+          if (err.code === '42703' || err.code === '42701' || err.code === '42P07' || err.code === '42710') {
+            console.log('[DB] Skipping migration statement (already exists):', err.message?.substring(0, 80));
+          } else {
+            throw err;
+          }
+        }
+      }
+    }
+
+    console.log('[DB] Migrations applied successfully');
+
     // Add description column to games table if it doesn't exist
     try {
       await query(`ALTER TABLE games ADD COLUMN description TEXT`);
@@ -279,7 +304,7 @@ const seedDatabase = async () => {
 
       for (const pack of storePacks) {
         await query(
-          `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, enabled, position)
+          `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, enabled, display_order)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           pack
         );
@@ -397,7 +422,7 @@ const seedDatabase = async () => {
 
       for (const pack of storePacks) {
         await query(
-          `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, enabled, position)
+          `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, enabled, display_order)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           pack
         );
