@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { StorePack } from '@shared/api';
 import { ReceiptModal } from '@/components/ui/ReceiptModal';
 import { useLocation } from 'react-router-dom';
+import { GOOGLE_PAY_MERCHANT_ID } from '@shared/constants';
 
 interface PaymentMethod {
   id: number;
@@ -41,6 +42,52 @@ const Store = () => {
   } | null>(null);
 
   const location = useLocation();
+
+  // Initialize Google Pay
+  useEffect(() => {
+    const initializeGooglePay = async () => {
+      if ((window as any).google?.payments) {
+        try {
+          const paymentsClient = new (window as any).google.payments.api.PaymentsClient({
+            environment: 'PRODUCTION'
+          });
+
+          const isReadyToPayRequest = {
+            apiVersion: 2,
+            apiVersionMinor: 0,
+            allowedPaymentMethods: [
+              {
+                type: 'CARD',
+                parameters: {
+                  allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+                  allowedCardNetworks: ['MASTERCARD', 'VISA']
+                }
+              }
+            ]
+          };
+
+          const isReady = await paymentsClient.isReadyToPay(isReadyToPayRequest);
+          setGooglePayReady(isReady.result);
+        } catch (error) {
+          console.warn('[GooglePay] Initialization error:', error);
+          setGooglePayReady(false);
+        }
+      }
+    };
+
+    // Load Google Pay script
+    if (document.getElementById('google-pay-script')) {
+      initializeGooglePay();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'google-pay-script';
+    script.src = 'https://pay.google.com/gstatic/gc/gstatic/loader.js';
+    script.async = true;
+    script.onload = initializeGooglePay;
+    document.head.appendChild(script);
+  }, []);
 
   useEffect(() => {
     // Check for success URL params
@@ -77,6 +124,12 @@ const Store = () => {
         const methodsData = methodsRes.data || [];
         const activeMethods = Array.isArray(methodsData) ? methodsData.filter((m: any) => m.is_active) : [];
         setPaymentMethods(activeMethods);
+
+        // Set default payment method to Stripe if available
+        const defaultMethod = activeMethods.find((m: any) => m.provider === 'stripe') || activeMethods[0];
+        if (defaultMethod) {
+          setSelectedPaymentMethod(defaultMethod);
+        }
       } catch (error: any) {
         console.error('Failed to fetch store data:', error);
         toast.error('Failed to load store data');
@@ -152,6 +205,16 @@ const Store = () => {
   const processPurchase = async () => {
     if (!selectedPack || !selectedPaymentMethod) {
       toast.error('Please select a payment method');
+      return;
+    }
+
+    // Handle Google Pay separately
+    if (selectedPaymentMethod.provider === 'google_pay') {
+      if (!googlePayReady) {
+        toast.error('Google Pay is not available');
+        return;
+      }
+      await processGooglePayPayment();
       return;
     }
 
@@ -428,34 +491,52 @@ const Store = () => {
               </div>
 
               {/* Payment Methods */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Payment Methods</label>
+              <div className="space-y-3">
+                <label className="text-sm font-semibold">Select Payment Method</label>
                 {paymentMethods.length > 0 ? (
                   <div className="space-y-2">
                     {paymentMethods.map((method) => (
-                      <div
-                        key={method.id}
-                        onClick={() => setSelectedPaymentMethod(method)}
-                        className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                          selectedPaymentMethod?.id === method.id
-                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <CreditCard className="w-4 h-4" />
-                            <div>
-                              <p className="font-semibold text-sm">{method.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {method.provider.replace('_', ' ').toUpperCase()}
-                              </p>
+                      <div key={method.id}>
+                        <button
+                          onClick={() => setSelectedPaymentMethod(method)}
+                          className={`w-full p-3 border rounded-lg cursor-pointer transition-all text-left ${
+                            selectedPaymentMethod?.id === method.id
+                              ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              {method.provider === 'google_pay' ? (
+                                <div className="w-5 h-5 bg-[#4285f4] rounded-sm flex items-center justify-center text-xs font-bold text-white">
+                                  G
+                                </div>
+                              ) : (
+                                <CreditCard className="w-4 h-4" />
+                              )}
+                              <div>
+                                <p className="font-semibold text-sm">{method.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {method.provider === 'google_pay'
+                                    ? 'Fast and secure'
+                                    : method.provider.replace('_', ' ').toUpperCase()}
+                                </p>
+                              </div>
                             </div>
+                            {selectedPaymentMethod?.id === method.id && (
+                              <Check className="w-5 h-5 text-primary" />
+                            )}
                           </div>
-                          {selectedPaymentMethod?.id === method.id && (
-                            <Check className="w-5 h-5 text-primary" />
-                          )}
-                        </div>
+                        </button>
+
+                        {/* Google Pay Button - show when this method is selected */}
+                        {method.provider === 'google_pay' && selectedPaymentMethod?.id === method.id && googlePayReady && (
+                          <div
+                            ref={googlePayButtonRef}
+                            className="mt-2 bg-white rounded p-2"
+                            id="google-pay-button"
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -473,26 +554,29 @@ const Store = () => {
                     setSelectedPaymentMethod(null);
                   }}
                   className="flex-1"
+                  disabled={isPurchasing === selectedPack.id}
                 >
                   Cancel
                 </Button>
-                <Button
-                  onClick={processPurchase}
-                  disabled={!selectedPaymentMethod || isPurchasing === selectedPack.id}
-                  className="flex-1"
-                >
-                  {isPurchasing === selectedPack.id ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Pay ${Number(selectedPack.price_usd).toFixed(2)}
-                    </>
-                  )}
-                </Button>
+                {selectedPaymentMethod && (
+                  <Button
+                    onClick={selectedPaymentMethod.provider === 'google_pay' ? processGooglePayPayment : processPurchase}
+                    disabled={isPurchasing === selectedPack.id}
+                    className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary"
+                  >
+                    {isPurchasing === selectedPack.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        {selectedPaymentMethod.provider === 'google_pay' ? 'Pay with Google' : 'Pay'}
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

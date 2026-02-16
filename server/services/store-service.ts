@@ -7,11 +7,12 @@ interface GoldCoinPackage {
   price_usd: number;
   gold_coins: number;
   sweeps_coins: number;
-  bonus_sc: number;
+  bonus_sc?: number;
   bonus_percentage: number;
   is_popular: boolean;
   is_best_value: boolean;
-  display_order: number;
+  position?: number;
+  display_order?: number;
   enabled: boolean;
 }
 
@@ -71,11 +72,12 @@ class StoreService {
   }
 
   async createPackage(data: Omit<GoldCoinPackage, 'id'>): Promise<GoldCoinPackage> {
+    const displayOrder = data.display_order || data.position || 0;
     const result = await query(
-      `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_sc, bonus_percentage, is_popular, is_best_value, display_order, enabled)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `INSERT INTO store_packs (title, description, price_usd, gold_coins, sweeps_coins, bonus_percentage, is_popular, is_best_value, display_order, enabled)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
-      [data.title, data.description, data.price_usd, data.gold_coins, data.sweeps_coins, data.bonus_sc, data.bonus_percentage, data.is_popular, data.is_best_value, data.display_order, data.enabled]
+      [data.title, data.description, data.price_usd, data.gold_coins, data.sweeps_coins, data.bonus_percentage, data.is_popular, data.is_best_value, displayOrder, data.enabled]
     );
     return this.mapRowToPackage(result.rows[0]);
   }

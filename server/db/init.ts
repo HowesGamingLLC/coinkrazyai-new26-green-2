@@ -94,18 +94,8 @@ export const initializeDatabase = async () => {
       }
     }
 
-    // Rename position to display_order in store_packs table if it exists
-    try {
-      await query(`ALTER TABLE store_packs RENAME COLUMN position TO display_order`);
-      console.log('[DB] Renamed position to display_order in store_packs');
-    } catch (err: any) {
-      if (err.code === '42703') {
-        // Column position doesn't exist, might already be renamed or not exist at all
-        console.log('[DB] Column position does not exist in store_packs (maybe already renamed)');
-      } else {
-        console.log('[DB] Schema check for store_packs.position rename:', err.message?.substring(0, 100));
-      }
-    }
+    // Note: store_packs table uses 'display_order' column for sorting
+    // No column rename needed - column names are consistent
 
     // Seed data if tables are empty
     await seedDatabase();

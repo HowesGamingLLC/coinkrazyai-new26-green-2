@@ -17,18 +17,29 @@ export const createBonus: RequestHandler = async (req, res) => {
   try {
     const { name, type, amount, percentage, minDeposit, maxClaims, wageringMultiplier } = req.body;
 
+    // Validate required fields
+    if (!name || !type) {
+      return res.status(400).json({ error: 'Name and type are required' });
+    }
+
+    // Use defaults for optional fields
+    const minDepositValue = minDeposit !== undefined ? minDeposit : 0;
+    const maxClaimsValue = maxClaims !== undefined ? maxClaims : 1;
+    const wageringMultiplierValue = wageringMultiplier !== undefined ? wageringMultiplier : 35.0;
+
     const result = await query(
-      `INSERT INTO bonuses (name, type, amount, percentage, min_deposit, max_claims, wagering_multiplier) 
+      `INSERT INTO bonuses (name, type, amount, percentage, min_deposit, max_claims, wagering_multiplier)
       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [name, type, amount, percentage, minDeposit, maxClaims, wageringMultiplier]
+      [name, type, amount ?? null, percentage ?? null, minDepositValue, maxClaimsValue, wageringMultiplierValue]
     );
 
     await SlackService.notifyAdminAction(req.user?.email || 'admin', 'Created bonus', `${name} - ${type}`);
 
-    res.json(result.rows[0]);
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Create bonus error:', error);
-    res.status(500).json({ error: 'Failed to create bonus' });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: 'Failed to create bonus', details: errorMessage });
   }
 };
 

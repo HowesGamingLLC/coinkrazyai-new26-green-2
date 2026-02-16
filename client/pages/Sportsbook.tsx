@@ -52,7 +52,7 @@ const Sportsbook = () => {
       return;
     }
 
-    if ((user?.sc_balance || 0) < betAmount) {
+    if (Number(user?.sc_balance || 0) < betAmount) {
       toast.error('Insufficient balance');
       return;
     }
