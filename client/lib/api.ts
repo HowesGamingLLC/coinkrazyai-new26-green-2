@@ -74,15 +74,18 @@ export async function adminApiCall<T>(
 
     if (!response.ok) {
       let errorMessage = `API request failed with status ${response.status}`;
+      let errorDetails = '';
       try {
-        const error = await response.json();
-        errorMessage = error.error || error.message || errorMessage;
-        console.error(`[Admin API Error] ${url}:`, { status: response.status, error });
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+        errorDetails = errorData.details || '';
+        console.error(`[Admin API Error] ${url}: ${errorMessage}${errorDetails ? ' - ' + errorDetails : ''}`);
       } catch (e) {
         console.error(`[Admin API Error] ${url}: Failed to parse error response, status: ${response.status}`);
       }
       const err = new Error(errorMessage);
       (err as any).status = response.status;
+      (err as any).details = errorDetails;
       throw err;
     }
 
