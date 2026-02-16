@@ -50,14 +50,44 @@ const Wallet = () => {
       case 'Deposit':
       case 'Win':
       case 'Bonus':
+      case 'slots_win':
+      case 'poker_win':
+      case 'bingo_win':
         return <TrendingUp className="w-4 h-4 text-green-600" />;
       case 'Withdrawal':
       case 'Loss':
+      case 'slots_bet':
+      case 'poker_buy_in':
+      case 'bingo_ticket':
+      case 'sports_bet':
         return <TrendingDown className="w-4 h-4 text-red-600" />;
       case 'Transfer':
         return <Send className="w-4 h-4 text-blue-600" />;
       default:
         return <Coins className="w-4 h-4 text-muted-foreground" />;
+    }
+  };
+
+  const getTransactionLabel = (type: string) => {
+    switch (type) {
+      case 'slots_bet':
+        return '🎰 Slots Spin';
+      case 'slots_win':
+        return '🎰 Slots Win';
+      case 'poker_buy_in':
+        return '♠️ Poker Buy-In';
+      case 'poker_win':
+        return '♠️ Poker Win';
+      case 'bingo_ticket':
+        return '🎯 Bingo Ticket';
+      case 'bingo_win':
+        return '🎯 Bingo Win';
+      case 'sports_bet':
+        return '⚽ Sports Bet';
+      case 'sports_win':
+        return '⚽ Sports Win';
+      default:
+        return type;
     }
   };
 
@@ -249,10 +279,16 @@ const Wallet = () => {
                     <div className={`p-2 rounded-full ${getTransactionColor(tx.type, tx.gc_amount, tx.sc_amount)}`}>
                       {getTransactionIcon(tx.type)}
                     </div>
-                    <div>
-                      <p className="font-semibold">{tx.type}</p>
+                    <div className="flex-1">
+                      <p className="font-semibold">{getTransactionLabel(tx.type)}</p>
                       <p className="text-xs text-muted-foreground">
-                        {tx.description || new Date(tx.created_at).toLocaleDateString()}
+                        {tx.description || new Date(tx.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </p>
                     </div>
                   </div>

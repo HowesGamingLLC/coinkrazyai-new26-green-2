@@ -6,6 +6,7 @@ import { X, AlertCircle, Loader } from 'lucide-react';
 import { casino } from '@/lib/api';
 import { toast } from 'sonner';
 import { WinNotification } from '@/components/WinNotification';
+import { GameResultPopup } from './GameResultPopup';
 
 interface GamePopupProps {
   game: CasinoGame;
@@ -179,11 +180,13 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
 
   const handlePlayAgain = () => {
     setGameResult(null);
-    if (currentBalance < CASINO_MIN_BET) {
-      setPopupState('outOfFunds');
-    } else {
-      setPopupState('setup');
-    }
+    refreshProfile().then(() => {
+      if (currentBalance < CASINO_MIN_BET) {
+        setPopupState('outOfFunds');
+      } else {
+        setPopupState('setup');
+      }
+    });
   };
 
   const handleNavigateToCoinStore = () => {
@@ -451,58 +454,16 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
   }
 
   if (popupState === 'result' && gameResult) {
-    const resultIcon = gameResult.isWin ? '🎉' : '😅';
-    const resultColor = gameResult.isWin ? 'from-green-600 to-green-500' : 'from-orange-600 to-orange-500';
-
     return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className={`bg-gradient-to-br ${resultColor} rounded-xl w-full max-w-md shadow-2xl overflow-hidden border-2 ${gameResult.isWin ? 'border-green-400' : 'border-orange-400'}`}>
-          {/* Header */}
-          <div className="px-6 py-4">
-            <div className="text-6xl text-center mb-4">{resultIcon}</div>
-            <h2 className="text-3xl font-bold text-white text-center">
-              {gameResult.isWin ? 'YOU WIN!' : 'SPIN COMPLETE'}
-            </h2>
-          </div>
-
-          {/* Content */}
-          <div className="bg-gray-900/95 px-6 py-8 space-y-6">
-            <div className="space-y-2 text-center">
-              <p className="text-gray-400 text-sm">You wagered</p>
-              <p className="text-2xl font-bold text-amber-400">{betAmount.toFixed(2)} SC</p>
-            </div>
-
-            {gameResult.isWin && (
-              <div className="bg-green-900/30 border border-green-500/50 rounded-lg p-4 text-center space-y-1">
-                <p className="text-gray-400 text-sm">You won</p>
-                <p className="text-4xl font-bold text-green-400">{gameResult.winnings.toFixed(2)} SC</p>
-              </div>
-            )}
-
-            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-              <p className="text-gray-400 text-xs mb-1">Current Balance</p>
-              <p className="text-2xl font-bold text-amber-400">{currentBalance.toFixed(2)} SC</p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
-              <Button
-                onClick={onClose}
-                variant="outline"
-                className="flex-1"
-              >
-                Close
-              </Button>
-              <Button
-                onClick={handlePlayAgain}
-                className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold"
-              >
-                Play Again
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <GameResultPopup
+        gameName={game.name}
+        betAmount={betAmount}
+        winnings={gameResult.winnings}
+        isWin={gameResult.isWin}
+        newBalance={currentBalance}
+        onClose={onClose}
+        onPlayAgain={handlePlayAgain}
+      />
     );
   }
 

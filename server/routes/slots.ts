@@ -167,13 +167,15 @@ export const handleSpin: RequestHandler = async (req, res) => {
     }
 
     // Deduct bet from player's SC balance
-    await dbQueries.recordWalletTransaction(
+    const betTransaction = await dbQueries.recordWalletTransaction(
       req.user.playerId,
       'slots_bet',
       0,
       -bet_amount,
-      `Slots spin bet: ${bet_amount} SC`
+      `Slots spin bet on game ${game_id}: ${bet_amount} SC`
     );
+
+    console.log(`[Slots] Deducted ${bet_amount} SC from player ${req.user.playerId}, tx: ${betTransaction.rows[0].id}`);
 
     // Generate reels
     const reels = generateReels();
@@ -189,24 +191,27 @@ export const handleSpin: RequestHandler = async (req, res) => {
 
     // Add winnings to wallet if any (use SC)
     if (winnings > 0) {
-      await dbQueries.recordWalletTransaction(
+      const winTransaction = await dbQueries.recordWalletTransaction(
         req.user.playerId,
         'slots_win',
         0,
         winnings,
-        `Slots spin win: ${winnings} SC (${winLines.length} lines)`
+        `Slots spin win on game ${game_id}: ${winnings} SC (${winLines.length} lines matched)`
       );
+      console.log(`[Slots] Added ${winnings} SC to player ${req.user.playerId}, tx: ${winTransaction.rows[0].id}`);
     }
 
     // Record game result in database
     const reelString = JSON.stringify(reels);
-    await dbQueries.recordSlotsResult(
+    const slotResult = await dbQueries.recordSlotsResult(
       req.user.playerId,
       game_id,
       bet_amount,
       winnings,
       reelString
     );
+
+    console.log(`[Slots] Recorded slot result for player ${req.user.playerId}: bet=${bet_amount}, win=${winnings}, result_id=${slotResult.rows[0].id}`);
 
     // Get updated wallet
     const updatedPlayer = await dbQueries.getPlayerById(req.user.playerId);

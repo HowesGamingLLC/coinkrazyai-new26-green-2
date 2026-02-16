@@ -12,9 +12,15 @@ export default function Slots() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterProvider, setFilterProvider] = useState<string | null>(null);
   const [showUpcoming, setShowUpcoming] = useState(false);
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, refreshProfile } = useAuth();
   const { data: allGames = [], isLoading: gamesLoading } = useGames();
   const navigate = useNavigate();
+
+  // Refresh balance when game closes
+  const handleGameClose = () => {
+    setSelectedGame(null);
+    refreshProfile();
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -200,7 +206,7 @@ export default function Slots() {
         return (
           <GamePopup
             game={casinoGame as any}
-            onClose={() => setSelectedGame(null)}
+            onClose={handleGameClose}
           />
         );
       })()}
