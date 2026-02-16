@@ -93,9 +93,10 @@ export class AuthService {
         }
       };
     } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Registration failed');
       return {
         success: false,
-        error: error.message || 'Registration failed'
+        error: errorMessage
       };
     }
   }
@@ -155,9 +156,10 @@ export class AuthService {
         }
       };
     } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Login failed');
       return {
         success: false,
-        error: error.message || 'Login failed'
+        error: errorMessage
       };
     }
   }
@@ -213,9 +215,10 @@ export class AuthService {
         }
       };
     } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Admin login failed');
       return {
         success: false,
-        error: error.message || 'Admin login failed'
+        error: errorMessage
       };
     }
   }

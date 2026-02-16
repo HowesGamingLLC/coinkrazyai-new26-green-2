@@ -32,7 +32,8 @@ export async function apiCall<T>(
       const error = await response.json();
       errorMessage = error.error || error.message || errorMessage;
       errorDetails = error.details || error;
-      console.error(`[API Error] ${url}:`, { status: response.status, error, details: errorDetails });
+      // Only log error message string, not the entire object
+      console.error(`[API Error] ${url}: ${errorMessage}`);
     } catch (e) {
       console.error(`[API Error] ${url}: Failed to parse error response, status: ${response.status}`);
     }

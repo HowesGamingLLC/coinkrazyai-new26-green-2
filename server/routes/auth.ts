@@ -52,9 +52,10 @@ export const handleRegister: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     console.error('[Auth] Registration error:', error);
+    const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Registration failed');
     res.status(500).json({
       success: false,
-      error: 'Registration failed'
+      error: errorMessage
     });
   }
 };
@@ -93,9 +94,10 @@ export const handleLogin: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     console.error('[Auth] Login error:', error);
+    const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Login failed');
     res.status(500).json({
       success: false,
-      error: 'Login failed'
+      error: errorMessage
     });
   }
 };
@@ -167,9 +169,10 @@ export const handleAdminLogin: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     console.error('[Auth] Admin login error:', error);
+    const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Admin login failed');
     res.status(500).json({
       success: false,
-      error: 'Admin login failed'
+      error: errorMessage
     });
   }
 };
@@ -199,9 +202,10 @@ export const handleGetProfile: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     console.error('[Auth] Get profile error:', error);
+    const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Failed to get profile');
     res.status(500).json({
       success: false,
-      error: 'Failed to get profile'
+      error: errorMessage
     });
   }
 };
@@ -238,9 +242,10 @@ export const handleUpdateProfile: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     console.error('[Auth] Update profile error:', error);
+    const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Failed to update profile');
     res.status(500).json({
       success: false,
-      error: 'Failed to update profile'
+      error: errorMessage
     });
   }
 };
@@ -264,9 +269,10 @@ export const handleLogout: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     console.error('[Auth] Logout error:', error);
+    const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Logout failed');
     res.status(500).json({
       success: false,
-      error: 'Logout failed'
+      error: errorMessage
     });
   }
 };
