@@ -156,6 +156,35 @@ import {
   crawlSlots
 } from "./routes/games-sports";
 import {
+  listGameFeatures,
+  createGameFeature,
+  addFeatureToGame,
+  removeFeatureFromGame,
+  getGameFeatures,
+  listGameThemes,
+  createGameTheme,
+  addThemeToGame,
+  getGameThemes,
+  rateGame,
+  getGameRatings,
+  getGameStatistics,
+  getGameMetadata,
+  updateGameMetadata,
+} from "./routes/game-metadata";
+import {
+  getAvailableProviders,
+  createProviderConfig,
+  getProviderConfig,
+  listProviderConfigs,
+  updateProviderConfig,
+  testProviderConnection,
+  syncProviderGames,
+  getProviderGames,
+  getImportHistory,
+  getImportHistoryDetails,
+  getProviderStats,
+} from "./routes/provider-management";
+import {
   getProviders,
   syncProvider,
   syncAllProviders,
@@ -571,6 +600,30 @@ export function createServer() {
   app.post("/api/admin/v2/games/crawl", verifyAdmin, crawlSlots);
   app.post("/api/admin/v2/games/import-slots", verifyAdmin, handleImportGames);
 
+  // Game Metadata & Features
+  app.get("/api/admin/v2/games/:gameId/metadata", getGameMetadata);
+  app.put("/api/admin/v2/games/:gameId/metadata", verifyAdmin, updateGameMetadata);
+
+  // Game Features
+  app.get("/api/admin/v2/features", listGameFeatures);
+  app.post("/api/admin/v2/features", verifyAdmin, createGameFeature);
+  app.post("/api/admin/v2/games/:gameId/features", verifyAdmin, addFeatureToGame);
+  app.delete("/api/admin/v2/games/:gameId/features/:featureId", verifyAdmin, removeFeatureFromGame);
+  app.get("/api/admin/v2/games/:gameId/features", getGameFeatures);
+
+  // Game Themes
+  app.get("/api/admin/v2/themes", listGameThemes);
+  app.post("/api/admin/v2/themes", verifyAdmin, createGameTheme);
+  app.post("/api/admin/v2/games/:gameId/themes", verifyAdmin, addThemeToGame);
+  app.get("/api/admin/v2/games/:gameId/themes", getGameThemes);
+
+  // Game Ratings
+  app.post("/api/admin/v2/games/:gameId/rate", verifyPlayer, rateGame);
+  app.get("/api/admin/v2/games/:gameId/ratings", getGameRatings);
+
+  // Game Statistics
+  app.get("/api/admin/v2/games/:gameId/statistics", getGameStatistics);
+
   // Poker
   app.get("/api/admin/v2/poker/tables", verifyAdmin, listPokerTables);
   app.post("/api/admin/v2/poker/tables", verifyAdmin, createPokerTable);
@@ -589,7 +642,22 @@ export function createServer() {
   app.put("/api/admin/v2/sportsbook/events/:eventId", verifyAdmin, updateSportsEvent);
   app.get("/api/admin/v2/sportsbook/stats", verifyAdmin, getSportsbookStats);
 
-  // Game Aggregation
+  // Provider Management
+  app.get("/api/admin/v2/providers/available", getAvailableProviders);
+  app.get("/api/admin/v2/providers", listProviderConfigs);
+  app.post("/api/admin/v2/providers", verifyAdmin, createProviderConfig);
+  app.get("/api/admin/v2/providers/:providerId", getProviderConfig);
+  app.put("/api/admin/v2/providers/:providerId", verifyAdmin, updateProviderConfig);
+  app.post("/api/admin/v2/providers/:providerId/test", verifyAdmin, testProviderConnection);
+  app.post("/api/admin/v2/providers/:providerId/sync", verifyAdmin, syncProviderGames);
+  app.get("/api/admin/v2/providers/:providerId/games", getProviderGames);
+  app.get("/api/admin/v2/providers/:providerId/stats", getProviderStats);
+
+  // Import History
+  app.get("/api/admin/v2/import-history", getImportHistory);
+  app.get("/api/admin/v2/import-history/:importId", getImportHistoryDetails);
+
+  // Game Aggregation (Legacy)
   app.get("/api/admin/v2/aggregation/providers", verifyAdmin, getProviders);
   app.post("/api/admin/v2/aggregation/sync/:providerId", verifyAdmin, syncProvider);
   app.post("/api/admin/v2/aggregation/sync-all", verifyAdmin, syncAllProviders);

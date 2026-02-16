@@ -109,6 +109,66 @@ export interface SlotGame {
   thumbnail?: string;
 }
 
+export interface GameMetadata {
+  id: number;
+  name: string;
+  category: string;
+  provider: string;
+  description: string;
+  image_url?: string;
+  rtp: number;
+  volatility: 'Low' | 'Medium' | 'High';
+  max_paylines?: number;
+  theme?: string;
+  release_date?: string;
+  provider_game_id?: string;
+  game_rating: number;
+  total_ratings: number;
+  download_count: number;
+  is_featured: boolean;
+  is_new: boolean;
+  min_bet?: number;
+  max_bet?: number;
+  features?: GameFeature[];
+  themes?: GameTheme[];
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GameFeature {
+  id: number;
+  name: string;
+  description?: string;
+  icon_url?: string;
+}
+
+export interface GameTheme {
+  id: number;
+  name: string;
+  description?: string;
+  icon_url?: string;
+}
+
+export interface GameRating {
+  id: number;
+  game_id: number;
+  player_id?: number;
+  rating: number;
+  comment?: string;
+  helpful_count: number;
+  created_at: string;
+}
+
+export interface GameStatistics {
+  game_id: number;
+  total_plays: number;
+  total_wagered: number;
+  total_winnings: number;
+  average_win: number;
+  updated_at: string;
+}
+
 // ===== SLOTS =====
 export interface SlotsSpinRequest {
   game_id: number;
@@ -306,17 +366,18 @@ export interface ProviderGame {
 
 export interface GameImportHistory {
   id: number;
-  provider_id: number;
   import_type: string;
-  total_games_attempted: number;
-  total_games_imported: number;
-  total_games_updated: number;
-  total_games_skipped: number;
-  status: string;
+  provider?: string;
+  games_imported: number;
+  games_updated?: number;
+  games_failed?: number;
+  source_url?: string;
+  import_log?: Record<string, any>;
+  status: 'completed' | 'in_progress' | 'failed';
   started_at: string;
   completed_at?: string;
-  error_message?: string;
-  import_duration_seconds?: number;
+  imported_by?: number;
+  created_at: string;
 }
 
 export interface ProviderCreateRequest {

@@ -644,6 +644,131 @@ export const adminV2 = {
     },
   },
 
+  // Provider Management
+  providers: {
+    getAvailable: async () => {
+      return adminApiCall<any>('/admin/v2/providers/available');
+    },
+    list: async () => {
+      return adminApiCall<any>('/admin/v2/providers');
+    },
+    get: async (providerId: number) => {
+      return adminApiCall<any>(`/admin/v2/providers/${providerId}`);
+    },
+    create: async (provider: any) => {
+      return adminApiCall<any>('/admin/v2/providers', {
+        method: 'POST',
+        body: JSON.stringify(provider),
+      });
+    },
+    update: async (providerId: number, provider: any) => {
+      return adminApiCall<any>(`/admin/v2/providers/${providerId}`, {
+        method: 'PUT',
+        body: JSON.stringify(provider),
+      });
+    },
+    testConnection: async (providerId: number) => {
+      return adminApiCall<any>(`/admin/v2/providers/${providerId}/test`, {
+        method: 'POST',
+      });
+    },
+    sync: async (providerId: number) => {
+      return adminApiCall<any>(`/admin/v2/providers/${providerId}/sync`, {
+        method: 'POST',
+      });
+    },
+    getGames: async (providerId: number, limit = 20, offset = 0) => {
+      return adminApiCall<any>(`/admin/v2/providers/${providerId}/games?limit=${limit}&offset=${offset}`);
+    },
+    getStats: async (providerId: number) => {
+      return adminApiCall<any>(`/admin/v2/providers/${providerId}/stats`);
+    },
+  },
+
+  // Import History
+  importHistory: {
+    list: async (limit = 20, offset = 0) => {
+      return adminApiCall<any>(`/admin/v2/import-history?limit=${limit}&offset=${offset}`);
+    },
+    get: async (importId: number) => {
+      return adminApiCall<any>(`/admin/v2/import-history/${importId}`);
+    },
+  },
+
+  // Game Metadata
+  gameMetadata: {
+    get: async (gameId: number) => {
+      return apiCall<any>(`/admin/v2/games/${gameId}/metadata`);
+    },
+    update: async (gameId: number, metadata: any) => {
+      return adminApiCall<any>(`/admin/v2/games/${gameId}/metadata`, {
+        method: 'PUT',
+        body: JSON.stringify(metadata),
+      });
+    },
+    getRatings: async (gameId: number, limit = 10, offset = 0) => {
+      return apiCall<any>(`/admin/v2/games/${gameId}/ratings?limit=${limit}&offset=${offset}`);
+    },
+    rateGame: async (gameId: number, rating: number, comment?: string) => {
+      return apiCall<any>(`/admin/v2/games/${gameId}/rate`, {
+        method: 'POST',
+        body: JSON.stringify({ rating, comment }),
+      });
+    },
+    getStatistics: async (gameId: number) => {
+      return apiCall<any>(`/admin/v2/games/${gameId}/statistics`);
+    },
+  },
+
+  // Game Features
+  gameFeatures: {
+    list: async () => {
+      return apiCall<any>('/admin/v2/features');
+    },
+    create: async (feature: any) => {
+      return adminApiCall<any>('/admin/v2/features', {
+        method: 'POST',
+        body: JSON.stringify(feature),
+      });
+    },
+    addToGame: async (gameId: number, featureId: number) => {
+      return adminApiCall<any>(`/admin/v2/games/${gameId}/features`, {
+        method: 'POST',
+        body: JSON.stringify({ gameId, featureId }),
+      });
+    },
+    removeFromGame: async (gameId: number, featureId: number) => {
+      return adminApiCall<any>(`/admin/v2/games/${gameId}/features/${featureId}`, {
+        method: 'DELETE',
+      });
+    },
+    getGameFeatures: async (gameId: number) => {
+      return apiCall<any>(`/admin/v2/games/${gameId}/features`);
+    },
+  },
+
+  // Game Themes
+  gameThemes: {
+    list: async () => {
+      return apiCall<any>('/admin/v2/themes');
+    },
+    create: async (theme: any) => {
+      return adminApiCall<any>('/admin/v2/themes', {
+        method: 'POST',
+        body: JSON.stringify(theme),
+      });
+    },
+    addToGame: async (gameId: number, themeId: number) => {
+      return adminApiCall<any>(`/admin/v2/games/${gameId}/themes`, {
+        method: 'POST',
+        body: JSON.stringify({ gameId, themeId }),
+      });
+    },
+    getGameThemes: async (gameId: number) => {
+      return apiCall<any>(`/admin/v2/games/${gameId}/themes`);
+    },
+  },
+
   aggregation: {
     getProviders: async () => {
       return adminApiCall<any>('/admin/v2/aggregation/providers');

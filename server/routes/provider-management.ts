@@ -1,400 +1,373 @@
 import { RequestHandler } from 'express';
-import * as providerDb from '../db/providers';
-import * as syncService from '../services/provider-sync-service';
-import { ProviderCreateRequest, ProviderUpdateRequest } from '@shared/api';
+import { query } from '../db/connection';
+import * as providerIntegrations from '../services/provider-api-integrations';
 
-/**
- * Get all providers
- */
-export const getProviders: RequestHandler = async (req, res) => {
-  try {
-    const providers = await providerDb.getProviders();
-    res.json({
-      success: true,
-      data: providers
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
-
-/**
- * Get a specific provider with stats
- */
-export const getProvider: RequestHandler = async (req, res) => {
-  try {
-    const { providerId } = req.params;
-    const provider = await providerDb.getProvider(parseInt(providerId));
-    
-    if (!provider) {
-      return res.status(404).json({
-        success: false,
-        error: 'Provider not found'
-      });
-    }
-
-    const stats = await providerDb.getProviderStats(parseInt(providerId));
-    const importHistory = await providerDb.getImportHistory(parseInt(providerId), 10);
-
-    res.json({
-      success: true,
-      data: { provider, stats, importHistory }
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
-
-/**
- * Create a new provider
- */
-export const createProvider: RequestHandler = async (req, res) => {
-  try {
-    const { userId } = req.body;
-    const data: ProviderCreateRequest = req.body;
-
-    if (!data.name || !data.slug || !data.type) {
-      return res.status(400).json({
-        success: false,
-        error: 'Name, slug, and type are required'
-      });
-    }
-
-    const provider = await providerDb.createProvider(data, userId);
-
-    res.json({
-      success: true,
-      data: provider
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
-
-/**
- * Update a provider
- */
-export const updateProvider: RequestHandler = async (req, res) => {
-  try {
-    const { providerId } = req.params;
-    const data: ProviderUpdateRequest = req.body;
-
-    const provider = await providerDb.updateProvider(parseInt(providerId), data);
-
-    res.json({
-      success: true,
-      data: provider
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
-
-/**
- * Delete a provider
- */
-export const deleteProvider: RequestHandler = async (req, res) => {
-  try {
-    const { providerId } = req.params;
-    const provider = await providerDb.deleteProvider(parseInt(providerId));
-
-    res.json({
-      success: true,
-      data: provider
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
-
-/**
- * Test provider connection
- */
-export const testProvider: RequestHandler = async (req, res) => {
-  try {
-    const { providerId } = req.params;
-    const result = await syncService.testProviderConnection(parseInt(providerId));
-
-    res.json({
-      success: result.success,
-      data: result
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
-
-/**
- * Sync provider games
- */
-export const syncProvider: RequestHandler = async (req, res) => {
-  try {
-    const { providerId } = req.params;
-    const { userId } = req.body;
-
-    // Create import history record
-    const importHistory = await providerDb.createImportHistory(
-      parseInt(providerId),
-      'manual',
-      userId,
-      0
-    );
-
-    // Start sync (run in background)
-    syncService.syncProviderGames(parseInt(providerId))
-      .then(result => {
-        providerDb.updateImportHistory(
-          importHistory.id,
-          result.imported,
-          result.updated,
-          result.skipped,
-          'completed'
-        );
-      })
-      .catch(error => {
-        providerDb.updateImportHistory(
-          importHistory.id,
-          0,
-          0,
-          0,
-          'failed',
-          error.message
-        );
-      });
-
-    res.json({
-      success: true,
-      message: 'Sync started in background',
-      data: { import_id: importHistory.id }
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
-
-/**
- * Sync all enabled providers
- */
-export const syncAllProviders: RequestHandler = async (req, res) => {
-  try {
-    const { userId } = req.body;
-
-    // Run sync in background
-    syncService.syncAllProviders()
-      .then(results => {
-        console.log('[ProviderAPI] All providers synced:', results);
-      })
-      .catch(error => {
-        console.error('[ProviderAPI] Error syncing all providers:', error);
-      });
-
-    res.json({
-      success: true,
-      message: 'Sync started for all enabled providers'
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
-
-/**
- * Get import history for provider
- */
-export const getImportHistory: RequestHandler = async (req, res) => {
-  try {
-    const { providerId } = req.params;
-    const history = await providerDb.getImportHistory(parseInt(providerId), 50);
-
-    res.json({
-      success: true,
-      data: history
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
-
-/**
- * Get provider API logs
- */
-export const getProviderLogs: RequestHandler = async (req, res) => {
-  try {
-    const { providerId } = req.params;
-    const logs = await providerDb.getProviderApiLogs(parseInt(providerId), 100);
-
-    res.json({
-      success: true,
-      data: logs
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
-
-/**
- * Get available providers for setup
- */
+// ===== GET REGISTERED PROVIDERS =====
 export const getAvailableProviders: RequestHandler = async (req, res) => {
   try {
-    const providers = await syncService.getAvailableProviders();
-
-    res.json({
-      success: true,
-      data: providers
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    const providers = providerIntegrations.getRegisteredProviders();
+    res.json(providers);
+  } catch (error) {
+    console.error('Get available providers error:', error);
+    res.status(500).json({ error: 'Failed to fetch providers' });
   }
 };
 
-/**
- * Get provider games
- */
-export const getProviderGames: RequestHandler = async (req, res) => {
+// ===== CREATE PROVIDER CONFIGURATION =====
+export const createProviderConfig: RequestHandler = async (req, res) => {
   try {
-    const { providerId } = req.params;
-    const games = await providerDb.getProviderGames(parseInt(providerId));
+    const {
+      name,
+      slug,
+      api_endpoint,
+      api_key,
+      api_secret,
+      description,
+      is_enabled,
+    } = req.body;
 
-    res.json({
-      success: true,
-      data: games
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
-
-/**
- * Export games as JSON
- */
-export const exportGames: RequestHandler = async (req, res) => {
-  try {
-    const { providerId } = req.params;
-    const games = await providerDb.getProviderGames(parseInt(providerId));
-
-    // Format as CSV or JSON
-    const format = req.query.format || 'json';
-
-    if (format === 'csv') {
-      // Convert to CSV
-      const headers = ['ID', 'Name', 'Provider', 'RTP', 'Volatility', 'Description'];
-      const rows = games.map(g => [
-        g.id,
-        g.name,
-        g.provider,
-        g.rtp,
-        g.volatility,
-        g.description
-      ]);
-
-      const csv = [headers, ...rows]
-        .map(row => row.map(cell => `"${cell}"`).join(','))
-        .join('\n');
-
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="games-export-${new Date().getTime()}.csv"`);
-      res.send(csv);
-    } else {
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename="games-export-${new Date().getTime()}.json"`);
-      res.json({
-        success: true,
-        export_date: new Date().toISOString(),
-        total_games: games.length,
-        games
-      });
-    }
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
-
-/**
- * Bulk import games from file
- */
-export const bulkImportGames: RequestHandler = async (req, res) => {
-  try {
-    const { games } = req.body;
-
-    if (!Array.isArray(games) || games.length === 0) {
+    if (!name || !slug || !api_endpoint) {
       return res.status(400).json({
-        success: false,
-        error: 'Games array is required and cannot be empty'
+        error: 'name, slug, and api_endpoint are required',
       });
     }
 
-    let imported = 0;
-    let updated = 0;
-    let errors = [];
+    // Check if provider config already exists
+    const existing = await query(
+      'SELECT id FROM game_providers WHERE slug = $1',
+      [slug.toLowerCase()]
+    );
 
-    for (const gameData of games) {
-      try {
-        const existing = await providerDb.query?.(
-          'SELECT id FROM games WHERE name = $1 AND provider = $2',
-          [gameData.name, gameData.provider]
-        );
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'Provider configuration already exists' });
+    }
 
-        if (existing && existing.rows && existing.rows.length > 0) {
-          updated++;
-        } else {
-          imported++;
-        }
-      } catch (error: any) {
-        errors.push({
-          game: gameData.name,
-          error: error.message
-        });
+    const result = await query(
+      `INSERT INTO game_providers (name, slug, api_endpoint, api_key, api_secret, description, is_enabled)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [name, slug.toLowerCase(), api_endpoint, api_key || null, api_secret || null, description || null, is_enabled !== false]
+    );
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Create provider config error:', error);
+    res.status(500).json({ error: 'Failed to create provider configuration' });
+  }
+};
+
+// ===== GET PROVIDER CONFIGURATION =====
+export const getProviderConfig: RequestHandler = async (req, res) => {
+  try {
+    const { providerId } = req.params;
+
+    const result = await query(
+      'SELECT * FROM game_providers WHERE id = $1',
+      [providerId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Provider not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Get provider config error:', error);
+    res.status(500).json({ error: 'Failed to fetch provider configuration' });
+  }
+};
+
+// ===== LIST PROVIDER CONFIGURATIONS =====
+export const listProviderConfigs: RequestHandler = async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM game_providers ORDER BY name');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('List provider configs error:', error);
+    res.status(500).json({ error: 'Failed to fetch provider configurations' });
+  }
+};
+
+// ===== UPDATE PROVIDER CONFIGURATION =====
+export const updateProviderConfig: RequestHandler = async (req, res) => {
+  try {
+    const { providerId } = req.params;
+    const updates = req.body;
+
+    if (!updates || Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    const allowedFields = [
+      'name',
+      'description',
+      'api_endpoint',
+      'api_key',
+      'api_secret',
+      'is_enabled',
+    ];
+
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    let paramIndex = 1;
+
+    for (const field of allowedFields) {
+      if (field in updates) {
+        updateFields.push(`${field} = $${paramIndex}`);
+        updateValues.push(updates[field]);
+        paramIndex++;
       }
     }
 
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+
+    updateFields.push('updated_at = CURRENT_TIMESTAMP');
+    updateValues.push(providerId);
+
+    const sql = `UPDATE game_providers SET ${updateFields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+    const result = await query(sql, updateValues);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Provider not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update provider config error:', error);
+    res.status(500).json({ error: 'Failed to update provider configuration' });
+  }
+};
+
+// ===== TEST PROVIDER CONNECTION =====
+export const testProviderConnection: RequestHandler = async (req, res) => {
+  try {
+    const { providerId } = req.params;
+
+    // Get provider config
+    const providerResult = await query(
+      'SELECT * FROM game_providers WHERE id = $1',
+      [providerId]
+    );
+
+    if (providerResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Provider not found' });
+    }
+
+    const provider = providerResult.rows[0];
+    const config = {
+      api_endpoint: provider.api_endpoint,
+      api_key: provider.api_key,
+      api_secret: provider.api_secret,
+      timeout: 15000,
+    };
+
+    const testResult = await providerIntegrations.testProviderConfig(provider.slug, config);
+    res.json(testResult);
+  } catch (error) {
+    console.error('Test provider connection error:', error);
+    res.status(500).json({ error: 'Failed to test provider connection' });
+  }
+};
+
+// ===== SYNC PROVIDER GAMES =====
+export const syncProviderGames: RequestHandler = async (req, res) => {
+  try {
+    const { providerId } = req.params;
+
+    // Get provider config
+    const providerResult = await query(
+      'SELECT * FROM game_providers WHERE id = $1',
+      [providerId]
+    );
+
+    if (providerResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Provider not found' });
+    }
+
+    const provider = providerResult.rows[0];
+
+    if (!provider.is_enabled) {
+      return res.status(400).json({ error: 'Provider is not enabled' });
+    }
+
+    // Prepare config
+    const config = {
+      api_endpoint: provider.api_endpoint,
+      api_key: provider.api_key,
+      api_secret: provider.api_secret,
+      timeout: 15000,
+    };
+
+    // Run sync
+    const syncResult = await providerIntegrations.syncProviderGamesToDb(
+      providerId,
+      provider.slug,
+      config,
+      req.user?.id
+    );
+
+    // Update provider last sync time
+    await query(
+      'UPDATE game_providers SET last_sync_at = CURRENT_TIMESTAMP WHERE id = $1',
+      [providerId]
+    );
+
     res.json({
       success: true,
-      message: `Import complete: ${imported} imported, ${updated} updated${errors.length > 0 ? `, ${errors.length} errors` : ''}`,
-      data: { imported, updated, errors }
+      message: `Sync complete for ${provider.name}`,
+      data: syncResult,
     });
   } catch (error: any) {
+    console.error('Sync provider games error:', error);
     res.status(500).json({
-      success: false,
-      error: error.message
+      error: 'Failed to sync provider games',
+      details: error.message,
     });
+  }
+};
+
+// ===== GET PROVIDER GAMES =====
+export const getProviderGames: RequestHandler = async (req, res) => {
+  try {
+    const { providerId } = req.params;
+    const { limit = 20, offset = 0 } = req.query;
+
+    const result = await query(
+      `SELECT g.* FROM games g
+       WHERE g.provider = (
+         SELECT name FROM game_providers WHERE id = $1
+       )
+       ORDER BY g.name
+       LIMIT $2 OFFSET $3`,
+      [providerId, limit, offset]
+    );
+
+    const countResult = await query(
+      `SELECT COUNT(*) as total FROM games g
+       WHERE g.provider = (
+         SELECT name FROM game_providers WHERE id = $1
+       )`,
+      [providerId]
+    );
+
+    res.json({
+      games: result.rows,
+      total: parseInt(countResult.rows[0]?.total || '0'),
+      limit: parseInt(String(limit)),
+      offset: parseInt(String(offset)),
+    });
+  } catch (error) {
+    console.error('Get provider games error:', error);
+    res.status(500).json({ error: 'Failed to fetch provider games' });
+  }
+};
+
+// ===== GET IMPORT HISTORY =====
+export const getImportHistory: RequestHandler = async (req, res) => {
+  try {
+    const { limit = 20, offset = 0 } = req.query;
+
+    const result = await query(
+      `SELECT * FROM game_import_history
+       ORDER BY created_at DESC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+
+    const countResult = await query('SELECT COUNT(*) as total FROM game_import_history');
+
+    res.json({
+      history: result.rows,
+      total: parseInt(countResult.rows[0]?.total || '0'),
+      limit: parseInt(String(limit)),
+      offset: parseInt(String(offset)),
+    });
+  } catch (error) {
+    console.error('Get import history error:', error);
+    res.status(500).json({ error: 'Failed to fetch import history' });
+  }
+};
+
+// ===== GET IMPORT HISTORY DETAILS =====
+export const getImportHistoryDetails: RequestHandler = async (req, res) => {
+  try {
+    const { importId } = req.params;
+
+    const result = await query(
+      'SELECT * FROM game_import_history WHERE id = $1',
+      [importId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Import history not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Get import history details error:', error);
+    res.status(500).json({ error: 'Failed to fetch import history details' });
+  }
+};
+
+// ===== GET PROVIDER STATISTICS =====
+export const getProviderStats: RequestHandler = async (req, res) => {
+  try {
+    const { providerId } = req.params;
+
+    // Get provider info
+    const providerResult = await query(
+      'SELECT * FROM game_providers WHERE id = $1',
+      [providerId]
+    );
+
+    if (providerResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Provider not found' });
+    }
+
+    const provider = providerResult.rows[0];
+
+    // Get game count
+    const gameCountResult = await query(
+      `SELECT COUNT(*) as total FROM games WHERE provider = $1`,
+      [provider.name]
+    );
+
+    // Get recent import
+    const recentImportResult = await query(
+      `SELECT * FROM game_import_history 
+       WHERE provider = $1 
+       ORDER BY created_at DESC 
+       LIMIT 1`,
+      [provider.slug]
+    );
+
+    // Get stats
+    const statsResult = await query(
+      `SELECT 
+         COUNT(DISTINCT g.id) as total_games,
+         AVG(g.rtp) as avg_rtp,
+         SUM(gs.total_plays) as total_plays,
+         SUM(gs.total_wagered) as total_wagered
+       FROM games g
+       LEFT JOIN game_statistics gs ON g.id = gs.game_id
+       WHERE g.provider = $1`,
+      [provider.name]
+    );
+
+    res.json({
+      provider,
+      stats: {
+        total_games: parseInt(gameCountResult.rows[0]?.total || '0'),
+        avg_rtp: parseFloat(statsResult.rows[0]?.avg_rtp || '0'),
+        total_plays: parseInt(statsResult.rows[0]?.total_plays || '0'),
+        total_wagered: parseFloat(statsResult.rows[0]?.total_wagered || '0'),
+      },
+      last_sync: recentImportResult.rows[0] || null,
+    });
+  } catch (error) {
+    console.error('Get provider stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch provider statistics' });
   }
 };

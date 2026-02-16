@@ -400,90 +400,67 @@ export const clearAllGames: RequestHandler = async (req, res) => {
 
 export const crawlSlots: RequestHandler = async (req, res) => {
   try {
-    const { url } = req.body;
-    if (!url) {
-      return res.status(400).json({ error: 'URL is required' });
+    const { url, urls } = req.body;
+
+    // Support both single URL and multiple URLs
+    let urlsToProcess: string[] = [];
+
+    if (url) {
+      urlsToProcess = [url];
+    } else if (urls && Array.isArray(urls)) {
+      urlsToProcess = urls;
+    } else {
+      return res.status(400).json({ error: 'URL or URLs array is required' });
     }
 
-    // Basic URL validation
+    // Validate URLs
+    for (const u of urlsToProcess) {
+      try {
+        new URL(u);
+      } catch (e) {
+        return res.status(400).json({ error: `Invalid URL format: ${u}` });
+      }
+    }
+
+    console.log(`[Crawler] Starting crawl for ${urlsToProcess.length} URL(s)`);
+
+    // Import enhanced crawler
+    const { gameCrawler } = await import('../services/game-crawler');
+
+    // Crawl URLs
+    const crawledGames = await gameCrawler.crawlMultiple(urlsToProcess);
+
+    if (crawledGames.length === 0) {
+      return res.status(400).json({
+        error: 'Could not extract game data from the provided URL(s)',
+        attempted: urlsToProcess.length,
+        successful: 0,
+      });
+    }
+
+    // Save crawled games to database
+    const savedGames = [];
+    const errors = [];
+
+    for (const gameData of crawledGames) {
+      try {
+        const saved = await gameCrawler.saveGame(gameData);
+        savedGames.push(saved);
+      } catch (err) {
+        errors.push({
+          game: gameData.title,
+          error: (err as Error).message,
+        });
+      }
+    }
+
+    // Notify admin
     try {
-      new URL(url);
-    } catch (e) {
-      return res.status(400).json({ error: 'Invalid URL format' });
-    }
-
-    console.log(`[Crawler] Starting crawl for: ${url}`);
-
-    // Fetch HTML with a standard User-Agent to avoid simple blocks
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-      timeout: 10000,
-      maxRedirects: 5,
-      validateStatus: (status) => status < 500 // Don't throw on 4xx, only on 5xx or connection errors
-    });
-
-    if (response.status !== 200) {
-      console.warn(`[Crawler] Site returned status ${response.status} for ${url}`);
-      return res.status(400).json({ error: `Target site returned status ${response.status}. It might be blocking automated access.` });
-    }
-
-    const html = response.data;
-    if (!html || typeof html !== 'string') {
-      return res.status(400).json({ error: 'Could not retrieve text content from the URL' });
-    }
-
-    // Extract Title (Game Name)
-    const titleMatch = html.match(/<title>(.*?)<\/title>/i);
-    let name = titleMatch ? titleMatch[1].trim() : 'Crawled Game';
-
-    // Clean up name: remove common separators and "Slot", "Online", etc if they are suffixes
-    if (name.includes('|')) name = name.split('|')[0].trim();
-    if (name.includes('-')) name = name.split('-')[0].trim();
-    if (name.includes(':')) name = name.split(':')[0].trim();
-
-    // Ensure name fits in VARCHAR(255)
-    name = name.substring(0, 250);
-
-    // Extract RTP (Return to Player)
-    // Common pattern in slot review sites: "RTP: 96.5%"
-    const rtpMatch = html.match(/RTP[:\s]+(\d{2,3}(\.\d{1,2})?)%/i) ||
-                     html.match(/(\d{2,3}(\.\d{1,2})?)%[\s]*RTP/i) ||
-                     html.match(/payout[\s]+percentage[:\s]+(\d{2,3}(\.\d{1,2})?)%/i);
-
-    let rtp = rtpMatch ? parseFloat(rtpMatch[1]) : 96.0;
-    // Ensure RTP is within sensible bounds for DECIMAL(5,2)
-    if (isNaN(rtp) || rtp <= 0 || rtp > 100) rtp = 96.0;
-
-    // Extract Volatility
-    const volMatch = html.match(/(Low|Medium|High)[\s]+Volatility/i) ||
-                     html.match(/Volatility[:\s]+(Low|Medium|High)/i);
-    const volatility = volMatch ? volMatch[1].charAt(0).toUpperCase() + volMatch[1].slice(1).toLowerCase() : 'Medium';
-
-    // Extract Description
-    const metaDescMatch = html.match(/<meta name="description" content="(.*?)"/i) ||
-                          html.match(/<meta property="og:description" content="(.*?)"/i);
-    const description = metaDescMatch ? metaDescMatch[1].trim().substring(0, 500) : `Automatically crawled from ${url}`;
-
-    // Create game in database
-    console.log(`[Crawler] Inserting game into DB: "${name}" (RTP: ${rtp}%, Volatility: ${volatility})`);
-    const dbResult = await query(
-      `INSERT INTO games (name, category, provider, rtp, volatility, description, enabled)
-       VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING *`,
-      [name, 'Slots', 'External', rtp, volatility, description]
-    );
-
-    const game = dbResult.rows[0];
-
-    // Notify admin channel
-    try {
+      const message = `Crawled ${savedGames.length} games from ${urlsToProcess.length} URL(s)`;
       await SlackService.notifyAdminAction(
         req.user?.email || 'admin',
-        'Slots Crawl Successful',
-        `Imported "${name}" (RTP: ${rtp}%, Volatility: ${volatility}) from ${url}`
+        'Slots Crawler Complete',
+        `${message}. ${errors.length > 0 ? `${errors.length} errors occurred.` : 'All successful!'}`
       );
     } catch (slackErr) {
       console.error('[Crawler] Failed to send Slack notification:', slackErr);
@@ -491,18 +468,38 @@ export const crawlSlots: RequestHandler = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Successfully crawled and imported "${name}" with ${rtp}% RTP.`,
-      data: game
+      message: `Successfully crawled ${savedGames.length} game(s)`,
+      data: {
+        saved: savedGames.length,
+        attempted: urlsToProcess.length,
+        games: savedGames,
+        errors: errors.length > 0 ? errors : undefined,
+      },
     });
   } catch (error: any) {
     console.error('[Crawler] Error:', error.message);
-    const message = error.code === 'ECONNABORTED' ? 'Request timed out' : error.message;
 
-    // If it's an axios error, it's usually a bad URL or target site issue, so 400 is more appropriate
-    if (error.isAxiosError || error.code?.startsWith('E')) {
-      return res.status(400).json({ error: `Crawler could not reach the site: ${message}` });
+    // Categorize error for better user feedback
+    let errorMessage = 'Crawler failed';
+    let statusCode = 500;
+
+    if (error.code === 'ECONNABORTED') {
+      errorMessage = 'Request timed out - site took too long to respond';
+      statusCode = 408;
+    } else if (error.message?.includes('rate limited')) {
+      errorMessage = 'Rate limited by target site - please try again later';
+      statusCode = 429;
+    } else if (error.message?.includes('Access denied')) {
+      errorMessage = error.message;
+      statusCode = 403;
+    } else if (error.message?.includes('not found')) {
+      errorMessage = 'Domain not found - check the URL';
+      statusCode = 400;
     }
 
-    res.status(500).json({ error: `Crawler failed: ${message}` });
+    res.status(statusCode).json({
+      error: errorMessage,
+      details: error.message,
+    });
   }
 };
