@@ -429,6 +429,39 @@ const seedDatabase = async () => {
       }
     }
 
+    // Import and seed new slot games
+    try {
+      const { SLOT_GAMES_DATA } = await import('../utils/slot-games-parser');
+      console.log('[DB] Seeding new slot games from parser...');
+
+      for (const gameData of SLOT_GAMES_DATA) {
+        try {
+          await query(
+            `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url, enabled)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             ON CONFLICT DO NOTHING`,
+            [
+              gameData.name,
+              gameData.category,
+              gameData.provider,
+              gameData.rtp,
+              gameData.volatility,
+              gameData.description,
+              gameData.image_url,
+              gameData.enabled ?? true
+            ]
+          );
+        } catch (err: any) {
+          if (err.code !== '23505') { // Not a unique constraint violation
+            console.log('[DB] Error seeding game:', gameData.name, err.message?.substring(0, 100));
+          }
+        }
+      }
+      console.log('[DB] New slot games seeded successfully');
+    } catch (err: any) {
+      console.log('[DB] Error loading slot games parser:', err.message?.substring(0, 100));
+    }
+
     // Ensure Pragmatic Play games exist
     const pragmaticCount = await query(
       'SELECT COUNT(*) as count FROM games WHERE provider = $1',

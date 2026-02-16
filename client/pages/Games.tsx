@@ -157,32 +157,58 @@ const Games = () => {
             {featured.map((game) => (
               <Card
                 key={game.id}
-                className="border-primary/20 cursor-pointer hover:border-primary/50 transition-all hover:scale-105"
+                className="border-primary/20 cursor-pointer hover:border-primary/50 transition-all hover:scale-105 overflow-hidden group"
                 onClick={() => handlePlayGame(game)}
               >
-                <CardContent className="p-4">
-                  <div className="text-5xl mb-3">
-                    {game.type === 'slots' && '🎰'}
-                    {game.type === 'poker' && '♠️'}
-                    {game.type === 'bingo' && '🎲'}
-                    {game.type === 'sportsbook' && '⚽'}
-                    {game.type === 'scratch-tickets' && '🎫'}
-                    {game.type === 'pull-tabs' && '🎟️'}
-                    {game.icon && !['slots', 'poker', 'bingo', 'sportsbook', 'scratch-tickets', 'pull-tabs'].includes(game.type) && game.icon}
+                {/* Game Image */}
+                <div className="relative w-full aspect-video bg-muted overflow-hidden">
+                  {game.image ? (
+                    <img
+                      src={game.image}
+                      alt={game.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f0f0f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='20' fill='%23999'%3E${game.type === 'slots' ? '🎰' : game.type === 'poker' ? '♠️' : game.type === 'bingo' ? '🎲' : game.type === 'sportsbook' ? '⚽' : game.type === 'scratch-tickets' ? '🎫' : game.type === 'pull-tabs' ? '🎟️' : '🎮'}%3C/text%3E%3C/svg%3E`;
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-6xl bg-gradient-to-br from-muted to-muted/50">
+                      {game.type === 'slots' && '🎰'}
+                      {game.type === 'poker' && '♠️'}
+                      {game.type === 'bingo' && '🎲'}
+                      {game.type === 'sportsbook' && '⚽'}
+                      {game.type === 'scratch-tickets' && '🎫'}
+                      {game.type === 'pull-tabs' && '🎟️'}
+                      {game.icon && !['slots', 'poker', 'bingo', 'sportsbook', 'scratch-tickets', 'pull-tabs'].includes(game.type) && game.icon}
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
+                    <Button
+                      className="bg-primary hover:bg-primary/90 font-bold"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePlayGame(game);
+                      }}
+                    >
+                      Play Now
+                    </Button>
                   </div>
-                  <h3 className="font-bold mb-1 text-sm">{game.name}</h3>
-                  <div className="flex items-center justify-between mb-3">
+                </div>
+
+                <CardContent className="p-4 space-y-3">
+                  <h3 className="font-bold text-sm line-clamp-2">{game.name}</h3>
+                  <div className="flex items-center justify-between text-xs">
                     <Badge className="text-xs bg-muted/50 border-none">
                       {game.type?.toUpperCase()}
                     </Badge>
                     {game.rtp && (
                       <div className="flex items-center gap-1">
                         <TrendingUp className="w-3 h-3 text-green-500" />
-                        <span className="text-xs font-bold text-green-500">{game.rtp}%</span>
+                        <span className="font-bold text-green-500">{game.rtp}%</span>
                       </div>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground mb-3">
+                  <div className="text-xs text-muted-foreground">
                     {game.activePlayers && (
                       <div className="flex items-center gap-1">
                         <Users className="w-3 h-3" />
@@ -190,15 +216,6 @@ const Games = () => {
                       </div>
                     )}
                   </div>
-                  <Button
-                    className="w-full h-8 text-xs font-bold"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePlayGame(game);
-                    }}
-                  >
-                    Play Now
-                  </Button>
                 </CardContent>
               </Card>
             ))}
@@ -242,32 +259,58 @@ const Games = () => {
             filtered.map((game) => (
               <Card
                 key={game.id}
-                className="border-border cursor-pointer hover:border-primary/30 transition-all hover:scale-105"
+                className="border-border cursor-pointer hover:border-primary/30 transition-all hover:scale-105 overflow-hidden group"
                 onClick={() => handlePlayGame(game)}
               >
-                <CardContent className="p-4">
-                  <div className="text-4xl mb-3">
-                    {game.type === 'slots' && '🎰'}
-                    {game.type === 'poker' && '♠️'}
-                    {game.type === 'bingo' && '🎲'}
-                    {game.type === 'sportsbook' && '⚽'}
-                    {game.type === 'scratch-tickets' && '🎫'}
-                    {game.type === 'pull-tabs' && '🎟️'}
-                    {game.icon && !['slots', 'poker', 'bingo', 'sportsbook', 'scratch-tickets', 'pull-tabs'].includes(game.type) && game.icon}
+                {/* Game Image */}
+                <div className="relative w-full aspect-video bg-muted overflow-hidden">
+                  {game.image ? (
+                    <img
+                      src={game.image}
+                      alt={game.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f0f0f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='20' fill='%23999'%3E${game.type === 'slots' ? '🎰' : game.type === 'poker' ? '♠️' : game.type === 'bingo' ? '🎲' : game.type === 'sportsbook' ? '⚽' : game.type === 'scratch-tickets' ? '🎫' : game.type === 'pull-tabs' ? '🎟️' : '🎮'}%3C/text%3E%3C/svg%3E`;
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-6xl bg-gradient-to-br from-muted to-muted/50">
+                      {game.type === 'slots' && '🎰'}
+                      {game.type === 'poker' && '♠️'}
+                      {game.type === 'bingo' && '🎲'}
+                      {game.type === 'sportsbook' && '⚽'}
+                      {game.type === 'scratch-tickets' && '🎫'}
+                      {game.type === 'pull-tabs' && '🎟️'}
+                      {game.icon && !['slots', 'poker', 'bingo', 'sportsbook', 'scratch-tickets', 'pull-tabs'].includes(game.type) && game.icon}
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                    <Button
+                      className="bg-primary hover:bg-primary/90"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePlayGame(game);
+                      }}
+                    >
+                      Play Now
+                    </Button>
                   </div>
-                  <h3 className="font-bold text-sm mb-1">{game.name}</h3>
-                  <div className="flex items-center justify-between mb-3">
+                </div>
+
+                <CardContent className="p-4 space-y-3">
+                  <h3 className="font-bold text-sm line-clamp-2">{game.name}</h3>
+                  <div className="flex items-center justify-between text-xs">
                     <Badge className="text-xs bg-muted/50 border-none">
                       {game.type?.toUpperCase()}
                     </Badge>
                     {game.rtp && (
                       <div className="flex items-center gap-1">
                         <TrendingUp className="w-3 h-3 text-green-500" />
-                        <span className="text-xs font-bold text-green-500">{game.rtp}%</span>
+                        <span className="font-bold text-green-500">{game.rtp}%</span>
                       </div>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground mb-3 space-y-1">
+                  <div className="text-xs text-muted-foreground space-y-1">
                     {game.description && (
                       <p className="line-clamp-2">{game.description}</p>
                     )}
@@ -278,15 +321,6 @@ const Games = () => {
                       </div>
                     )}
                   </div>
-                  <Button
-                    className="w-full h-8 text-xs font-bold"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePlayGame(game);
-                    }}
-                  >
-                    Play Now
-                  </Button>
                 </CardContent>
               </Card>
             ))

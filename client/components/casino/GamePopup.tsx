@@ -20,6 +20,9 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
   const [popupState, setPopupState] = useState<PopupState>('setup');
   const [betAmount, setBetAmount] = useState(CASINO_MIN_BET);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [autoSpinCount, setAutoSpinCount] = useState(0);
+  const [autoSpinAmount, setAutoSpinAmount] = useState(1);
+  const [isAutoSpinActive, setIsAutoSpinActive] = useState(false);
 
   // Safely initialize balance
   const initialBalance = (() => {
@@ -282,6 +285,75 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
                   </button>
                 ))}
               </div>
+
+              {/* Bet Multiplier and Max Bet Controls */}
+              <div className="pt-2 border-t border-gray-700">
+                <p className="text-xs font-semibold text-gray-400 mb-3">Quick Controls</p>
+                <div className="grid grid-cols-4 gap-2">
+                  <button
+                    onClick={() => setBetAmount(Math.max(CASINO_MIN_BET, betAmount / 2))}
+                    disabled={isProcessing || betAmount <= CASINO_MIN_BET}
+                    className="px-2 py-2 bg-gray-700 hover:bg-blue-600 hover:text-white rounded font-semibold text-gray-300 transition-colors disabled:opacity-50 text-xs"
+                    title="Divide bet by 2"
+                  >
+                    ÷ 2x
+                  </button>
+                  <button
+                    onClick={() => setBetAmount(Math.min(CASINO_MAX_BET, betAmount * 2))}
+                    disabled={isProcessing || betAmount >= CASINO_MAX_BET}
+                    className="px-2 py-2 bg-gray-700 hover:bg-green-600 hover:text-white rounded font-semibold text-gray-300 transition-colors disabled:opacity-50 text-xs"
+                    title="Multiply bet by 2"
+                  >
+                    × 2x
+                  </button>
+                  <button
+                    onClick={() => setBetAmount(CASINO_MAX_BET)}
+                    disabled={isProcessing || betAmount >= CASINO_MAX_BET}
+                    className="px-2 py-2 bg-gray-700 hover:bg-red-600 hover:text-white rounded font-semibold text-gray-300 transition-colors disabled:opacity-50 text-xs col-span-2"
+                    title="Set bet to maximum"
+                  >
+                    MAX BET ({CASINO_MAX_BET.toFixed(2)})
+                  </button>
+                </div>
+              </div>
+
+              {/* Auto-Spin Controls */}
+              <div className="pt-2 border-t border-gray-700">
+                <p className="text-xs font-semibold text-gray-400 mb-3">Auto-Spin Options</p>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <label className="text-xs text-gray-400">Number of Spins: <span className="text-amber-400 font-semibold">{autoSpinAmount}</span></label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="100"
+                      step="1"
+                      value={autoSpinAmount}
+                      onChange={(e) => setAutoSpinAmount(parseInt(e.target.value))}
+                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                      disabled={isProcessing || isAutoSpinActive}
+                    />
+                    <div className="flex justify-between text-xs text-gray-400">
+                      <span>1 Spin</span>
+                      <span>100 Spins</span>
+                    </div>
+                  </div>
+
+                  {/* Auto-Spin Quick Buttons */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {[5, 10, 25, 50].map((num) => (
+                      <button
+                        key={num}
+                        onClick={() => setAutoSpinAmount(num)}
+                        disabled={isProcessing || isAutoSpinActive}
+                        className="px-2 py-1 bg-gray-700 hover:bg-purple-600 hover:text-white rounded font-semibold text-gray-300 transition-colors disabled:opacity-50 text-xs"
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Balance Check Message */}
@@ -298,22 +370,36 @@ export function GamePopup({ game, onClose }: GamePopupProps) {
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-3">
+            <div className="space-y-3">
               <Button
-                onClick={onClose}
-                variant="outline"
-                className="flex-1"
-                disabled={isProcessing}
+                onClick={() => {
+                  setIsAutoSpinActive(true);
+                  setAutoSpinCount(0);
+                  handlePlayGame();
+                }}
+                disabled={!hasEnoughBalance || isProcessing}
+                className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Cancel
+                {isProcessing && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+                {isProcessing ? 'Spinning...' : `AUTO-SPIN ${autoSpinAmount}x (${(betAmount * autoSpinAmount).toFixed(2)} SC Total)`}
               </Button>
+
               <Button
                 onClick={handlePlayGame}
                 disabled={!hasEnoughBalance || isProcessing}
-                className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isProcessing && <Loader className="mr-2 h-4 w-4 animate-spin" />}
                 {isProcessing ? 'Spinning...' : `SPIN NOW (${betAmount.toFixed(2)} SC)`}
+              </Button>
+
+              <Button
+                onClick={onClose}
+                variant="outline"
+                className="w-full"
+                disabled={isProcessing}
+              >
+                Cancel
               </Button>
             </div>
           </div>
