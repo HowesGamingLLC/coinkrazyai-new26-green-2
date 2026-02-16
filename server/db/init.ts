@@ -429,150 +429,17 @@ const seedDatabase = async () => {
       }
     }
 
-    // Import and seed new slot games
-    try {
-      const { SLOT_GAMES_DATA } = await import('../utils/slot-games-parser');
-      console.log('[DB] Seeding new slot games from parser...');
+    // Game seeding disabled - no games loaded on init
+    console.log('[DB] Game seeding disabled');
 
-      for (const gameData of SLOT_GAMES_DATA) {
-        try {
-          await query(
-            `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url, enabled)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-             ON CONFLICT DO NOTHING`,
-            [
-              gameData.name,
-              gameData.category,
-              gameData.provider,
-              gameData.rtp,
-              gameData.volatility,
-              gameData.description,
-              gameData.image_url,
-              gameData.enabled ?? true
-            ]
-          );
-        } catch (err: any) {
-          if (err.code !== '23505') { // Not a unique constraint violation
-            console.log('[DB] Error seeding game:', gameData.name, err.message?.substring(0, 100));
-          }
-        }
-      }
-      console.log('[DB] New slot games seeded successfully');
-    } catch (err: any) {
-      console.log('[DB] Error loading slot games parser:', err.message?.substring(0, 100));
-    }
-
-    // Ensure Pragmatic Play games exist
+    // Pragmatic Play games disabled
     const pragmaticCount = await query(
       'SELECT COUNT(*) as count FROM games WHERE provider = $1',
       ['Pragmatic']
     );
 
     if (parseInt(pragmaticCount.rows[0].count) === 0) {
-      console.log('[DB] Seeding Pragmatic Play games...');
-      const pragmaticGames = [
-        ['Zeus vs Hades - Gods of War 250', 'Slots', 'Pragmatic', 96.5, 'High', 'Epic battle-themed slot with massive payouts', true],
-        ['3 Magic Eggs', 'Slots', 'Pragmatic', 96.0, 'Medium', 'Magical eggs reveal hidden treasures', true],
-        ['Cyber Heist City', 'Slots', 'Pragmatic', 96.7, 'High', 'High-tech heist adventure slot game', true],
-        ['Big Bass Bonanza', 'Slots', 'Pragmatic', 96.7, 'High', 'Fishing-themed slot with big bonuses', true],
-        ['Sweet Bonanza', 'Slots', 'Pragmatic', 96.48, 'High', 'Candy-filled slot with sweet wins', true],
-        ['The Dog House', 'Slots', 'Pragmatic', 96.55, 'High', 'Dog-themed slot with expanding reels', true],
-        ['Gates of Olympus', 'Slots', 'Pragmatic', 96.5, 'High', 'Greek mythology themed with multiplier features', true],
-        ['Sugar Rush', 'Slots', 'Pragmatic', 96.0, 'Medium', 'Fast-paced sweet adventure slot', true],
-        ['Bigger Bass Bonanza', 'Slots', 'Pragmatic', 96.7, 'High', 'Enhanced fishing experience with bigger rewards', true],
-        ['Gates of Olympus 1000', 'Slots', 'Pragmatic', 96.5, 'High', 'Maximum multiplier version of Gates of Olympus', true],
-        ['Lucky\'s Wild Pub 2', 'Slots', 'Pragmatic', 96.5, 'High', 'Irish pub adventure with wild features', true],
-        ['Big Bass Raceday Repeat', 'Slots', 'Pragmatic', 96.7, 'High', 'Racing and fishing combined', true],
-        ['Wild Skullz', 'Slots', 'Pragmatic', 96.0, 'Medium', 'Pirate-themed skull hunt slot', true],
-        ['Tut\'s Treasure Tower', 'Slots', 'Pragmatic', 96.6, 'High', 'Egyptian tomb exploration with tower feature', true],
-        ['Haunted Crypt', 'Slots', 'Pragmatic', 96.5, 'High', 'Spooky crypt with ghostly features', true],
-        ['Rolling in Treasures', 'Slots', 'Pragmatic', 96.0, 'Medium', 'Treasure hunt themed slot game', true],
-        ['Mummy\'s Jewels 100', 'Slots', 'Pragmatic', 96.2, 'Medium', 'Ancient mummy jewel collection', true],
-        ['Smoke\'Em', 'Slots', 'Pragmatic', 96.5, 'Medium', 'Classic western slot with smoking wins', true],
-        ['Treasures of Osiris', 'Slots', 'Pragmatic', 96.3, 'High', 'Ancient Egyptian treasure hunt', true],
-        ['Emerald King - Wheel of Wealth', 'Slots', 'Pragmatic', 96.5, 'High', 'Royal emerald treasure with wheel bonus', true],
-        ['Chests of Cai Shen', 'Slots', 'Pragmatic', 96.0, 'High', 'Asian-themed wealth slot game', true],
-        ['Oodles of Noodles', 'Slots', 'Pragmatic', 96.0, 'Medium', 'Asian noodle-themed slot adventure', true],
-        ['1GO Rush 1000', 'Slots', 'Pragmatic', 96.5, 'High', 'High-speed action slot', true],
-        ['3 Buzzing Wilds', 'Slots', 'Pragmatic', 96.2, 'Medium', 'Bee-themed slot with wild features', true],
-        ['3 Genie Wishes', 'Slots', 'Pragmatic', 96.5, 'High', 'Magical genie treasure slot', true],
-        ['3 Kingdoms - Battle of Red Cliffs', 'Slots', 'Pragmatic', 96.3, 'High', 'Historical battle-themed slot', true],
-        ['5 Frozen Charms Megaways', 'Slots', 'Pragmatic', 96.6, 'High', 'Frozen magic megaways adventure', true],
-        ['5 Lions', 'Slots', 'Pragmatic', 96.8, 'High', 'Five lions symbol premium slot', true],
-        ['5 Lions Dance', 'Slots', 'Pragmatic', 96.5, 'High', 'Dancing lions with bonus features', true],
-        ['5 Lions Gold', 'Slots', 'Pragmatic', 96.7, 'High', 'Golden lions premium experience', true],
-        ['5 Lions Megaways', 'Slots', 'Pragmatic', 96.8, 'High', 'Lions with megaways mechanic', true],
-        ['5 Lions Megaways 2', 'Slots', 'Pragmatic', 96.8, 'High', 'Enhanced megaways sequel', true],
-        ['5 Lions Reborn', 'Slots', 'Pragmatic', 96.5, 'High', 'Reborn lions with new features', true],
-        ['5 Rabbits Megaways', 'Slots', 'Pragmatic', 96.2, 'High', 'Lucky rabbits megaways slot', true],
-        ['6 Jokers', 'Slots', 'Pragmatic', 96.0, 'Medium', 'Classic joker-themed slot', true],
-        ['7 Clovers of Fortune', 'Slots', 'Pragmatic', 96.3, 'Medium', 'Lucky clover fortune slot', true],
-        ['7 Monkeys', 'Slots', 'Pragmatic', 96.5, 'High', 'Seven monkeys adventure slot', true],
-        ['7 Piggies', 'Slots', 'Pragmatic', 96.0, 'Medium', 'Cute piggies themed slot', true],
-        ['777 Rush', 'Slots', 'Pragmatic', 96.5, 'High', 'Triple sevens fast-paced action', true],
-        ['8 Dragons', 'Slots', 'Pragmatic', 96.8, 'High', 'Eight dragons premium slot', true],
-        ['8 Golden Dragon Challenge', 'Slots', 'Pragmatic', 96.7, 'High', 'Golden dragon challenge game', true],
-        ['888 Big Bass Bonanza', 'Slots', 'Pragmatic', 96.7, 'High', 'Enhanced fishing bonanza', true],
-        ['888 Bonanza', 'Slots', 'Pragmatic', 96.5, 'High', 'Triple eight bonanza slot', true],
-        ['888 Dragons', 'Slots', 'Pragmatic', 96.8, 'High', 'Triple eight dragon slot', true],
-        ['888 Gold', 'Slots', 'Pragmatic', 96.5, 'High', 'Triple eight gold premium', true],
-        ['888 of Olympus', 'Slots', 'Pragmatic', 96.6, 'High', 'Olympus mythology with 888 theme', true],
-        ['African Elephant', 'Slots', 'Pragmatic', 96.0, 'Medium', 'African wildlife adventure', true],
-        ['Aladdin and the Sorcerer', 'Slots', 'Pragmatic', 96.4, 'High', 'Aladdin fantasy adventure slot', true],
-        ['Aladdin\'s Treasure', 'Slots', 'Pragmatic', 96.2, 'High', 'Magical treasure hunt', true],
-        ['Alien Invaders', 'Slots', 'Pragmatic', 96.3, 'Medium', 'Sci-fi alien invasion slot', true],
-        ['Anaconda Gold', 'Slots', 'Pragmatic', 96.5, 'High', 'Snake-themed gold slot', true],
-        ['Ancient Egypt', 'Slots', 'Pragmatic', 96.5, 'High', 'Classic Egyptian pyramid slot', true],
-        ['Ancient Egypt Classic', 'Slots', 'Pragmatic', 96.0, 'Medium', 'Traditional Egyptian theme', true],
-        ['Ancient Island Megaways', 'Slots', 'Pragmatic', 96.6, 'High', 'Island adventure megaways', true],
-        ['Angel vs Sinner', 'Slots', 'Pragmatic', 96.4, 'High', 'Good vs evil battle slot', true],
-        ['Angel vs Sinner Eternal Battle', 'Slots', 'Pragmatic', 96.5, 'High', 'Eternal battle premium', true],
-        ['Animal Magic 1000', 'Slots', 'Pragmatic', 96.2, 'Medium', 'Animal magic transformation slot', true],
-        ['Anime Cosplay VS', 'Slots', 'Pragmatic', 96.3, 'High', 'Anime character battle slot', true],
-        ['Anime Mecha Megaways', 'Slots', 'Pragmatic', 96.7, 'High', 'Anime mecha megaways adventure', true],
-        ['Argonauts', 'Slots', 'Pragmatic', 96.5, 'High', 'Greek mythology adventure', true],
-        ['Asgard', 'Slots', 'Pragmatic', 96.4, 'High', 'Norse mythology Asgard slot', true],
-        ['Aztec Blaze', 'Slots', 'Pragmatic', 96.5, 'High', 'Aztec fire and gold', true],
-        ['Aztec Bonanza', 'Slots', 'Pragmatic', 96.3, 'High', 'Aztec treasure bonanza', true],
-        ['Aztec Gems', 'Slots', 'Pragmatic', 96.5, 'Medium', 'Aztec precious gems', true],
-        ['Aztec Gems Deluxe', 'Slots', 'Pragmatic', 96.6, 'Medium', 'Deluxe gem version', true],
-        ['Aztec Gems Megaways', 'Slots', 'Pragmatic', 96.7, 'High', 'Megaways gem adventure', true],
-        ['Aztec Powernudge', 'Slots', 'Pragmatic', 96.4, 'High', 'Aztec power nudge mechanics', true],
-        ['Aztec Smash', 'Slots', 'Pragmatic', 96.5, 'High', 'Aztec smashing wins', true],
-        ['Aztec Treasure Hunt', 'Slots', 'Pragmatic', 96.3, 'High', 'Treasure hunting adventure', true],
-        ['Badge Blitz', 'Slots', 'Pragmatic', 96.2, 'Medium', 'Badge-themed fast action', true],
-        ['Bali Dragon', 'Slots', 'Pragmatic', 96.5, 'High', 'Bali island dragon', true],
-        ['Bandit Megaways', 'Slots', 'Pragmatic', 96.6, 'High', 'Outlaw bandit megaways', true],
-        ['Barbar', 'Slots', 'Pragmatic', 96.0, 'Medium', 'Barbarian warrior slot', true],
-        ['Barn Festival', 'Slots', 'Pragmatic', 96.3, 'Medium', 'Farm celebration slot', true],
-        ['Barnyard Megahays Megaways', 'Slots', 'Pragmatic', 96.7, 'High', 'Farm megaways adventure', true],
-        ['Barong Rico', 'Slots', 'Pragmatic', 96.4, 'High', 'Barong dance rich experience', true],
-        ['Battle Ground Zero Megaways', 'Slots', 'Pragmatic', 96.8, 'High', 'Battlefield megaways battle', true],
-        ['Bee Keeper', 'Slots', 'Pragmatic', 96.2, 'Medium', 'Beekeeping adventure slot', true],
-        ['Beowulf', 'Slots', 'Pragmatic', 96.5, 'High', 'Epic Beowulf tale', true],
-        ['Bets10 Bonanza', 'Slots', 'Pragmatic', 96.3, 'High', 'Betting bonanza features', true],
-        ['Beware The Deep Megaways', 'Slots', 'Pragmatic', 96.6, 'High', 'Ocean depths megaways', true],
-        ['Big Bass - Hold & Spinner', 'Slots', 'Pragmatic', 96.7, 'High', 'Hold and spin fishing', true],
-        ['Big Bass - Secrets of the Golden Lake', 'Slots', 'Pragmatic', 96.7, 'High', 'Lake treasure secrets', true],
-        ['Big Bass 3 Little Fish – Big Bass Jackpot Bonanza', 'Slots', 'Pragmatic', 96.7, 'High', 'Combined fishing adventure', true],
-        ['Big Bass Amazon Xtreme', 'Slots', 'Pragmatic', 96.7, 'High', 'Extreme Amazon fishing', true],
-      ];
-
-      for (const game of pragmaticGames) {
-        try {
-          await query(
-            `INSERT INTO games (name, category, provider, rtp, volatility, description, enabled)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-            game
-          );
-        } catch (err: any) {
-          // Game might already exist, that's okay
-          if (err.code !== '23505') {
-            console.log('[DB] Error seeding game:', err.message?.substring(0, 100));
-          }
-        }
-      }
-      console.log('[DB] Pragmatic Play games seeded successfully');
+      console.log('[DB] No Pragmatic Play games to seed - game seeding disabled');
     } else {
       console.log('[DB] Pragmatic games already exist, skipping seed');
     }
