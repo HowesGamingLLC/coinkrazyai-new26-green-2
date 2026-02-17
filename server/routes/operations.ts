@@ -15,7 +15,7 @@ export const listSecurityAlerts: RequestHandler = async (req, res) => {
     }
 
     const result = await query(
-      `SELECT sa.*, p.email, p.username FROM security_alerts sa
+      `SELECT sa.*, COALESCE(sa.description, sa.message) as message, p.email, p.username FROM security_alerts sa
       LEFT JOIN players p ON sa.player_id = p.id${whereClause}
       ORDER BY sa.created_at DESC`,
       params.length > 0 ? params : undefined

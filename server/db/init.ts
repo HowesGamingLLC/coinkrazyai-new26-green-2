@@ -121,6 +121,18 @@ export const initializeDatabase = async () => {
     // Note: store_packs table uses 'display_order' column for sorting
     // No column rename needed - column names are consistent
 
+    // Ensure security_alerts has player_id and other expected columns
+    try {
+      await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS player_id INTEGER REFERENCES players(id) ON DELETE CASCADE`);
+      await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS severity VARCHAR(50) DEFAULT 'info'`);
+      await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS title VARCHAR(255)`);
+      await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS message TEXT`);
+      await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+      console.log('[DB] Verified security_alerts table schema');
+    } catch (err: any) {
+      console.log('[DB] security_alerts schema update:', err.message?.substring(0, 100));
+    }
+
     // Seed data if tables are empty
     await seedDatabase();
   } catch (error) {
