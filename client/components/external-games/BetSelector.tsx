@@ -5,9 +5,9 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 interface BetSelectorProps {
-  minBet: number;
-  maxBet: number;
-  currentBalance: number;
+  minBet: number | null;
+  maxBet: number | null;
+  currentBalance: number | null;
   onBetSelect: (amount: number) => void;
   isProcessing?: boolean;
 }
@@ -19,11 +19,16 @@ export const BetSelector: React.FC<BetSelectorProps> = ({
   onBetSelect,
   isProcessing = false
 }) => {
-  const [betAmount, setBetAmount] = useState<string>(minBet.toFixed(2));
+  // Guard against null values
+  const safeMinBet = minBet ?? 0.01;
+  const safeMaxBet = maxBet ?? 100;
+  const safeBalance = currentBalance ?? 0;
+
+  const [betAmount, setBetAmount] = useState<string>(safeMinBet.toFixed(2));
   
   // Quick bet buttons
   const quickBets = [0.01, 0.05, 0.10, 0.50, 1.00, 5.00].filter(
-    bet => bet >= minBet && bet <= maxBet && bet <= currentBalance
+    bet => bet >= safeMinBet && bet <= safeMaxBet && bet <= safeBalance
   );
 
   const handleBetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,28 +57,28 @@ export const BetSelector: React.FC<BetSelectorProps> = ({
 
   const handleSpin = () => {
     const amount = parseFloat(betAmount);
-    
+
     // Validate
     if (isNaN(amount)) {
       alert('Please enter a valid bet amount');
       return;
     }
-    
-    if (amount < minBet) {
-      alert(`Minimum bet is ${minBet.toFixed(2)} SC`);
+
+    if (amount < safeMinBet) {
+      alert(`Minimum bet is ${safeMinBet.toFixed(2)} SC`);
       return;
     }
-    
-    if (amount > maxBet) {
-      alert(`Maximum bet is ${maxBet.toFixed(2)} SC`);
+
+    if (amount > safeMaxBet) {
+      alert(`Maximum bet is ${safeMaxBet.toFixed(2)} SC`);
       return;
     }
-    
-    if (amount > currentBalance) {
-      alert(`Insufficient balance. You have ${currentBalance.toFixed(2)} SC`);
+
+    if (amount > safeBalance) {
+      alert(`Insufficient balance. You have ${safeBalance.toFixed(2)} SC`);
       return;
     }
-    
+
     onBetSelect(amount);
   };
 
@@ -81,9 +86,9 @@ export const BetSelector: React.FC<BetSelectorProps> = ({
     const amount = parseFloat(betAmount);
     return (
       !isNaN(amount) &&
-      amount >= minBet &&
-      amount <= maxBet &&
-      amount <= currentBalance
+      amount >= safeMinBet &&
+      amount <= safeMaxBet &&
+      amount <= safeBalance
     );
   };
 
@@ -98,11 +103,11 @@ export const BetSelector: React.FC<BetSelectorProps> = ({
           value={betAmount}
           onChange={handleBetChange}
           disabled={isProcessing}
-          placeholder={minBet.toFixed(2)}
+          placeholder={safeMinBet.toFixed(2)}
           className="text-lg font-bold text-center"
         />
         <div className="text-xs text-muted-foreground text-center">
-          Balance: {currentBalance.toFixed(2)} SC | Min: {minBet.toFixed(2)} SC | Max: {maxBet.toFixed(2)} SC
+          Balance: {safeBalance.toFixed(2)} SC | Min: {safeMinBet.toFixed(2)} SC | Max: {safeMaxBet.toFixed(2)} SC
         </div>
       </div>
 
@@ -136,9 +141,9 @@ export const BetSelector: React.FC<BetSelectorProps> = ({
       </Button>
 
       {/* Balance warning */}
-      {currentBalance < minBet && (
+      {safeBalance < safeMinBet && (
         <div className="bg-destructive/20 border border-destructive/50 rounded text-destructive text-sm p-3">
-          Insufficient balance. You need at least {minBet.toFixed(2)} SC to play.
+          Insufficient balance. You need at least {safeMinBet.toFixed(2)} SC to play.
         </div>
       )}
     </div>
