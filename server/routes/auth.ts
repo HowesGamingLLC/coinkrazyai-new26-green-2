@@ -1,6 +1,7 @@
 import { RequestHandler } from 'express';
 import { AuthService } from '../services/auth-service';
 import { RegisterRequest, LoginRequest } from '@shared/api';
+import * as bcrypt from 'bcrypt';
 
 // Register new player
 export const handleRegister: RequestHandler = async (req, res) => {
@@ -273,6 +274,118 @@ export const handleLogout: RequestHandler = async (req, res) => {
     res.status(500).json({
       success: false,
       error: errorMessage
+    });
+  }
+};
+
+// DEBUG: Check if test users exist (for debugging login issues)
+export const handleDebugCheckUsers: RequestHandler = async (req, res) => {
+  try {
+    const testUsers = ['johndoe', 'janesmith', 'mikejohnson', 'sarahwilson', 'tombrown'];
+    const results: any[] = [];
+
+    for (const username of testUsers) {
+      try {
+        const userResult = await (await import('../db/queries')).getPlayerByUsername(username);
+        if (userResult.rows.length > 0) {
+          const user = userResult.rows[0];
+          results.push({
+            username: user.username,
+            name: user.name,
+            email: user.email,
+            status: user.status,
+            hasPasswordHash: !!user.password_hash,
+            createdAt: user.created_at
+          });
+        } else {
+          results.push({
+            username,
+            found: false
+          });
+        }
+      } catch (err) {
+        results.push({
+          username,
+          error: (err as Error).message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Test user check complete',
+      testUsersAvailable: results,
+      hint: 'Test credentials - username: johndoe, password: testpass123'
+    });
+  } catch (error) {
+    console.error('[Auth Debug] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message
+    });
+  }
+};
+
+// DEBUG: Re-seed test users (for fixing login issues)
+export const handleDebugReseedUsers: RequestHandler = async (req, res) => {
+  try {
+    const dbQueries = await import('../db/queries');
+    const { query: dbQuery } = await import('../db/connection');
+
+    // Hash password for test users
+    const playerPassword = await bcrypt.hash('testpass123', 10);
+
+    const testPlayers: any[] = [
+      ['johndoe', 'John Doe', 'john@example.com', playerPassword, 5250, 125, 'Active', 'Full', true],
+      ['janesmith', 'Jane Smith', 'jane@example.com', playerPassword, 12000, 340, 'Active', 'Full', true],
+      ['mikejohnson', 'Mike Johnson', 'mike@example.com', playerPassword, 2100, 89, 'Active', 'Intermediate', true],
+      ['sarahwilson', 'Sarah Wilson', 'sarah@example.com', playerPassword, 8500, 215, 'Active', 'Full', true],
+    ];
+
+    let created = 0;
+    let updated = 0;
+
+    for (const playerData of testPlayers) {
+      try {
+        // Check if player exists
+        const existingResult = await dbQueries.getPlayerByUsername(playerData[0]);
+
+        if (existingResult.rows.length > 0) {
+          // Update existing player with password hash
+          await dbQuery(
+            `UPDATE players SET password_hash = $1, status = $2 WHERE username = $3`,
+            [playerData[3], playerData[6], playerData[0]]
+          );
+          updated++;
+          console.log(`[Auth] Updated user: ${playerData[0]}`);
+        } else {
+          // Insert new player
+          await dbQuery(
+            `INSERT INTO players (username, name, email, password_hash, gc_balance, sc_balance, status, kyc_level, kyc_verified)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            playerData
+          );
+          created++;
+          console.log(`[Auth] Created user: ${playerData[0]}`);
+        }
+      } catch (err: any) {
+        console.error(`[Auth] Error processing user ${playerData[0]}:`, err.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Reseeded test users - Created: ${created}, Updated: ${updated}`,
+      testCredentials: {
+        username: 'johndoe',
+        password: 'testpass123'
+      }
+    });
+  } catch (error) {
+    console.error('[Auth Debug Reseed] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message
     });
   }
 };

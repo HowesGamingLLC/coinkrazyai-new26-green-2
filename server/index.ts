@@ -26,7 +26,9 @@ import {
   handleGetProfile,
   handleUpdateProfile,
   handleLogout,
-  handleAdminLogin
+  handleAdminLogin,
+  handleDebugCheckUsers,
+  handleDebugReseedUsers
 } from "./routes/auth";
 import { verifyPlayer, verifyAdmin } from "./middleware/auth";
 import { handleGetWallet, handleUpdateWallet, handleGetTransactions } from "./routes/wallet";
@@ -390,6 +392,8 @@ export function createServer() {
   app.get("/api/auth/profile", verifyPlayer, handleGetProfile);
   app.put("/api/auth/profile", verifyPlayer, handleUpdateProfile);
   app.post("/api/auth/logout", verifyPlayer, handleLogout);
+  app.get("/api/auth/debug/check-users", handleDebugCheckUsers);
+  app.post("/api/auth/debug/reseed-users", handleDebugReseedUsers);
 
   // ===== WALLET ROUTES =====
   app.get("/api/wallet", verifyPlayer, handleGetWallet);

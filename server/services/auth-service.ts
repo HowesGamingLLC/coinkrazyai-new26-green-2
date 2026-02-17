@@ -104,22 +104,34 @@ export class AuthService {
   // Login player
   static async loginPlayer(username: string, password: string) {
     try {
+      console.log(`[Auth] Attempting login for username: ${username}`);
+
       // Get player by username
       const result = await dbQueries.getPlayerByUsername(username);
 
       if (result.rows.length === 0) {
+        console.error(`[Auth] Username not found: ${username}`);
         throw new Error('Invalid username or password');
       }
 
       const player = result.rows[0];
+      console.log(`[Auth] Found player: ${player.username} with status: ${player.status}`);
 
       // Check account status
       if (player.status !== 'Active') {
+        console.warn(`[Auth] Player ${username} account status is: ${player.status}`);
         throw new Error('Account is suspended or inactive');
       }
 
       // Verify password
+      if (!player.password_hash) {
+        console.error(`[Auth] Player ${username} has no password hash set`);
+        throw new Error('Invalid username or password');
+      }
+
       const isValid = await this.verifyPassword(password, player.password_hash);
+      console.log(`[Auth] Password verification for ${username}: ${isValid ? 'SUCCESS' : 'FAILED'}`);
+
       if (!isValid) {
         throw new Error('Invalid username or password');
       }
