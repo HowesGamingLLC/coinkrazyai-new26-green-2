@@ -32,32 +32,34 @@ export const WinningPopup: React.FC<WinningPopupProps> = ({
             </div>
           </div>
 
-          <DialogTitle className="text-4xl font-black bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent uppercase tracking-tighter">
-            CoinKrazy WIN!
+          <DialogTitle className="text-5xl font-black bg-gradient-to-r from-orange-400 via-red-500 to-orange-400 bg-clip-text text-transparent uppercase tracking-tighter animate-pulse">
+            WINNER!
           </DialogTitle>
 
-          <DialogDescription className="text-lg font-bold text-slate-900 dark:text-white mt-2">
-            YOU WON {winAmount} SC!
+          <DialogDescription className="text-2xl font-black text-slate-900 dark:text-white mt-2">
+            {winAmount ? winAmount.toFixed(2) : '0.00'} SC!
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Prize Amount Display */}
-          <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-8 text-center border-2 border-orange-200 dark:border-orange-800">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Prize Amount</p>
-            <p className="text-5xl font-bold text-orange-600 mb-2">{winAmount}</p>
-            <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+          <div className="bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/40 dark:to-red-900/40 rounded-xl p-8 text-center border-4 border-orange-400 dark:border-red-600 shadow-2xl transform hover:scale-105 transition-transform">
+            <p className="text-sm font-black text-orange-800 dark:text-orange-200 uppercase tracking-widest mb-2">Instant Win!</p>
+            <p className="text-6xl font-black text-orange-600 dark:text-orange-400 drop-shadow-md">
+              {winAmount ? winAmount.toFixed(2) : '0.00'}
+            </p>
+            <p className="text-xl font-black text-gray-800 dark:text-gray-200 mt-2">
               Sweeps Coins (SC)
             </p>
           </div>
 
           {/* Celebration Message */}
           <div className="text-center space-y-2">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Your prize has been calculated and is ready to claim!
+            <p className="text-lg font-bold text-slate-800 dark:text-slate-200">
+              Congratulations! You revealed a winner!
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-500">
-              Click the button below to add this amount to your wallet.
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Click the big button below to claim your instant win now!
             </p>
           </div>
 
@@ -74,17 +76,17 @@ export const WinningPopup: React.FC<WinningPopupProps> = ({
             <Button
               onClick={onClaim}
               disabled={isClaiming}
-              className="flex-1 h-14 text-lg font-black bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-lg shadow-red-500/20"
+              className="flex-1 h-20 text-2xl font-black bg-gradient-to-r from-orange-400 via-red-500 to-orange-400 hover:from-orange-500 hover:to-red-600 shadow-xl shadow-red-500/40 border-b-4 border-red-700 active:border-b-0 active:translate-y-1 transition-all uppercase"
             >
               {isClaiming ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  <Loader2 className="w-6 h-6 mr-2 animate-spin" />
                   Claiming...
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  CLAIM IT NOW!
+                  <Sparkles className="w-6 h-6 mr-2" />
+                  CLAIM NOW!
                 </>
               )}
             </Button>

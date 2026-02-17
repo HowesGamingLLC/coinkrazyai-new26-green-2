@@ -59,6 +59,29 @@ export const initializeDatabase = async () => {
 
     console.log('[DB] Migrations applied successfully');
 
+    // Read and execute challenges schema
+    try {
+      const challengesPath = path.join(__dirname, 'challenges_schema.sql');
+      if (fs.existsSync(challengesPath)) {
+        const challengesSchema = fs.readFileSync(challengesPath, 'utf-8');
+        const challengesStatements = challengesSchema.split(';').filter(stmt => stmt.trim());
+        for (const statement of challengesStatements) {
+          if (statement.trim()) {
+            try {
+              await query(statement);
+            } catch (err: any) {
+              if (err.code !== '42P07' && err.code !== '42710') {
+                console.log('[DB] Challenges schema warning:', err.message?.substring(0, 80));
+              }
+            }
+          }
+        }
+        console.log('[DB] Challenges schema initialized');
+      }
+    } catch (err) {
+      console.error('[DB] Failed to initialize challenges schema:', err);
+    }
+
     // Add description column to games table if it doesn't exist
     try {
       await query(`ALTER TABLE games ADD COLUMN description TEXT`);

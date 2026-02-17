@@ -45,15 +45,19 @@ export class PullTabService {
     const tabCount = design.tab_count;
     const tabs: PullTabTab[] = [];
 
-    // Determine if this ticket is a winner based on win_probability
-    const isWinningTicket = Math.random() < (design.win_probability / 100);
+    // Overall odds: 1 winning ticket out of every 7 tickets (14.28%)
+    const winProbability = 1 / 7;
+    const isWinningTicket = Math.random() < winProbability;
 
     if (isWinningTicket) {
       // Generate one winning prize tab and rest are LOSS
       const winningTabIndex = Math.floor(Math.random() * tabCount);
-      let prizeAmount = Math.floor(
-        Math.random() * (design.prize_max_sc - design.prize_min_sc + 1) + design.prize_min_sc
-      );
+
+      // Random prize between 0.01 and 10.00 SC
+      let prizeAmount = Math.random() * (10.00 - 0.01) + 0.01;
+
+      // Round to 2 decimal places
+      prizeAmount = Math.round(prizeAmount * 100) / 100;
 
       // Apply platform-wide max win cap
       if (prizeAmount > MAX_WIN_SC) {

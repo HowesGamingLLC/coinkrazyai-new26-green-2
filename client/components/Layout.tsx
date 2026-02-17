@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
 import { useWallet } from '@/hooks/use-wallet';
 import { PageTransition } from '@/components/PageTransition';
-import { Coins, User, Home, Gamepad2, ShoppingCart, BarChart3, MessageSquare, Trophy, Award, Headphones, Settings, Zap, LogOut, Ticket, Dice5 } from 'lucide-react';
+import { Coins, User, Home, Gamepad2, ShoppingCart, BarChart3, MessageSquare, Trophy, Award, Headphones, Settings, Zap, LogOut, Ticket, Dice5, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ChallengesPopup } from '@/components/popups/ChallengesPopup';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, isAuthenticated, logout, isAdmin } = useAuth();
   const { wallet, currency, toggleCurrency } = useWallet();
   const location = useLocation();
+  const [isChallengesOpen, setIsChallengesOpen] = React.useState(false);
+
+  // Auto-open challenges popup on login
+  React.useEffect(() => {
+    if (isAuthenticated && !sessionStorage.getItem('challenges_shown')) {
+      const timer = setTimeout(() => {
+        setIsChallengesOpen(true);
+        sessionStorage.setItem('challenges_shown', 'true');
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated]);
 
   const navItems = [
     { label: 'Home', path: '/', icon: Home },
@@ -28,6 +41,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { label: 'Scratch Tickets', path: '/scratch-tickets', icon: Ticket },
     { label: 'Pull Tabs', path: '/pull-tabs', icon: Ticket },
     { label: 'Store', path: '/store', icon: ShoppingCart },
+    { label: 'Challenges', path: '#challenges', icon: Trophy, onClick: () => setIsChallengesOpen(true) },
     { label: 'Leaderboard', path: '/leaderboards', icon: Trophy },
     { label: 'Achievements', path: '/achievements', icon: Award },
     { label: 'Profile', path: '/profile', icon: User },
@@ -137,19 +151,33 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <aside className="fixed left-0 top-16 hidden h-[calc(100vh-4rem)] w-64 border-r border-border/40 md:block overflow-y-auto bg-background/50 backdrop-blur">
           <nav className="flex flex-col gap-2 p-4">
             {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300",
-                  location.pathname === item.path
-                    ? "bg-gradient-to-r from-primary/30 to-primary/10 text-primary border border-primary/30 shadow-md shadow-primary/10"
-                    : "text-muted-foreground hover:bg-primary/5 hover:text-foreground hover:translate-x-1"
-                )}
-              >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                <span className="font-medium text-sm">{item.label}</span>
-              </Link>
+              (item as any).onClick ? (
+                <button
+                  key={item.label}
+                  onClick={(item as any).onClick}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 w-full text-left",
+                    "text-muted-foreground hover:bg-primary/5 hover:text-foreground hover:translate-x-1"
+                  )}
+                >
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  <span className="font-medium text-sm">{item.label}</span>
+                </button>
+              ) : (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300",
+                    location.pathname === item.path
+                      ? "bg-gradient-to-r from-primary/30 to-primary/10 text-primary border border-primary/30 shadow-md shadow-primary/10"
+                      : "text-muted-foreground hover:bg-primary/5 hover:text-foreground hover:translate-x-1"
+                  )}
+                >
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  <span className="font-medium text-sm">{item.label}</span>
+                </Link>
+              )
             ))}
             
             <div className="mt-8 px-3 py-2">
@@ -175,6 +203,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </PageTransition>
         </main>
       </div>
+
+      <ChallengesPopup
+        isOpen={isChallengesOpen}
+        onClose={() => setIsChallengesOpen(false)}
+      />
 
       {/* Mobile Nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-border/40 bg-background/95 backdrop-blur md:hidden supports-[backdrop-filter]:bg-background/80">

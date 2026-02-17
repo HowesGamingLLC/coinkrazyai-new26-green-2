@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RotateCcw, Sparkles } from 'lucide-react';
+import { Loader2, RotateCcw, Sparkles, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiCall } from '@/lib/api';
 import { WinningPopup } from './WinningPopup';
+import { cn } from '@/lib/utils';
 
 interface PullTab {
   index: number;
@@ -132,38 +133,51 @@ export const PullTabTicket: React.FC<PullTabTicketProps> = ({
     setTabs(ticket.tabs.map(t => ({ ...t, revealed: false })));
   };
 
+  const hasUnclaimedWin = tabs.some(t => t.revealed && typeof t.value === 'number' && t.value > 0) && claimStatus === 'unclaimed';
+  const totalWon = tabs.reduce((acc, t) => t.revealed && typeof t.value === 'number' ? acc + t.value : acc, 0);
+
   return (
     <>
-      <Card className="overflow-hidden border-2" style={{ borderColor: designBackgroundColor }}>
+      <Card className={cn("overflow-hidden border-4 transition-all duration-300", hasUnclaimedWin ? "shadow-[0_0_30px_rgba(249,115,22,0.4)] scale-[1.01]" : "")} style={{ borderColor: designBackgroundColor }}>
         <CardHeader style={{ backgroundColor: designBackgroundColor + '20' }}>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl">CoinKrazy Pull Tab</CardTitle>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Ticket #{ticket.ticket_number} • {designName}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                {new Date(ticket.created_at).toLocaleDateString()}
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-3xl font-black italic tracking-tighter">COINKRAZY PULL TAB</CardTitle>
+                {hasUnclaimedWin && (
+                  <Badge className="bg-orange-600 text-white animate-bounce font-black text-lg px-4 py-1">WINNER!</Badge>
+                )}
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-mono font-bold">
+                TICKET #{ticket.ticket_number} • {designName}
               </p>
             </div>
             <div className="flex gap-2">
               {claimStatus === 'claimed' ? (
-                <Badge className="bg-green-600">Claimed</Badge>
+                <Badge className="bg-green-600 font-bold text-lg">PAID {totalWon.toFixed(2)} SC</Badge>
               ) : revealedTabs.size === 0 ? (
-                <Badge variant="secondary">Ready to Pull</Badge>
+                <Badge variant="secondary" className="font-bold">READY TO PULL</Badge>
               ) : (
-                <Badge variant="outline">Pulling...</Badge>
+                <Badge variant="outline" className="animate-pulse font-bold">PULLING...</Badge>
               )}
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6 pt-6">
+        <CardContent className="space-y-8 pt-8">
           {/* Pull Tabs Grid */}
-          <div className="space-y-4">
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Pull the tabs to reveal your fortune!
-            </p>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <p className="text-lg font-black text-slate-800 dark:text-slate-200 uppercase italic">
+                Pull the tabs to reveal your fortune!
+              </p>
+              {hasUnclaimedWin && (
+                <div className="flex items-center gap-2 text-orange-600 font-black animate-pulse">
+                  <Trophy className="w-6 h-6" />
+                  <span className="text-xl italic">WINNER! {totalWon.toFixed(2)} SC!</span>
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
               {tabs.map((tab, idx) => (
@@ -182,16 +196,19 @@ export const PullTabTicket: React.FC<PullTabTicketProps> = ({
                   }}
                 >
                   {tab.revealed ? (
-                    <div className="flex flex-col items-center justify-center h-full">
-                      <span className="text-2xl mb-1">{getTabIcon(tab.value)}</span>
-                      <span className="text-xs text-white font-bold">
-                        {tab.value === 'LOSS' ? 'LOSS' : `${tab.value} SC`}
+                    <div className="flex flex-col items-center justify-center h-full bg-slate-50 dark:bg-slate-900 rounded-lg border-2 border-slate-200 dark:border-slate-800 shadow-inner">
+                      <span className="text-3xl mb-1">{getTabIcon(tab.value)}</span>
+                      <span className={cn(
+                        "text-sm font-black uppercase",
+                        tab.value === 'LOSS' ? "text-red-500" : "text-green-600"
+                      )}>
+                        {tab.value === 'LOSS' ? 'LOSS' : `${typeof tab.value === 'number' ? tab.value.toFixed(2) : tab.value} SC`}
                       </span>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full">
-                      <span className="text-3xl">🎟️</span>
-                      <span className="text-xs text-white font-bold mt-1">PULL</span>
+                    <div className="flex flex-col items-center justify-center h-full border-b-4 border-black/20">
+                      <span className="text-4xl drop-shadow-lg">🎟️</span>
+                      <span className="text-sm text-white font-black mt-1 uppercase tracking-tighter">PULL HERE</span>
                     </div>
                   )}
 
@@ -237,18 +254,30 @@ export const PullTabTicket: React.FC<PullTabTicketProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2">
+          <div className="flex items-center gap-4">
             {claimStatus !== 'claimed' && revealedTabs.size > 0 && (
-              <Button variant="outline" onClick={reset} disabled={revealing !== null}>
+              <Button variant="outline" onClick={reset} disabled={revealing !== null} className="font-bold uppercase italic border-2">
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Reset
+                Reset Tabs
               </Button>
             )}
             <div className="flex-1"></div>
+
+            {hasUnclaimedWin && (
+              <Button
+                onClick={handleClaim}
+                disabled={isClaiming}
+                className="h-14 px-10 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-black uppercase text-xl italic shadow-2xl shadow-orange-500/40 border-b-4 border-red-900 active:border-b-0 active:translate-y-1 transition-all"
+              >
+                {isClaiming ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Sparkles className="w-5 h-5 mr-2" />}
+                CLAIM INSTANT WIN NOW!
+              </Button>
+            )}
+
             {claimStatus === 'claimed' && (
-              <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg px-4 py-2">
-                <Sparkles className="w-4 h-4" />
-                Prize claimed!
+              <div className="flex items-center gap-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-xl px-8 py-3 font-black italic text-lg shadow-inner border-2 border-green-500/20">
+                <Trophy className="w-6 h-6" />
+                WINNINGS CREDITED!
               </div>
             )}
           </div>
