@@ -89,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const response = await auth.login(username, password);
-      setUser(response.player);
+      setUser(response.data.player);
       setIsLoading(false);
     } catch (error) {
       setIsLoading(false);
@@ -101,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const response = await auth.register(username, name, email, password);
-      setUser(response.player);
+      setUser(response.data.player);
       setIsLoading(false);
     } catch (error) {
       setIsLoading(false);

@@ -133,74 +133,67 @@ class StoreService {
   }
 
   // ===== PAYMENT METHODS =====
-  // Note: payment_methods table was not in schema.sql, but referenced in service. 
-  // I will use a simple in-memory fallback for now or assume it might be added.
-  // Actually, I should probably add it to the schema if it's needed for "completeness".
-  
-  private mockPaymentMethods: PaymentMethod[] = [
-    {
-      id: 1,
-      name: 'Credit Card (Live)',
-      provider: 'stripe',
-      is_active: true,
-      config: {
-        api_key: 'REPLACE_ENV.STRIPE_PUBLIC_KEY',
-        secret_key: 'REPLACE_ENV.STRIPE_SECRET_KEY',
-        mode: 'live'
-      },
-    },
-    {
-      id: 2,
-      name: 'Google Pay (Live)',
-      provider: 'google_pay',
-      is_active: true,
-      config: {
-        merchant_id: 'BCR2DN6T7X7X7X7X', // Branded CoinKrazy Merchant ID
-        merchant_name: 'CoinKrazy',
-        gateway: 'stripe',
-        mode: 'live'
-      },
-    }
-  ];
 
   async getPaymentMethods(): Promise<PaymentMethod[]> {
-    return this.mockPaymentMethods;
+    const result = await query('SELECT * FROM payment_methods ORDER BY id ASC');
+    return result.rows.map((row: any) => this.mapRowToPaymentMethod(row));
   }
 
   async getActivePaymentMethods(): Promise<PaymentMethod[]> {
-    return this.mockPaymentMethods.filter(m => m.is_active);
+    const result = await query('SELECT * FROM payment_methods WHERE is_active = true ORDER BY id ASC');
+    return result.rows.map((row: any) => this.mapRowToPaymentMethod(row));
   }
 
   async getPaymentMethodById(id: number): Promise<PaymentMethod | undefined> {
-    return this.mockPaymentMethods.find(m => m.id === id);
+    const result = await query('SELECT * FROM payment_methods WHERE id = $1', [id]);
+    return result.rows[0] ? this.mapRowToPaymentMethod(result.rows[0]) : undefined;
   }
 
   async createPaymentMethod(data: Omit<PaymentMethod, 'id'>): Promise<PaymentMethod> {
-    const newMethod = {
-      id: this.mockPaymentMethods.length + 1,
-      ...data,
-    };
-    this.mockPaymentMethods.push(newMethod);
-    return newMethod;
+    const result = await query(
+      `INSERT INTO payment_methods (name, provider, is_active, config)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [data.name, data.provider, data.is_active, data.config]
+    );
+    return this.mapRowToPaymentMethod(result.rows[0]);
   }
 
   async updatePaymentMethod(id: number, data: Partial<PaymentMethod>): Promise<PaymentMethod | undefined> {
-    const index = this.mockPaymentMethods.findIndex(m => m.id === id);
-    if (index === -1) return undefined;
+    const fields: string[] = [];
+    const values: any[] = [];
+    let i = 1;
 
-    this.mockPaymentMethods[index] = {
-      ...this.mockPaymentMethods[index],
-      ...data,
-    };
-    return this.mockPaymentMethods[index];
+    Object.entries(data).forEach(([key, value]) => {
+      if (key !== 'id') {
+        fields.push(`${key} = $${i++}`);
+        values.push(value);
+      }
+    });
+
+    if (fields.length === 0) return this.getPaymentMethodById(id);
+
+    values.push(id);
+    const result = await query(
+      `UPDATE payment_methods SET ${fields.join(', ')}, updated_at = NOW() WHERE id = $${i} RETURNING *`,
+      values
+    );
+    return result.rows[0] ? this.mapRowToPaymentMethod(result.rows[0]) : undefined;
   }
 
   async deletePaymentMethod(id: number): Promise<boolean> {
-    const index = this.mockPaymentMethods.findIndex(m => m.id === id);
-    if (index === -1) return false;
+    const result = await query('DELETE FROM payment_methods WHERE id = $1', [id]);
+    return (result.rowCount ?? 0) > 0;
+  }
 
-    this.mockPaymentMethods.splice(index, 1);
-    return true;
+  private mapRowToPaymentMethod(row: any): PaymentMethod {
+    return {
+      id: Number(row.id),
+      name: String(row.name),
+      provider: String(row.provider),
+      is_active: Boolean(row.is_active),
+      config: typeof row.config === 'string' ? JSON.parse(row.config) : row.config,
+    };
   }
 }
 

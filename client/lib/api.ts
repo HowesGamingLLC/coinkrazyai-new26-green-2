@@ -103,25 +103,25 @@ export async function adminApiCall<T>(
 // ===== AUTHENTICATION =====
 export const auth = {
   register: async (username: string, name: string, email: string, password: string) => {
-    const data = await apiCall<AuthResponse>('/auth/register', {
+    const response = await apiCall<AuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ username, name, email, password }),
     });
-    if (data.token) {
-      localStorage.setItem('auth_token', data.token);
+    if (response.data?.token) {
+      localStorage.setItem('auth_token', response.data.token);
     }
-    return data;
+    return response;
   },
 
   login: async (username: string, password: string) => {
-    const data = await apiCall<AuthResponse>('/auth/login', {
+    const response = await apiCall<AuthResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });
-    if (data.token) {
-      localStorage.setItem('auth_token', data.token);
+    if (response.data?.token) {
+      localStorage.setItem('auth_token', response.data.token);
     }
-    return data;
+    return response;
   },
 
   adminLogin: async (email: string, password: string) => {

@@ -48,8 +48,10 @@ export const handleRegister: RequestHandler = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      token: result.token,
-      player: result.player
+      data: {
+        token: result.token,
+        player: result.player
+      }
     });
   } catch (error) {
     console.error('[Auth] Registration error:', error);
@@ -90,8 +92,10 @@ export const handleLogin: RequestHandler = async (req, res) => {
 
     res.json({
       success: true,
-      token: result.token,
-      player: result.player
+      data: {
+        token: result.token,
+        player: result.player
+      }
     });
   } catch (error) {
     console.error('[Auth] Login error:', error);

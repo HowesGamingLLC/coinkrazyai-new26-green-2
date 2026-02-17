@@ -206,16 +206,18 @@ const seedDatabase = async () => {
 
     // Always ensure admin user exists
     console.log('[DB] Ensuring admin user exists...');
-    const adminPassword = await bcrypt.hash('admin123', 10);
+    const adminEmail = process.env.ADMIN_EMAIL || 'coinkrazy26@gmail.com';
+    const adminRawPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const adminPassword = await bcrypt.hash(adminRawPassword, 10);
 
     try {
       await query(
         `INSERT INTO admin_users (email, password_hash, name, role, status)
          VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (email) DO UPDATE SET password_hash = $2`,
-        ['coinkrazy26@gmail.com', adminPassword, 'CoinKrazy Admin', 'admin', 'Active']
+        [adminEmail, adminPassword, 'CoinKrazy Admin', 'admin', 'Active']
       );
-      console.log('[DB] Admin user coinkrazy26@gmail.com ensured');
+      console.log(`[DB] Admin user ${adminEmail} ensured`);
     } catch (err: any) {
       console.log('[DB] Admin user setup:', err.message?.substring(0, 100));
     }
@@ -479,6 +481,33 @@ const seedDatabase = async () => {
       console.log('[DB] No Pragmatic Play games to seed - game seeding disabled');
     } else {
       console.log('[DB] Pragmatic games already exist, skipping seed');
+    }
+
+    // Always ensure payment methods exist
+    const pmCount = await query('SELECT COUNT(*) as count FROM payment_methods');
+    if (parseInt(pmCount.rows[0].count) === 0) {
+      console.log('[DB] Seeding default payment methods...');
+      const paymentMethods = [
+        ['Credit Card', 'stripe', true, JSON.stringify({
+          api_key: process.env.STRIPE_PUBLIC_KEY || 'REPLACE_ENV.STRIPE_PUBLIC_KEY',
+          secret_key: process.env.STRIPE_SECRET_KEY || 'REPLACE_ENV.STRIPE_SECRET_KEY',
+          mode: 'live'
+        })],
+        ['Google Pay', 'google_pay', true, JSON.stringify({
+          merchant_id: 'BCR2DN6T7X7X7X7X',
+          merchant_name: 'CoinKrazy',
+          gateway: 'stripe',
+          mode: 'live'
+        })]
+      ];
+
+      for (const method of paymentMethods) {
+        await query(
+          `INSERT INTO payment_methods (name, provider, is_active, config)
+           VALUES ($1, $2, $3, $4)`,
+          method
+        );
+      }
     }
   } catch (error) {
     console.error('[DB] Seeding failed:', error);

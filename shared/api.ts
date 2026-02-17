@@ -18,8 +18,11 @@ export interface LoginRequest {
 }
 
 export interface AuthResponse {
-  token: string;
-  player: PlayerProfile;
+  success: boolean;
+  data: {
+    token: string;
+    player: PlayerProfile;
+  };
 }
 
 // ===== PLAYER & WALLET =====
