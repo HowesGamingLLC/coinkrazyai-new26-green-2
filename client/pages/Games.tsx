@@ -1,25 +1,481 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Search, Filter, Grid, List as ListIcon, ChevronDown } from 'lucide-react';
+import { toast } from 'sonner';
+import { games } from '@/lib/api';
+import { ImportedGameCard } from '@/components/slots/ImportedGameCard';
+import { GameEmbedModal } from '@/components/slots/GameEmbedModal';
+
+interface Game {
+  id: number;
+  name: string;
+  type: string;
+  category: string;
+  provider: string;
+  rtp?: number;
+  volatility?: string;
+  image_url?: string;
+  thumbnail?: string;
+  embed_url?: string;
+  enabled?: boolean;
+  description?: string;
+  features?: string[];
+  themes?: string[];
+}
+
+type GameType = 'all' | 'slots' | 'poker' | 'bingo' | 'sportsbook';
 
 const Games = () => {
-  const navigate = useNavigate();
+  const [allGames, setAllGames] = useState<Game[]>([]);
+  const [filteredGames, setFilteredGames] = useState<Game[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedGameType, setSelectedGameType] = useState<GameType>('all');
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [selectedVolatility, setSelectedVolatility] = useState<string | null>(null);
+  const [minRTP, setMinRTP] = useState<number | null>(null);
+  const [maxRTP, setMaxRTP] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [selectedGameForEmbed, setSelectedGameForEmbed] = useState<Game | null>(null);
+  const [isEmbedModalOpen, setIsEmbedModalOpen] = useState(false);
+
+  // Game type definitions
+  const gameTypes: { value: GameType; label: string; count?: number }[] = [
+    { value: 'all', label: 'All Games' },
+    { value: 'slots', label: 'Slots' },
+    { value: 'poker', label: 'Poker' },
+    { value: 'bingo', label: 'Bingo' },
+    { value: 'sportsbook', label: 'Sportsbook' },
+  ];
+
+  // Fetch games on mount
+  useEffect(() => {
+    fetchGames();
+  }, []);
+
+  // Filter games whenever any filter changes
+  useEffect(() => {
+    applyFilters();
+  }, [allGames, searchTerm, selectedGameType, selectedProvider, selectedVolatility, minRTP, maxRTP]);
+
+  const fetchGames = async () => {
+    try {
+      setIsLoading(true);
+      const response = await games.getGames();
+      const gamesData = Array.isArray(response) ? response : (response?.data || []);
+      const enabledGames = gamesData.filter((g: Game) => g.enabled !== false);
+      setAllGames(enabledGames);
+      toast.success(`Loaded ${enabledGames.length} games`);
+    } catch (error) {
+      console.error('Failed to fetch games:', error);
+      toast.error('Failed to load games');
+      setAllGames([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const applyFilters = () => {
+    let result = allGames;
+
+    // Game type filter
+    if (selectedGameType !== 'all') {
+      result = result.filter(
+        (game) =>
+          game.type?.toLowerCase() === selectedGameType ||
+          game.category?.toLowerCase() === selectedGameType
+      );
+    }
+
+    // Search filter
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      result = result.filter(
+        (game) =>
+          game.name.toLowerCase().includes(lowerSearch) ||
+          game.provider?.toLowerCase().includes(lowerSearch) ||
+          game.description?.toLowerCase().includes(lowerSearch)
+      );
+    }
+
+    // Provider filter
+    if (selectedProvider) {
+      result = result.filter((game) => game.provider === selectedProvider);
+    }
+
+    // Volatility filter
+    if (selectedVolatility) {
+      result = result.filter((game) => game.volatility === selectedVolatility);
+    }
+
+    // RTP range filter
+    if (minRTP !== null && minRTP !== undefined) {
+      result = result.filter((game) => (game.rtp || 0) >= minRTP);
+    }
+    if (maxRTP !== null && maxRTP !== undefined) {
+      result = result.filter((game) => (game.rtp || 0) <= maxRTP);
+    }
+
+    setFilteredGames(result);
+  };
+
+  // Calculate dynamic counts for game types
+  const getGameTypeCount = (type: GameType): number => {
+    if (type === 'all') return allGames.length;
+    return allGames.filter(
+      (g) => g.type?.toLowerCase() === type || g.category?.toLowerCase() === type
+    ).length;
+  };
+
+  // Get unique providers from filtered games
+  const providers = [...new Set(filteredGames.map((g) => g.provider))].filter(Boolean).sort();
+  const volatilities = [...new Set(filteredGames.map((g) => g.volatility).filter(Boolean))].sort();
+
+  // Calculate statistics
+  const avgRTP = filteredGames.length > 0
+    ? (filteredGames.reduce((sum, g) => sum + (g.rtp || 0), 0) / filteredGames.length).toFixed(1)
+    : 0;
+
+  const handlePlayGame = (game: Game) => {
+    if (game.embed_url) {
+      setSelectedGameForEmbed(game);
+      setIsEmbedModalOpen(true);
+    } else {
+      toast.error('Game embed URL not available');
+    }
+  };
+
+  const handleOpenUrl = (url: string) => {
+    window.open(url, '_blank');
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedGameType('all');
+    setSelectedProvider(null);
+    setSelectedVolatility(null);
+    setMinRTP(null);
+    setMaxRTP(null);
+  };
+
+  const hasActiveFilters =
+    searchTerm ||
+    selectedGameType !== 'all' ||
+    selectedProvider ||
+    selectedVolatility ||
+    minRTP !== null ||
+    maxRTP !== null;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6 max-w-2xl mx-auto">
-      <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mb-4">
-        <span className="text-4xl">🎮</span>
-      </div>
-      <h1 className="text-4xl font-bold tracking-tight">Game Library Coming Soon</h1>
-      <p className="text-xl text-muted-foreground">
-        Explore our comprehensive collection of premium games.
-      </p>
-      <div className="bg-muted p-6 rounded-xl border border-border w-full">
-        <p className="text-sm font-medium mb-4 italic">
-          "I am currently working on this module. Please continue prompting me to fill in the contents of this page if you want it next!" - LuckyAI
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="space-y-2">
+        <h1 className="text-4xl font-bold tracking-tight">Game Library</h1>
+        <p className="text-muted-foreground">
+          Explore our collection of {allGames.length} games from various providers
         </p>
-        <Button onClick={() => navigate('/')}>Return to Lobby</Button>
       </div>
+
+      {/* Game Type Tabs */}
+      <div className="flex flex-wrap gap-2">
+        {gameTypes.map((type) => (
+          <Button
+            key={type.value}
+            onClick={() => setSelectedGameType(type.value)}
+            variant={selectedGameType === type.value ? 'default' : 'outline'}
+            className="gap-2"
+          >
+            {type.label}
+            <Badge variant="secondary" className="ml-1">
+              {getGameTypeCount(type.value)}
+            </Badge>
+          </Button>
+        ))}
+      </div>
+
+      {/* Stats Bar */}
+      {!isLoading && filteredGames.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Total Games</p>
+                <p className="text-2xl font-bold">{filteredGames.length}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Providers</p>
+                <p className="text-2xl font-bold">{providers.length}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Avg RTP</p>
+                <p className="text-2xl font-bold">{avgRTP}%</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Now Showing</p>
+                <p className="text-2xl font-bold">{filteredGames.length}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Search & Filters */}
+      <div className="space-y-4">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+          <Input
+            placeholder="Search games by name, provider..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* Quick Filters */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {/* Provider Filter */}
+          <div className="relative">
+            <div className="text-xs font-semibold mb-2 text-muted-foreground">Provider</div>
+            <select
+              value={selectedProvider || ''}
+              onChange={(e) => setSelectedProvider(e.target.value || null)}
+              className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">All Providers</option>
+              {providers.map((provider) => (
+                <option key={provider} value={provider}>
+                  {provider}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Volatility Filter */}
+          <div className="relative">
+            <div className="text-xs font-semibold mb-2 text-muted-foreground">Volatility</div>
+            <select
+              value={selectedVolatility || ''}
+              onChange={(e) => setSelectedVolatility(e.target.value || null)}
+              className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">All Volatilities</option>
+              {volatilities.map((vol) => (
+                <option key={vol} value={vol}>
+                  {vol}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="flex gap-2 items-end">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded border ${
+                viewMode === 'grid'
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'border-input hover:bg-muted'
+              }`}
+              title="Grid view"
+            >
+              <Grid className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded border ${
+                viewMode === 'list'
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'border-input hover:bg-muted'
+              }`}
+              title="List view"
+            >
+              <ListIcon className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Advanced Filters Toggle */}
+          <div className="flex items-end">
+            <Button
+              variant={showAdvancedFilters ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className="w-full gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Advanced
+              <ChevronDown className={`h-4 w-4 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
+            </Button>
+          </div>
+        </div>
+
+        {/* Advanced Filters */}
+        {showAdvancedFilters && (
+          <Card className="bg-muted/50">
+            <CardContent className="pt-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* RTP Range */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">RTP Range</label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Min"
+                      min="0"
+                      max="100"
+                      value={minRTP ?? ''}
+                      onChange={(e) => setMinRTP(e.target.value ? parseFloat(e.target.value) : null)}
+                      className="w-24"
+                    />
+                    <span className="flex items-center text-muted-foreground">-</span>
+                    <Input
+                      type="number"
+                      placeholder="Max"
+                      min="0"
+                      max="100"
+                      value={maxRTP ?? ''}
+                      onChange={(e) => setMaxRTP(e.target.value ? parseFloat(e.target.value) : null)}
+                      className="w-24"
+                    />
+                    <span className="flex items-center text-muted-foreground">%</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Active Filters Display */}
+        {hasActiveFilters && (
+          <div className="flex flex-wrap gap-2 items-center">
+            {searchTerm && (
+              <Badge variant="secondary" className="gap-2">
+                Search: {searchTerm}
+                <button onClick={() => setSearchTerm('')} className="hover:opacity-70">
+                  ✕
+                </button>
+              </Badge>
+            )}
+            {selectedGameType !== 'all' && (
+              <Badge variant="secondary" className="gap-2">
+                Type: {selectedGameType}
+                <button onClick={() => setSelectedGameType('all')} className="hover:opacity-70">
+                  ✕
+                </button>
+              </Badge>
+            )}
+            {selectedProvider && (
+              <Badge variant="secondary" className="gap-2">
+                Provider: {selectedProvider}
+                <button onClick={() => setSelectedProvider(null)} className="hover:opacity-70">
+                  ✕
+                </button>
+              </Badge>
+            )}
+            {selectedVolatility && (
+              <Badge variant="secondary" className="gap-2">
+                Volatility: {selectedVolatility}
+                <button onClick={() => setSelectedVolatility(null)} className="hover:opacity-70">
+                  ✕
+                </button>
+              </Badge>
+            )}
+            {(minRTP !== null || maxRTP !== null) && (
+              <Badge variant="secondary" className="gap-2">
+                RTP: {minRTP ?? '0'} - {maxRTP ?? '100'}%
+                <button
+                  onClick={() => {
+                    setMinRTP(null);
+                    setMaxRTP(null);
+                  }}
+                  className="hover:opacity-70"
+                >
+                  ✕
+                </button>
+              </Badge>
+            )}
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs">
+              Clear All
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">Loading games...</p>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && filteredGames.length === 0 && allGames.length === 0 && (
+        <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+          <p className="text-2xl font-semibold mb-2">No games available</p>
+          <p className="text-muted-foreground">Check back soon for more games!</p>
+        </div>
+      )}
+
+      {/* No Results State */}
+      {!isLoading && filteredGames.length === 0 && allGames.length > 0 && (
+        <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+          <p className="text-2xl font-semibold mb-2">No games match your filters</p>
+          <p className="text-muted-foreground mb-4">Try adjusting your search or filters</p>
+          <Button variant="outline" onClick={clearFilters}>
+            Clear All Filters
+          </Button>
+        </div>
+      )}
+
+      {/* Games Grid/List */}
+      {!isLoading && filteredGames.length > 0 && (
+        <div
+          className={
+            viewMode === 'grid'
+              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
+              : 'space-y-3'
+          }
+        >
+          {filteredGames.map((game) => (
+            <ImportedGameCard
+              key={game.id}
+              game={game}
+              onPlay={handlePlayGame}
+              onOpenUrl={handleOpenUrl}
+              variant={viewMode === 'list' ? 'list' : 'grid'}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Game Embed Modal */}
+      {selectedGameForEmbed && (
+        <GameEmbedModal
+          game={selectedGameForEmbed}
+          isOpen={isEmbedModalOpen}
+          onClose={() => {
+            setIsEmbedModalOpen(false);
+            setSelectedGameForEmbed(null);
+          }}
+        />
+      )}
     </div>
   );
 };
