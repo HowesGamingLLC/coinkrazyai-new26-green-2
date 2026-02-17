@@ -128,6 +128,7 @@ export const initializeDatabase = async () => {
       await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS title VARCHAR(255)`);
       await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS message TEXT`);
       await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+      await query(`ALTER TABLE security_alerts ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
       console.log('[DB] Verified security_alerts table schema');
     } catch (err: any) {
       console.log('[DB] security_alerts schema update:', err.message?.substring(0, 100));
