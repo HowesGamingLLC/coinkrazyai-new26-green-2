@@ -2,45 +2,26 @@ import { RequestHandler } from "express";
 import * as dbQueries from "../db/queries";
 
 /**
- * Admin state for game configurations and AI management
- * This is an in-memory cache for admin settings.
- * For persistence, consider moving these to the database.
- */
-let adminState = {
-  gameConfigs: {
-    slots: { rtp: 95, minBet: 0.01, maxBet: 100 },
-    poker: { rtp: 95, minBuyIn: 10, maxBuyIn: 1000, houseCommission: 5 },
-    bingo: { rtp: 85, minTicketPrice: 0.5, maxTicketPrice: 50, houseCommission: 15 },
-    sportsbook: { rtp: 92, minBet: 1, maxBet: 1000, minParlay: 3, maxParlay: 10, houseCommission: 8 }
-  },
-  aiEmployees: [
-    { id: 'ai-1', name: 'LuckyAI', role: 'Game Optimizer', status: 'active', duties: ['Adjust RTP', 'Game Balance'] },
-    { id: 'ai-2', name: 'SecurityAI', role: 'Security Monitor', status: 'active', duties: ['Fraud Detection', 'Account Security'] },
-    { id: 'ai-3', name: 'SlotsAI', role: 'Slots Specialist', status: 'active', duties: ['Slots Management', 'Payout Optimization'] },
-    { id: 'ai-4', name: 'JoseyAI', role: 'Poker Engine', status: 'idle', duties: [] },
-    { id: 'ai-5', name: 'SocialAI', role: 'Community Manager', status: 'active', duties: ['Chat Moderation', 'Event Hosting'] },
-    { id: 'ai-6', name: 'PromotionsAI', role: 'Marketing', status: 'active', duties: ['Promotions', 'Bonuses'] }
-  ],
-  systemHealth: 'Optimal',
-  maintenanceMode: false
-};
-
-/**
- * Note: Admin authentication is now handled exclusively through:
+ * Note: Admin state is now handled through the database (ai_employees and casino_settings tables).
+ * Admin authentication is handled exclusively through:
  * - server/services/auth-service.ts -> AuthService.loginAdmin()
  * - server/routes/auth.ts -> handleAdminLogin()
- * This uses the admin_users table in the database for secure admin credentials.
  */
 
 export const handleGetAdminStats: RequestHandler = async (req, res) => {
   try {
     const playerStats = await dbQueries.getPlayerStats();
     const transactions = await dbQueries.getTransactions(10);
+    const aiEmployeesResult = await dbQueries.getAIEmployees();
+    const settingsResult = await dbQueries.getCasinoSettings();
 
     const totalPlayers = playerStats.rows[0]?.total_players || 0;
     const activePlayers = playerStats.rows[0]?.active_players || 0;
     const totalGCVolume = playerStats.rows[0]?.avg_gc_balance || 0;
     const totalSCVolume = playerStats.rows[0]?.avg_sc_balance || 0;
+
+    const maintenanceMode = settingsResult.rows.find(s => s.setting_key === 'maintenance_mode')?.setting_value === 'true';
+    const systemHealth = settingsResult.rows.find(s => s.setting_key === 'system_health')?.setting_value || 'Optimal';
 
     res.json({
       success: true,
@@ -52,10 +33,10 @@ export const handleGetAdminStats: RequestHandler = async (req, res) => {
           totalRevenue: 125430.50,
           totalGCVolume,
           totalSCVolume,
-          systemHealth: adminState.systemHealth,
-          maintenanceMode: adminState.maintenanceMode
+          systemHealth,
+          maintenanceMode
         },
-        aiStatus: adminState.aiEmployees,
+        aiStatus: aiEmployeesResult.rows,
         gameStats: {
           slots: { plays: 25430, winRate: 0.95 },
           poker: { plays: 8234, activeTables: 8 },
@@ -73,28 +54,49 @@ export const handleGetAdminStats: RequestHandler = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Failed to get admin stats:', error);
     res.status(500).json({ success: false, error: 'Failed to get stats' });
   }
 };
 
-export const handleGetGameConfig: RequestHandler = (req, res) => {
+export const handleGetGameConfig: RequestHandler = async (req, res) => {
   try {
     const { game } = req.query;
     
-    if (game && typeof game === 'string' && game in adminState.gameConfigs) {
-      return res.json({ 
-        success: true, 
-        data: adminState.gameConfigs[game as keyof typeof adminState.gameConfigs] 
-      });
+    if (game && typeof game === 'string') {
+      const configKey = `${game}_config`;
+      const result = await dbQueries.getCasinoSettings(configKey);
+      if (result.rows.length > 0) {
+        return res.json({ 
+          success: true, 
+          data: JSON.parse(result.rows[0].setting_value)
+        });
+      }
+      return res.status(404).json({ success: false, error: "Game config not found" });
     }
 
-    res.json({ success: true, data: adminState.gameConfigs });
+    const allSettings = await dbQueries.getCasinoSettings();
+    const gameConfigs: Record<string, any> = {};
+    
+    allSettings.rows.forEach(s => {
+      if (s.setting_key.endsWith('_config')) {
+        const gameName = s.setting_key.replace('_config', '');
+        try {
+          gameConfigs[gameName] = JSON.parse(s.setting_value);
+        } catch (e) {
+          gameConfigs[gameName] = s.setting_value;
+        }
+      }
+    });
+
+    res.json({ success: true, data: gameConfigs });
   } catch (error) {
+    console.error('Failed to get game config:', error);
     res.status(500).json({ success: false, error: 'Failed to get config' });
   }
 };
 
-export const handleUpdateGameConfig: RequestHandler = (req, res) => {
+export const handleUpdateGameConfig: RequestHandler = async (req, res) => {
   try {
     const { gameId, config } = req.body;
 
@@ -102,37 +104,33 @@ export const handleUpdateGameConfig: RequestHandler = (req, res) => {
       return res.status(400).json({ success: false, error: "Missing gameId or config" });
     }
 
-    const gameKey = gameId as keyof typeof adminState.gameConfigs;
-    if (!(gameKey in adminState.gameConfigs)) {
-      return res.status(404).json({ success: false, error: "Game not found" });
-    }
-
-    adminState.gameConfigs[gameKey] = { 
-      ...adminState.gameConfigs[gameKey], 
-      ...config 
-    };
+    const configKey = `${gameId}_config`;
+    await dbQueries.updateCasinoSetting(configKey, JSON.stringify(config));
 
     res.json({ 
       success: true, 
       data: { 
         message: `${gameId} configuration updated successfully`,
-        config: adminState.gameConfigs[gameKey]
+        config
       } 
     });
   } catch (error) {
+    console.error('Failed to update game config:', error);
     res.status(500).json({ success: false, error: 'Failed to update config' });
   }
 };
 
-export const handleGetAIEmployees: RequestHandler = (req, res) => {
+export const handleGetAIEmployees: RequestHandler = async (req, res) => {
   try {
-    res.json({ success: true, data: adminState.aiEmployees });
+    const result = await dbQueries.getAIEmployees();
+    res.json({ success: true, data: result.rows });
   } catch (error) {
+    console.error('Failed to get AI employees:', error);
     res.status(500).json({ success: false, error: 'Failed to get AI employees' });
   }
 };
 
-export const handleAssignAIDuty: RequestHandler = (req, res) => {
+export const handleAssignAIDuty: RequestHandler = async (req, res) => {
   try {
     const { aiId, duty } = req.body;
 
@@ -140,28 +138,25 @@ export const handleAssignAIDuty: RequestHandler = (req, res) => {
       return res.status(400).json({ success: false, error: "Missing aiId or duty" });
     }
 
-    const ai = adminState.aiEmployees.find(a => a.id === aiId);
-    if (!ai) {
+    const result = await dbQueries.assignAIDuty(aiId, duty);
+    if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: "AI employee not found" });
-    }
-
-    if (!ai.duties.includes(duty)) {
-      ai.duties.push(duty);
     }
 
     res.json({ 
       success: true, 
       data: { 
-        message: `${ai.name} has been assigned duty: ${duty}`,
-        ai
+        message: `Duty assigned successfully`,
+        ai: result.rows[0]
       } 
     });
   } catch (error) {
+    console.error('Failed to assign duty:', error);
     res.status(500).json({ success: false, error: 'Failed to assign duty' });
   }
 };
 
-export const handleUpdateAIStatus: RequestHandler = (req, res) => {
+export const handleUpdateAIStatus: RequestHandler = async (req, res) => {
   try {
     const { aiId, status } = req.body;
 
@@ -169,40 +164,35 @@ export const handleUpdateAIStatus: RequestHandler = (req, res) => {
       return res.status(400).json({ success: false, error: "Invalid aiId or status" });
     }
 
-    const ai = adminState.aiEmployees.find(a => a.id === aiId);
-    if (!ai) {
+    const result = await dbQueries.updateAIStatus(aiId, status);
+    if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: "AI employee not found" });
     }
-
-    ai.status = status as 'active' | 'idle' | 'maintenance';
 
     res.json({ 
       success: true, 
       data: { 
-        message: `${ai.name} status updated to ${status}`,
-        ai
+        message: `Status updated successfully`,
+        ai: result.rows[0]
       } 
     });
   } catch (error) {
+    console.error('Failed to update AI status:', error);
     res.status(500).json({ success: false, error: 'Failed to update AI status' });
   }
 };
 
-export const handleGetStorePacks: RequestHandler = (req, res) => {
+export const handleGetStorePacks: RequestHandler = async (req, res) => {
   try {
-    const packs = [
-      { id: "pack-1", title: "Starter Pack", price: 4.99, goldCoins: 5000, sweepsCoinsBonus: 5 },
-      { id: "pack-2", title: "Pro Pack", price: 9.99, goldCoins: 12000, sweepsCoinsBonus: 12 },
-      { id: "pack-3", title: "High Roller Pack", price: 49.99, goldCoins: 65000, sweepsCoinsBonus: 65 },
-      { id: "pack-4", title: "Whale Pack", price: 99.99, goldCoins: 150000, sweepsCoinsBonus: 150 },
-    ];
-    res.json({ success: true, data: packs });
+    const result = await dbQueries.getStorePacks();
+    res.json({ success: true, data: result.rows });
   } catch (error) {
+    console.error('Failed to get store packs:', error);
     res.status(500).json({ success: false, error: 'Failed to get store packs' });
   }
 };
 
-export const handleUpdateStorePack: RequestHandler = (req, res) => {
+export const handleUpdateStorePack: RequestHandler = async (req, res) => {
   try {
     const { packId, packData } = req.body;
 
@@ -210,19 +200,40 @@ export const handleUpdateStorePack: RequestHandler = (req, res) => {
       return res.status(400).json({ success: false, error: "Missing packId or packData" });
     }
 
+    // Use the actual update query from queries.ts if available, otherwise build one
+    // For now, let's assume store.ts handleUpdatePack is the real one and this is legacy
+    // But we should make it work.
+    
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    Object.entries(packData).forEach(([key, value]) => {
+      updates.push(`${key} = $${paramIndex++}`);
+      values.push(value);
+    });
+    
+    values.push(packId);
+    
+    const result = await dbQueries.query(
+      `UPDATE store_packs SET ${updates.join(', ')}, updated_at = NOW() WHERE id = $${paramIndex} RETURNING *`,
+      values
+    );
+
     res.json({ 
       success: true, 
       data: { 
         message: `Store pack ${packId} updated successfully`,
-        pack: { id: packId, ...packData }
+        pack: result.rows[0]
       } 
     });
   } catch (error) {
+    console.error('Failed to update store pack:', error);
     res.status(500).json({ success: false, error: 'Failed to update store pack' });
   }
 };
 
-export const handleSetMaintenanceMode: RequestHandler = (req, res) => {
+export const handleSetMaintenanceMode: RequestHandler = async (req, res) => {
   try {
     const { enabled, message } = req.body;
 
@@ -230,26 +241,33 @@ export const handleSetMaintenanceMode: RequestHandler = (req, res) => {
       return res.status(400).json({ success: false, error: "Missing enabled flag" });
     }
 
-    adminState.maintenanceMode = enabled;
+    await dbQueries.updateCasinoSetting('maintenance_mode', String(enabled));
+    if (message) {
+      await dbQueries.updateCasinoSetting('maintenance_message', message);
+    }
 
     res.json({
       success: true,
       data: {
         message: enabled ? 'Maintenance mode enabled' : 'Maintenance mode disabled',
-        maintenanceMode: adminState.maintenanceMode
+        maintenanceMode: enabled
       }
     });
   } catch (error) {
+    console.error('Failed to update maintenance mode:', error);
     res.status(500).json({ success: false, error: 'Failed to update maintenance mode' });
   }
 };
 
-export const handleGetSystemHealth: RequestHandler = (req, res) => {
+export const handleGetSystemHealth: RequestHandler = async (req, res) => {
   try {
+    const result = await dbQueries.getCasinoSettings('system_health');
+    const systemHealth = result.rows[0]?.setting_value || 'Optimal';
+
     res.json({
       success: true,
       data: {
-        systemHealth: adminState.systemHealth,
+        systemHealth,
         services: {
           database: 'healthy',
           cache: 'healthy',
@@ -262,16 +280,14 @@ export const handleGetSystemHealth: RequestHandler = (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Failed to get system health:', error);
     res.status(500).json({ success: false, error: 'Failed to get system health' });
   }
 };
 
 export const handleLogout: RequestHandler = (req, res) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (token && adminSessions[token]) {
-      delete adminSessions[token];
-    }
+    // Session cleanup is handled by auth middleware/service
     res.json({ success: true, data: { message: "Logged out successfully" } });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Logout failed' });

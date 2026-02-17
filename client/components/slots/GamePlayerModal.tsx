@@ -112,30 +112,21 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
     try {
       setIsSpinning(true);
 
-      // Simulate win/loss (40% chance to win)
-      const winChance = Math.random();
-      let winAmount = 0;
-
-      if (winChance > 0.6) {
-        winAmount = Math.random() * Math.min(gameConfig.max_bet * 5, 20);
-        winAmount = Math.round(winAmount * 100) / 100;
-      }
-
-      // Process spin via API
+      // Process spin via API - win calculation is now server-side for security
       const response = await apiCall<any>('/games/spin', {
         method: 'POST',
         body: JSON.stringify({
           game_id: game.id,
-          bet_amount: betAmount,
-          win_amount: winAmount
+          bet_amount: betAmount
         })
       });
 
-      if (response.success) {
+      if (response.success && response.data) {
+        const { win_amount } = response.data;
         await refreshWallet();
 
-        if (winAmount > 0) {
-          toast.success(`🎉 You won ${winAmount.toFixed(2)} SC!`);
+        if (win_amount > 0) {
+          toast.success(`🎉 You won ${win_amount.toFixed(2)} SC!`);
         } else {
           toast.info(`You lost ${betAmount.toFixed(2)} SC`);
         }

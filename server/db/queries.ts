@@ -275,6 +275,45 @@ export const recordBingoResult = async (playerId: number, gameId: number, ticket
   );
 };
 
+// ===== AI EMPLOYEES =====
+export const getAIEmployees = async () => {
+  return query(`SELECT * FROM ai_employees ORDER BY id ASC`);
+};
+
+export const updateAIStatus = async (aiId: string, status: string) => {
+  return query(
+    `UPDATE ai_employees SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+    [status, aiId]
+  );
+};
+
+export const assignAIDuty = async (aiId: string, duty: string) => {
+  return query(
+    `UPDATE ai_employees SET duties = array_append(duties, $1), updated_at = NOW()
+     WHERE id = $2 AND NOT ($1 = ANY(duties))
+     RETURNING *`,
+    [duty, aiId]
+  );
+};
+
+// ===== CASINO SETTINGS =====
+export const getCasinoSettings = async (key?: string) => {
+  if (key) {
+    return query(`SELECT * FROM casino_settings WHERE setting_key = $1`, [key]);
+  }
+  return query(`SELECT * FROM casino_settings ORDER BY setting_key ASC`);
+};
+
+export const updateCasinoSetting = async (key: string, value: string) => {
+  return query(
+    `INSERT INTO casino_settings (setting_key, setting_value, updated_at)
+     VALUES ($1, $2, NOW())
+     ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value, updated_at = NOW()
+     RETURNING *`,
+    [key, value]
+  );
+};
+
 // ===== STORE & PURCHASES =====
 export const getStorePacks = async () => {
   return query(

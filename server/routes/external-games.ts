@@ -62,10 +62,9 @@ export const handleProcessSpin: RequestHandler = async (req, res) => {
       return res.status(401).json({ success: false, error: 'Not authenticated' });
     }
 
-    const { game_id, bet_amount, win_amount } = req.body as {
+    const { game_id, bet_amount } = req.body as {
       game_id: number;
       bet_amount: number;
-      win_amount?: number;
     };
 
     // Validate inputs
@@ -119,8 +118,18 @@ export const handleProcessSpin: RequestHandler = async (req, res) => {
       });
     }
 
-    // Calculate actual win amount (default to 0, capped at max_win)
-    let actualWin = win_amount || 0;
+    // Calculate actual win amount
+    // In a real system, this would be determined by the external provider.
+    // Since we are using demo embeds, we simulate the server-side decision here.
+    // 35% win rate, win between 0.5x and 10x bet, capped at game max win.
+    const winChance = Math.random();
+    let actualWin = 0;
+
+    if (winChance > 0.65) {
+      const multiplier = 0.5 + Math.random() * 9.5;
+      actualWin = Math.round(bet_amount * multiplier * 100) / 100;
+    }
+
     if (actualWin > maxWin) {
       actualWin = maxWin;
     }

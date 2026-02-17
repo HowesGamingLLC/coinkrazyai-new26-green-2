@@ -32,7 +32,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ALL_SLOT_GAMES } from '@/data/slotGamesDatabase';
+import { ALL_SLOT_GAMES } from '@shared/slotGamesDatabase';
 
 interface GameRecord {
   id: number;

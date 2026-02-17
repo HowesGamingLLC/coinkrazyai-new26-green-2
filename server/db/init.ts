@@ -490,6 +490,52 @@ const seedDatabase = async () => {
       console.log('[DB] Starter games seeded');
     }
 
+    // Seed AI employees if table is empty
+    const aiCount = await query('SELECT COUNT(*) as count FROM ai_employees');
+    if (parseInt(aiCount.rows[0].count) === 0) {
+      console.log('[DB] Seeding AI employees...');
+      const aiEmployees = [
+        ['ai-1', 'LuckyAI', 'Game Optimizer', 'active', ['Adjust RTP', 'Game Balance']],
+        ['ai-2', 'SecurityAI', 'Security Monitor', 'active', ['Fraud Detection', 'Account Security']],
+        ['ai-3', 'SlotsAI', 'Slots Specialist', 'active', ['Slots Management', 'Payout Optimization']],
+        ['ai-4', 'JoseyAI', 'Poker Engine', 'idle', []],
+        ['ai-5', 'SocialAI', 'Community Manager', 'active', ['Chat Moderation', 'Event Hosting']],
+        ['ai-6', 'PromotionsAI', 'Marketing', 'active', ['Promotions', 'Bonuses']]
+      ];
+
+      for (const ai of aiEmployees) {
+        await query(
+          `INSERT INTO ai_employees (id, name, role, status, duties)
+           VALUES ($1, $2, $3, $4, $5)`,
+          ai
+        );
+      }
+      console.log('[DB] AI employees seeded');
+    }
+
+    // Seed default casino settings
+    const settingsCount = await query('SELECT COUNT(*) as count FROM casino_settings');
+    if (parseInt(settingsCount.rows[0].count) === 0) {
+      console.log('[DB] Seeding default casino settings...');
+      const settings = [
+        ['maintenance_mode', 'false', 'boolean', 'Whether the platform is in maintenance mode'],
+        ['system_health', 'Optimal', 'string', 'Current system health status'],
+        ['slots_config', JSON.stringify({ rtp: 95, minBet: 0.01, maxBet: 100 }), 'json', 'Global configuration for slots'],
+        ['poker_config', JSON.stringify({ rtp: 95, minBuyIn: 10, maxBuyIn: 1000, houseCommission: 5 }), 'json', 'Global configuration for poker'],
+        ['bingo_config', JSON.stringify({ rtp: 85, minTicketPrice: 0.5, maxTicketPrice: 50, houseCommission: 15 }), 'json', 'Global configuration for bingo'],
+        ['sportsbook_config', JSON.stringify({ rtp: 92, minBet: 1, maxBet: 1000, minParlay: 3, maxParlay: 10, houseCommission: 8 }), 'json', 'Global configuration for sportsbook']
+      ];
+
+      for (const s of settings) {
+        await query(
+          `INSERT INTO casino_settings (setting_key, setting_value, data_type, description)
+           VALUES ($1, $2, $3, $4)`,
+          s
+        );
+      }
+      console.log('[DB] Casino settings seeded');
+    }
+
     // Always ensure payment methods exist
     const pmCount = await query('SELECT COUNT(*) as count FROM payment_methods');
     if (parseInt(pmCount.rows[0].count) === 0) {

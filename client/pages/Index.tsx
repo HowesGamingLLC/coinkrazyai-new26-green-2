@@ -27,11 +27,35 @@ interface Game {
 const Index = () => {
   const [featuredGames, setFeaturedGames] = useState<Game[]>([]);
   const [isLoadingGames, setIsLoadingGames] = useState(true);
+  const [platformStats, setPlatformStats] = useState({
+    activePlayers: '4,521',
+    jackpotTotal: '52,140 SC',
+    gamesLive: '0',
+    aiStatus: 'Optimized'
+  });
 
-  // Fetch featured games from backend
+  // Fetch featured games and stats from backend
   useEffect(() => {
     fetchFeaturedGames();
+    fetchPlatformStats();
   }, []);
+
+  const fetchPlatformStats = async () => {
+    try {
+      const response = await fetch('/api/platform/stats');
+      const result = await response.json();
+      if (result.success && result.data) {
+        setPlatformStats({
+          activePlayers: result.data.activePlayers.toLocaleString(),
+          jackpotTotal: `${result.data.jackpotTotal.toLocaleString()} SC`,
+          gamesLive: result.data.gamesLive.toString(),
+          aiStatus: result.data.aiStatus
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch platform stats:', error);
+    }
+  };
 
   const fetchFeaturedGames = async () => {
     try {
@@ -204,10 +228,10 @@ const Index = () => {
       {/* Stats Quick View */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Active Players', value: '4,521', icon: Users },
-          { label: 'Jackpot Total', value: '52,140 SC', icon: Coins },
-          { label: 'Games Live', value: featuredGames.length.toString(), icon: Gamepad2 },
-          { label: 'AI Status', value: 'Optimized', icon: Zap },
+          { label: 'Active Players', value: platformStats.activePlayers, icon: Users },
+          { label: 'Jackpot Total', value: platformStats.jackpotTotal, icon: Coins },
+          { label: 'Games Live', value: platformStats.gamesLive, icon: Gamepad2 },
+          { label: 'AI Status', value: platformStats.aiStatus, icon: Zap },
         ].map((stat, i) => (
           <div key={i} className="bg-card border border-border p-4 rounded-xl flex items-center gap-4">
             <div className="p-2 bg-muted rounded-lg">

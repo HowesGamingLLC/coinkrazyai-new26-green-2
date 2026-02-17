@@ -319,6 +319,19 @@ CREATE TABLE IF NOT EXISTS provider_api_logs (
 CREATE INDEX IF NOT EXISTS idx_provider_api_logs_provider_id ON provider_api_logs(provider_id);
 CREATE INDEX IF NOT EXISTS idx_provider_api_logs_created_at ON provider_api_logs(created_at);
 
+-- ===== AI EMPLOYEES TABLE =====
+CREATE TABLE IF NOT EXISTS ai_employees (
+  id VARCHAR(255) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  role VARCHAR(255) NOT NULL,
+  status VARCHAR(50) DEFAULT 'active',
+  duties TEXT[] DEFAULT ARRAY[]::TEXT[],
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_employees_status ON ai_employees(status);
+
 -- ===== MIGRATION: Add new game columns =====
 -- This migration adds support for the new game import format
 ALTER TABLE IF EXISTS games

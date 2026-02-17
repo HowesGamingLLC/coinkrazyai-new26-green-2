@@ -374,6 +374,7 @@ import {
 } from "./routes/user-messaging";
 
 import { getChallenges, claimChallengeReward } from "./routes/challenges";
+import { getPlatformStats } from "./routes/platform";
 
 export function createServer() {
   const app = express();
@@ -857,6 +858,9 @@ export function createServer() {
   // Challenges
   app.get("/api/challenges", verifyPlayer, getChallenges);
   app.post("/api/challenges/claim", verifyPlayer, claimChallengeReward);
+
+  // Platform Stats (Public)
+  app.get("/api/platform/stats", getPlatformStats);
 
   // ===== DEBUG ROUTES =====
   app.get("/api/debug/store-packs", async (_req, res) => {
