@@ -7,7 +7,7 @@ import { Loader2, Search, Filter, Grid, List as ListIcon, Upload } from 'lucide-
 import { toast } from 'sonner';
 import { games, adminApiCall } from '@/lib/api';
 import { ImportedGameCard } from '@/components/slots/ImportedGameCard';
-import { ALL_SLOT_GAMES } from '@/data/slotGamesDatabase';
+import { ALL_SLOT_GAMES } from '@shared/slotGamesDatabase';
 
 interface Game {
   id: number;

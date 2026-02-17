@@ -468,19 +468,26 @@ const seedDatabase = async () => {
       }
     }
 
-    // Game seeding disabled - no games loaded on init
-    console.log('[DB] Game seeding disabled');
+    // Game seeding
+    const gameCount = await query('SELECT COUNT(*) as count FROM games');
+    if (parseInt(gameCount.rows[0].count) === 0) {
+      console.log('[DB] Seeding starter games...');
+      const starterGames = [
+        ['Knights vs Barbarians', 'Slots', 'External', 96.4, 'Medium', 'Experience epic battles between knights and barbarians', true, 'https://clashofslots.com/wp-content/uploads/2025/12/knights-vs-barbarians-logo-1.jpg', 'knights-vs-barbarians', 'https://demogamesfree.pragmaticplay.net/gs2c/openGame.do?stylename=demo_clienthub&lang=en&cur=USD&websiteUrl=https%3A%2F%2Fclienthub.pragmaticplay.com%2F&gcpif=2273&gameSymbol=vs10cenrlgdevl&jurisdiction=99'],
+        ['Emerald King Wheel of Wealth', 'Slots', 'External', 96.5, 'Medium', 'Spin the wheel of fortune in this luxurious emerald-themed slot adventure', true, 'https://clashofslots.com/wp-content/uploads/2025/12/emerald-king-wheel-of-wealth-logo.jpg', 'emerald-king', 'https://demogamesfree.pragmaticplay.net/gs2c/openGame.do?stylename=demo_clienthub&lang=en&cur=USD&websiteUrl=https%3A%2F%2Fclienthub.pragmaticplay.com%2Fru%2F&gcpif=2273&gameSymbol=vs10dublin&jurisdiction=99'],
+        ['3 Blades & Blessings', 'Slots', 'External', 96.2, 'High', 'Mythological adventure with ancient gods and sacred treasures', true, 'https://clashofslots.com/wp-content/uploads/2026/01/3-blades-blessings-logo.jpg', '3-blades', 'https://released.playngonetwork.com/casino/ContainerLauncher?pid=2&gid=3bladesandblessings&lang=en_GB&practice=1&channel=desktop&demo=2'],
+        ['Arcanum', 'Slots', 'External', 96.3, 'Medium', 'Mystical magical experience with arcane symbols', true, 'https://clashofslots.com/wp-content/uploads/2025/11/arcanum-logo.jpg', 'arcanum', 'https://static-stage.contentmedia.eu/ecf3/index.html?gameid=10256&operatorid=44&currency=EUR&mode=demo&device=desktop&gamename=arcanum&language=en_gb&xdm=1&capi=https%3A%2F%2Fgc5-stage.contentmedia.eu%2Fcapi&papi=https%3A%2F%2Fpapi-stage.contentmedia.eu'],
+        ['Dragon Boyz', 'Slots', 'External', 96.1, 'High', 'Roaring action with dragons and fiery wins', true, 'https://clashofslots.com/wp-content/uploads/2025/12/dragon-boyz-logo.jpg', 'dragon-boyz', 'https://playin.com/embed/v1/demo/dragonboyz000000']
+      ];
 
-    // Pragmatic Play games disabled
-    const pragmaticCount = await query(
-      'SELECT COUNT(*) as count FROM games WHERE provider = $1',
-      ['Pragmatic']
-    );
-
-    if (parseInt(pragmaticCount.rows[0].count) === 0) {
-      console.log('[DB] No Pragmatic Play games to seed - game seeding disabled');
-    } else {
-      console.log('[DB] Pragmatic games already exist, skipping seed');
+      for (const game of starterGames) {
+        await query(
+          `INSERT INTO games (name, category, provider, rtp, volatility, description, enabled, image_url, slug, embed_url)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          game
+        );
+      }
+      console.log('[DB] Starter games seeded');
     }
 
     // Always ensure payment methods exist
