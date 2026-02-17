@@ -307,9 +307,10 @@ class GameAggregationService {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
 
-    // Return a placeholder embed URL - can be customized per provider
-    // In production, this would be replaced with actual embed URLs from providers
-    return `/games/${slug}`;
+    // Return a demo/test embed URL
+    // In production, this would be replaced with actual embed URLs from game providers
+    // For now, return a public demo URL or the game detail page
+    return `/casino?game=${slug}`;
   }
 
   // Get aggregated game stats

@@ -94,7 +94,15 @@ const Slots = () => {
 
   const handlePlayGame = (game: Game) => {
     if (game.embed_url) {
-      window.open(game.embed_url, '_blank');
+      // If it's a relative URL, make it work by navigating on the current site
+      if (game.embed_url.startsWith('/')) {
+        // For relative URLs, we'll open in the same window or as a modal
+        // For now, just show a message that actual game embed isn't available yet
+        toast.info(`${game.name} - Game embed not yet configured. Please configure provider API keys in admin panel.`);
+      } else {
+        // External URLs can be opened directly
+        window.open(game.embed_url, '_blank');
+      }
     } else {
       toast.info('Game embed URL not available');
     }
