@@ -142,32 +142,31 @@ class GameAggregationService {
       // Process and store games
       for (const game of games) {
         try {
-          // Check if game already exists
+          // Check if game already exists by name and provider type
           const existingResult = await query(
-            'SELECT id FROM games WHERE external_id = $1 AND provider = $2',
-            [game.external_id, provider.name]
+            'SELECT id FROM games WHERE name = $1 AND provider = $2',
+            [game.name, 'External']
           );
 
           if (existingResult.rows.length > 0) {
             // Update existing game
             await query(
-              `UPDATE games SET 
-               name = $1, description = $2, rtp = $3, volatility = $4,
-               image_url = $5, updated_at = NOW()
-               WHERE external_id = $6 AND provider = $7`,
-              [game.name, game.description, game.rtp, game.volatility,
-               game.image_url, game.external_id, provider.name]
+              `UPDATE games SET
+               description = $1, category = $2, rtp = $3, volatility = $4,
+               image_url = $5, enabled = $6, updated_at = NOW()
+               WHERE name = $7 AND provider = $8`,
+              [game.description, game.category, game.rtp, game.volatility,
+               game.image_url, true, game.name, 'External']
             );
             updated++;
           } else {
             // Insert new game
             await query(
-              `INSERT INTO games (name, description, category, provider, rtp, volatility, 
-               image_url, external_id, enabled, features, themes)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-              [game.name, game.description, game.category, provider.name, game.rtp,
-               game.volatility, game.image_url, game.external_id, true,
-               JSON.stringify(game.features), JSON.stringify(game.themes)]
+              `INSERT INTO games (name, description, category, provider, rtp, volatility,
+               image_url, enabled, created_at, updated_at)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())`,
+              [game.name, game.description || '', game.category, 'External',
+               game.rtp || 95.0, game.volatility || 'Medium', game.image_url || null, true]
             );
             imported++;
           }
@@ -340,30 +339,31 @@ class GameAggregationService {
 
     for (const game of gamesData) {
       try {
+        // Check if game exists by name and provider
         const existingResult = await query(
-          'SELECT id FROM games WHERE external_id = $1 AND provider = $2',
-          [game.external_id, game.provider_name]
+          'SELECT id FROM games WHERE name = $1 AND provider = $2',
+          [game.name, 'External']
         );
 
         if (existingResult.rows.length > 0) {
+          // Update existing game
           await query(
             `UPDATE games SET
-             name = $1, description = $2, category = $3, rtp = $4, volatility = $5,
-             image_url = $6, features = $7, themes = $8, enabled = $9, updated_at = NOW()
-             WHERE external_id = $10 AND provider = $11`,
-            [game.name, game.description, game.category, game.rtp, game.volatility,
-             game.image_url, JSON.stringify(game.features), JSON.stringify(game.themes), game.enabled,
-             game.external_id, game.provider_name]
+             description = $1, category = $2, rtp = $3, volatility = $4,
+             image_url = $5, enabled = $6, updated_at = NOW()
+             WHERE name = $7 AND provider = $8`,
+            [game.description, game.category, game.rtp, game.volatility,
+             game.image_url, game.enabled || true, game.name, 'External']
           );
           updated++;
         } else {
+          // Insert new game
           await query(
             `INSERT INTO games (name, description, category, provider, rtp, volatility,
-             image_url, external_id, enabled, features, themes)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-            [game.name, game.description, game.category, game.provider_name, game.rtp,
-             game.volatility, game.image_url, game.external_id, true,
-             JSON.stringify(game.features), JSON.stringify(game.themes)]
+             image_url, enabled, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())`,
+            [game.name, game.description || '', game.category, 'External',
+             game.rtp || 95.0, game.volatility || 'Medium', game.image_url || null, true]
           );
           imported++;
         }
@@ -395,16 +395,16 @@ class GameAggregationService {
     const result = await query(query_str, params);
     return result.rows.map(row => ({
       provider_id: '',
-      provider_name: row.provider,
-      external_id: row.external_id,
+      provider_name: row.provider || 'External',
+      external_id: `${row.name.replace(/\s+/g, '_').toLowerCase()}_${row.id}`,
       name: row.name,
       description: row.description,
       category: row.category,
-      rtp: row.rtp,
+      rtp: parseFloat(row.rtp),
       volatility: row.volatility,
       image_url: row.image_url,
-      features: JSON.parse(row.features || '[]'),
-      themes: JSON.parse(row.themes || '[]'),
+      features: [],
+      themes: [],
       enabled: row.enabled
     }));
   }

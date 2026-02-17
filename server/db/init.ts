@@ -47,8 +47,9 @@ export const initializeDatabase = async () => {
         } catch (err: any) {
           // Log but don't fail on migration errors - tables might already exist
           // 42703 = column does not exist, 42701 = duplicate column, 42P07 = table exists, 42710 = type exists
-          if (err.code === '42703' || err.code === '42701' || err.code === '42P07' || err.code === '42710') {
-            console.log('[DB] Skipping migration statement (already exists):', err.message?.substring(0, 80));
+          // 23503 = foreign key constraint violation, 42P01 = relation does not exist
+          if (err.code === '42703' || err.code === '42701' || err.code === '42P07' || err.code === '42710' || err.code === '23503' || err.code === '42P01') {
+            console.log('[DB] Skipping migration statement (conflict):', err.message?.substring(0, 80));
           } else {
             throw err;
           }

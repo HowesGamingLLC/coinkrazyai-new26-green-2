@@ -124,17 +124,21 @@ export const bulkImportGames: RequestHandler = async (req, res) => {
 
     const result = await gameAggregationService.bulkImportGames(games);
 
-    // Log the action
-    await query(
-      `INSERT INTO system_logs (admin_id, action, details, status)
-       VALUES ($1, $2, $3, $4)`,
-      [
-        req.user?.id || null,
-        'GameAggregation: Bulk imported games',
-        JSON.stringify({ imported: result.imported, updated: result.updated, errorCount: result.errors.length }),
-        result.success ? 'success' : 'partial'
-      ]
-    );
+    // Log the action (with proper column names)
+    try {
+      await query(
+        `INSERT INTO system_logs (admin_id, action, status)
+         VALUES ($1, $2, $3)`,
+        [
+          req.user?.id || null,
+          `GameAggregation: Bulk imported ${result.imported} new games, updated ${result.updated}`,
+          result.success ? 'success' : 'partial'
+        ]
+      );
+    } catch (logErr) {
+      // Log error doesn't block the response
+      console.warn('Failed to log bulk import action:', logErr);
+    }
 
     res.json({
       success: result.success,
