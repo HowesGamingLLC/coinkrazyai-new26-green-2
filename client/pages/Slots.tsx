@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Search, Filter, Grid, List as ListIcon, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { games } from '@/lib/api';
+import { games, adminApiCall } from '@/lib/api';
 import { ImportedGameCard } from '@/components/slots/ImportedGameCard';
 import { GameEmbedModal } from '@/components/slots/GameEmbedModal';
 import { ALL_SLOT_GAMES } from '@/data/slotGamesDatabase';
@@ -121,18 +121,11 @@ const Slots = () => {
         enabled: game.enabled,
       }));
 
-      const response = await fetch('/api/admin/v2/aggregation/bulk-import', {
+      const result = await adminApiCall<any>('/admin/v2/aggregation/bulk-import', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ games: gamesToImport }),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Import failed');
-      }
-
-      const result = await response.json();
       const message = `Successfully imported ${result.data?.imported || 0} new games and updated ${result.data?.updated || 0} existing games`;
       toast.success(message);
       fetchGames();
