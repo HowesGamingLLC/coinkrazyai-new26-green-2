@@ -182,6 +182,7 @@ export const KYCOnboardingPopup: React.FC<KYCOnboardingPopupProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg border-2 border-purple-400 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 max-h-[90vh] overflow-y-auto">
+        <DialogTitle className="sr-only">KYC Onboarding</DialogTitle>
         {/* LuckyAi Guide */}
         <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-4 text-white mb-4 flex items-start gap-3">
           <div className="text-3xl flex-shrink-0">🤖</div>
