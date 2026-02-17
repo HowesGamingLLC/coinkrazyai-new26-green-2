@@ -91,6 +91,7 @@ export const ChallengesPopup: React.FC<ChallengesPopupProps> = ({ isOpen, onClos
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto border-4 border-yellow-500 shadow-[0_0_50px_rgba(234,179,8,0.4)] bg-slate-950 text-white p-0">
+        <DialogTitle className="sr-only">Challenges</DialogTitle>
         <div className="sticky top-0 z-10 bg-slate-900 p-6 border-b border-white/10">
           <DialogHeader className="text-center mb-6">
             <div className="flex justify-center mb-2">

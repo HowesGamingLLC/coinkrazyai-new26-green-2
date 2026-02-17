@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Volume2, VolumeX, RotateCw, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -160,6 +160,7 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 bg-slate-900 border-slate-700">
+        <DialogTitle className="sr-only">Playing {game.name}</DialogTitle>
         {/* Header with CoinKrazy Branding */}
         <div className="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700 px-6 py-4">
           <div className="flex items-center justify-between">
