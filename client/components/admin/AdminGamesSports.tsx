@@ -12,6 +12,7 @@ import { PullTabDesigner } from './PullTabDesigner';
 import { PullTabAnalytics } from './PullTabAnalytics';
 import AdminGameAggregation from './AdminGameAggregation';
 import GameAggregationManager from './GameAggregationManager';
+import { GamesEmbedSettings } from './GamesEmbedSettings';
 
 const AdminGamesSports = () => {
   const [games, setGames] = useState<any[]>([]);
@@ -204,16 +205,17 @@ const AdminGamesSports = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="slots" className="w-full">
-        <TabsList className="grid w-full grid-cols-9">
-          <TabsTrigger value="slots">Slots</TabsTrigger>
-          <TabsTrigger value="games">Games</TabsTrigger>
-          <TabsTrigger value="poker">Poker</TabsTrigger>
-          <TabsTrigger value="bingo">Bingo</TabsTrigger>
-          <TabsTrigger value="sports">Sports</TabsTrigger>
-          <TabsTrigger value="pull-tabs">Pull Tabs</TabsTrigger>
-          <TabsTrigger value="scratch">Scratch</TabsTrigger>
-          <TabsTrigger value="aggregation">Aggregation</TabsTrigger>
-          <TabsTrigger value="ingestion">Ingestion</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-10 overflow-x-auto">
+          <TabsTrigger value="slots" className="text-xs">Slots</TabsTrigger>
+          <TabsTrigger value="games" className="text-xs">Games</TabsTrigger>
+          <TabsTrigger value="poker" className="text-xs">Poker</TabsTrigger>
+          <TabsTrigger value="bingo" className="text-xs">Bingo</TabsTrigger>
+          <TabsTrigger value="sports" className="text-xs">Sports</TabsTrigger>
+          <TabsTrigger value="pull-tabs" className="text-xs">Pull Tabs</TabsTrigger>
+          <TabsTrigger value="scratch" className="text-xs">Scratch</TabsTrigger>
+          <TabsTrigger value="embed" className="text-xs">Embed</TabsTrigger>
+          <TabsTrigger value="aggregation" className="text-xs">Aggregation</TabsTrigger>
+          <TabsTrigger value="ingestion" className="text-xs">Ingestion</TabsTrigger>
         </TabsList>
 
         {/* Slots Management */}
@@ -929,6 +931,11 @@ const AdminGamesSports = () => {
         {/* Scratch Tickets */}
         <TabsContent value="scratch" className="space-y-4">
           <ScratchTicketDesigner />
+        </TabsContent>
+
+        {/* Games Embed Settings */}
+        <TabsContent value="embed" className="space-y-4">
+          <GamesEmbedSettings />
         </TabsContent>
 
         {/* Game Aggregation & Import */}

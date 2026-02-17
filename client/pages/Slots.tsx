@@ -3,10 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Search, Filter, Grid, List as ListIcon } from 'lucide-react';
+import { Loader2, Search, Filter, Grid, List as ListIcon, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { games } from '@/lib/api';
 import { ImportedGameCard } from '@/components/slots/ImportedGameCard';
+import { GameEmbedModal } from '@/components/slots/GameEmbedModal';
+import { ALL_SLOT_GAMES } from '@/data/slotGamesDatabase';
 
 interface Game {
   id: number;
@@ -33,6 +35,9 @@ const Slots = () => {
   const [selectedVolatility, setSelectedVolatility] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedGameForEmbed, setSelectedGameForEmbed] = useState<Game | null>(null);
+  const [isEmbedModalOpen, setIsEmbedModalOpen] = useState(false);
+  const [isImportingFromDb, setIsImportingFromDb] = useState(false);
 
   // Fetch games on mount
   useEffect(() => {
@@ -94,17 +99,47 @@ const Slots = () => {
 
   const handlePlayGame = (game: Game) => {
     if (game.embed_url) {
-      // If it's a relative URL, make it work by navigating on the current site
-      if (game.embed_url.startsWith('/')) {
-        // For relative URLs, we'll open in the same window or as a modal
-        // For now, just show a message that actual game embed isn't available yet
-        toast.info(`${game.name} - Game embed not yet configured. Please configure provider API keys in admin panel.`);
-      } else {
-        // External URLs can be opened directly
-        window.open(game.embed_url, '_blank');
-      }
+      setSelectedGameForEmbed(game);
+      setIsEmbedModalOpen(true);
     } else {
-      toast.info('Game embed URL not available');
+      toast.error('Game embed URL not available');
+    }
+  };
+
+  const handleImportGamesFromDatabase = async () => {
+    try {
+      setIsImportingFromDb(true);
+      const gamesToImport = ALL_SLOT_GAMES.map(game => ({
+        name: game.name,
+        description: game.description,
+        category: game.category,
+        provider: game.provider,
+        rtp: game.rtp,
+        volatility: game.volatility,
+        image_url: game.image_url,
+        embed_url: game.embed_url,
+        enabled: game.enabled,
+      }));
+
+      const response = await fetch('/api/admin/v2/aggregation/bulk-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ games: gamesToImport }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Import failed');
+      }
+
+      const result = await response.json();
+      const message = `Successfully imported ${result.data?.imported || 0} new games and updated ${result.data?.updated || 0} existing games`;
+      toast.success(message);
+      fetchGames();
+    } catch (error) {
+      toast.error(`Failed to import games: ${(error as Error).message}`);
+    } finally {
+      setIsImportingFromDb(false);
     }
   };
 
@@ -165,6 +200,39 @@ const Slots = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Quick Import Banner */}
+      {gamesList.length === 0 && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold mb-1">No Games Available</h3>
+                <p className="text-sm text-muted-foreground">
+                  Import {ALL_SLOT_GAMES.length} pre-configured slot games with working embed URLs
+                </p>
+              </div>
+              <Button
+                onClick={handleImportGamesFromDatabase}
+                disabled={isImportingFromDb}
+                className="gap-2"
+              >
+                {isImportingFromDb ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Importing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    Import Games
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Controls */}
@@ -390,6 +458,18 @@ const Slots = () => {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Embed Modal */}
+      {selectedGameForEmbed && (
+        <GameEmbedModal
+          isOpen={isEmbedModalOpen}
+          onClose={() => {
+            setIsEmbedModalOpen(false);
+            setSelectedGameForEmbed(null);
+          }}
+          game={selectedGameForEmbed}
+        />
       )}
     </div>
   );

@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Play, ExternalLink } from 'lucide-react';
+import { Play, ExternalLink, Info } from 'lucide-react';
 
 interface ImportedGame {
   id: number;
@@ -100,17 +100,17 @@ export const ImportedGameCard = ({
               alt={game.name}
               className="w-full h-full object-cover"
               onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = 
+                (e.currentTarget as HTMLImageElement).src =
                   'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="300"%3E%3Crect fill="%23475569" width="300" height="300"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%239CA3AF"%3E' + game.name + '%3C/text%3E%3C/svg%3E';
               }}
             />
           ) : (
             <div className="text-4xl">🎰</div>
           )}
-          
+
           {/* Overlay with Play Button */}
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-            {onPlay && (
+            {onPlay && game.embed_url && (
               <Button
                 size="lg"
                 onClick={() => onPlay(game)}
@@ -122,12 +122,20 @@ export const ImportedGameCard = ({
             )}
           </div>
 
-          {/* Status Badge */}
-          {!game.enabled && (
-            <Badge variant="secondary" className="absolute top-2 right-2">
-              Disabled
-            </Badge>
-          )}
+          {/* Status Badges */}
+          <div className="absolute top-2 right-2 flex gap-2">
+            {!game.embed_url && (
+              <Badge variant="destructive" className="gap-1">
+                <Info className="w-3 h-3" />
+                No Embed
+              </Badge>
+            )}
+            {!game.enabled && (
+              <Badge variant="secondary">
+                Disabled
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
 
