@@ -370,6 +370,8 @@ import {
   handleGetMessageStats
 } from "./routes/user-messaging";
 
+import { getChallenges, claimChallengeReward } from "./routes/challenges";
+
 export function createServer() {
   const app = express();
 
@@ -845,6 +847,10 @@ export function createServer() {
   app.get("/api/messages/threads", verifyPlayer, handleGetMessageThreads);
   app.delete("/api/messages/:messageId", verifyPlayer, handleDeleteMessage);
   app.get("/api/messages/stats", verifyPlayer, handleGetMessageStats);
+
+  // Challenges
+  app.get("/api/challenges", verifyPlayer, getChallenges);
+  app.post("/api/challenges/claim", verifyPlayer, claimChallengeReward);
 
   // ===== DEBUG ROUTES =====
   app.get("/api/debug/store-packs", async (_req, res) => {

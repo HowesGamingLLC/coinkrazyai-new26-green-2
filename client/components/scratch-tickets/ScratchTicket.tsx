@@ -2,10 +2,11 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RotateCcw, Sparkles } from 'lucide-react';
+import { Loader2, RotateCcw, Sparkles, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiCall } from '@/lib/api';
 import { WinningPopup } from './WinningPopup';
+import { cn } from '@/lib/utils';
 
 interface ScratchSlot {
   index: number;
@@ -222,24 +223,32 @@ export const ScratchTicket: React.FC<ScratchTicketProps> = ({ ticket, onRefresh,
     }
   };
 
+  const hasUnclaimedWin = !scratchedSlots.has(-1) && slots.some(s => s.revealed && typeof s.value === 'number' && s.value > 0) && claimStatus === 'unclaimed';
+  const totalWon = slots.reduce((acc, s) => s.revealed && typeof s.value === 'number' ? acc + s.value : acc, 0);
+
   return (
     <>
-      <Card className="overflow-hidden">
-        <CardHeader>
+      <Card className={cn("overflow-hidden border-2 transition-all duration-300", hasUnclaimedWin ? "border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.3)] ring-2 ring-yellow-400/20" : "border-slate-200")}>
+        <CardHeader className={cn(hasUnclaimedWin ? "bg-yellow-400/10" : "")}>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl">Scratch Ticket #{ticket.ticket_number}</CardTitle>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Created: {new Date(ticket.created_at).toLocaleDateString()}
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-2xl font-black italic">SCRATCH & WIN!</CardTitle>
+                {hasUnclaimedWin && (
+                  <Badge className="bg-yellow-500 text-black animate-bounce font-black">WINNER!</Badge>
+                )}
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-mono">
+                TICKET ID: {ticket.ticket_number}
               </p>
             </div>
             <div className="flex gap-2">
               {claimStatus === 'claimed' ? (
-                <Badge className="bg-green-600">Claimed</Badge>
+                <Badge className="bg-green-600 font-bold">PAID {totalWon.toFixed(2)} SC</Badge>
               ) : scratchedSlots.size === 0 ? (
-                <Badge variant="secondary">Ready to Scratch</Badge>
+                <Badge variant="secondary" className="font-bold">READY TO PLAY</Badge>
               ) : (
-                <Badge variant="outline">Scratching...</Badge>
+                <Badge variant="outline" className="animate-pulse font-bold">SCRATCHING...</Badge>
               )}
             </div>
           </div>
@@ -253,14 +262,28 @@ export const ScratchTicket: React.FC<ScratchTicketProps> = ({ ticket, onRefresh,
             style={{ minHeight: '300px' }}
           >
             {/* Slots Display (underneath) */}
-            <div className="absolute inset-0 grid grid-cols-3 gap-2 p-4 pointer-events-none">
+            <div className="absolute inset-0 grid grid-cols-3 gap-3 p-4 pointer-events-none">
               {slots.map((slot, idx) => (
                 <div
                   key={idx}
-                  className="rounded-lg flex items-center justify-center font-bold text-white text-lg shadow-lg"
-                  style={{ backgroundColor: getSlotColor(slot.value) }}
+                  className={cn(
+                    "rounded-xl flex flex-col items-center justify-center font-black text-white shadow-xl border-b-4 transition-all duration-300",
+                    slot.revealed ? "scale-100" : "scale-90 opacity-50"
+                  )}
+                  style={{
+                    backgroundColor: getSlotColor(slot.value),
+                    borderColor: 'rgba(0,0,0,0.2)'
+                  }}
                 >
-                  {slot.value === 'LOSS' ? '❌' : `${slot.value} SC`}
+                  {slot.value === 'LOSS' ? (
+                    <span className="text-3xl">❌</span>
+                  ) : (
+                    <>
+                      <span className="text-xs uppercase opacity-80 mb-1">Win!</span>
+                      <span className="text-xl font-black">{typeof slot.value === 'number' ? slot.value.toFixed(2) : slot.value}</span>
+                      <span className="text-[10px] font-black">SC</span>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -310,18 +333,38 @@ export const ScratchTicket: React.FC<ScratchTicketProps> = ({ ticket, onRefresh,
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2">
+          <div className="flex items-center gap-4">
             {claimStatus !== 'claimed' && (
-              <Button variant="outline" onClick={reset} disabled={scratchedSlots.size === 0}>
+              <Button variant="outline" onClick={reset} disabled={scratchedSlots.size === 0} className="font-bold">
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Reset
+                Reset Canvas
               </Button>
             )}
-            <div className="flex-1"></div>
+
+            <div className="flex-1">
+              {hasUnclaimedWin && (
+                <div className="flex items-center justify-center animate-pulse">
+                  <Sparkles className="w-5 h-5 text-yellow-500 mr-2" />
+                  <span className="text-yellow-600 font-black uppercase text-sm italic">WINNER! {totalWon.toFixed(2)} SC!</span>
+                </div>
+              )}
+            </div>
+
+            {hasUnclaimedWin && (
+              <Button
+                onClick={handleClaim}
+                disabled={isClaiming}
+                className="h-12 px-8 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-black uppercase shadow-lg shadow-yellow-500/20"
+              >
+                {isClaiming ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                REDEEM INSTANT WIN NOW!
+              </Button>
+            )}
+
             {claimStatus === 'claimed' && (
-              <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg px-4 py-2">
-                <Sparkles className="w-4 h-4" />
-                Prize has been credited to your account
+              <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg px-6 py-2 font-black italic shadow-inner">
+                <Trophy className="w-5 h-5" />
+                WINNINGS CREDITED INSTANTLY!
               </div>
             )}
           </div>
