@@ -163,7 +163,10 @@ import {
   updateSportsEvent,
   getSportsbookStats,
   ingestGameData,
-  crawlSlots
+  crawlSlots,
+  locateThumbnail,
+  bulkUpdateGames,
+  buildGameFromTemplate
 } from "./routes/games-sports";
 import {
   listGameFeatures,
@@ -600,9 +603,12 @@ export function createServer() {
   app.post("/api/admin/v2/games", verifyAdmin, createGame);
   app.put("/api/admin/v2/games/:gameId", verifyAdmin, updateGame);
   app.delete("/api/admin/v2/games/:gameId", verifyAdmin, deleteGame);
+  app.patch("/api/admin/v2/games/bulk-update", verifyAdmin, bulkUpdateGames);
+  app.post("/api/admin/v2/games/build-from-template", verifyAdmin, buildGameFromTemplate);
   app.post("/api/admin/v2/games/:gameId/ingest", verifyAdmin, ingestGameData);
   app.post("/api/admin/v2/games/clear-all", verifyAdmin, clearAllGames);
   app.post("/api/admin/v2/games/crawl", verifyAdmin, crawlSlots);
+  app.get("/api/admin/v2/games/locate-thumbnail", verifyAdmin, locateThumbnail);
   app.post("/api/admin/v2/games/import-slots", verifyAdmin, handleImportGames);
 
   // Game Metadata & Features

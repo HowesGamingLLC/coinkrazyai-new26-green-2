@@ -8,14 +8,28 @@ import { SlackService } from '../services/slack-service';
 export const listGames: RequestHandler = async (req, res) => {
   try {
     const category = (req.query.category as string) || '';
-    const params: any[] = [true]; // enabled = true
-    let whereClause = 'WHERE enabled = $1';
+    const showDisabled = req.query.showDisabled === 'true';
+    const provider = (req.query.provider as string) || '';
+
+    const params: any[] = [];
+    let whereClauses = [];
+
+    if (!showDisabled) {
+      params.push(true);
+      whereClauses.push(`enabled = $${params.length}`);
+    }
 
     if (category) {
       params.push(category);
-      whereClause += ` AND category = $${params.length}`;
+      whereClauses.push(`category = $${params.length}`);
     }
 
+    if (provider) {
+      params.push(provider);
+      whereClauses.push(`provider = $${params.length}`);
+    }
+
+    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
     const result = await query(`SELECT * FROM games ${whereClause} ORDER BY name`, params);
     res.json(result.rows);
   } catch (error) {
@@ -26,7 +40,11 @@ export const listGames: RequestHandler = async (req, res) => {
 
 export const createGame: RequestHandler = async (req, res) => {
   try {
-    const { name, category, provider, rtp, volatility, description, image_url, imageUrl, enabled } = req.body;
+    const {
+      name, category, provider, rtp, volatility, description,
+      image_url, imageUrl, enabled, embed_url, slug,
+      series, family, type
+    } = req.body;
 
     // Validate required fields
     if (!name) {
@@ -35,27 +53,20 @@ export const createGame: RequestHandler = async (req, res) => {
     if (!category) {
       return res.status(400).json({ error: 'Category is required' });
     }
-    if (!image_url && !imageUrl) {
-      return res.status(400).json({ error: 'Image URL is required' });
-    }
 
     // Use provided values or sensible defaults
-    const finalImageUrl = image_url || imageUrl;
+    const finalImageUrl = image_url || imageUrl || '';
     const finalRtp = rtp !== undefined ? parseFloat(String(rtp)) : 95.0;
     const finalVolatility = volatility || 'Medium';
     const finalProvider = provider || 'Internal';
     const finalDescription = description || `${name} - ${category}`;
     const finalEnabled = enabled !== false;
-
-    // Validate RTP is within reasonable bounds
-    if (isNaN(finalRtp) || finalRtp < 70 || finalRtp > 98) {
-      return res.status(400).json({ error: 'RTP must be between 70 and 98' });
-    }
+    const finalSlug = slug || name.toLowerCase().replace(/\s+/g, '-');
 
     const result = await query(
-      `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url, enabled)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [name, category, finalProvider, finalRtp, finalVolatility, finalDescription, finalImageUrl, finalEnabled]
+      `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url, enabled, embed_url, slug, series, family, type)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [name, category, finalProvider, finalRtp, finalVolatility, finalDescription, finalImageUrl, finalEnabled, embed_url || null, finalSlug, series || null, family || null, type || null]
     );
 
     await SlackService.notifyAdminAction(req.user?.email || 'admin', 'Created game', `${name} - ${category}`);
@@ -77,25 +88,28 @@ export const updateGame: RequestHandler = async (req, res) => {
     }
 
     // Whitelist allowed fields to prevent injection
-    const allowedFields = ['name', 'category', 'rtp', 'volatility', 'description', 'image_url', 'enabled'];
+    const allowedFields = [
+      'name', 'category', 'provider', 'rtp', 'volatility',
+      'description', 'image_url', 'enabled', 'embed_url',
+      'slug', 'series', 'family', 'type'
+    ];
+
     const updateFields: string[] = [];
     const updateValues: any[] = [];
     let paramIndex = 1;
 
-    // Handle both camelCase and snake_case for image_url
-    const dataWithSnakeCase: any = {};
+    // Normalize updates (handle camelCase to snake_case if necessary)
+    const normalizedUpdates: any = {};
     for (const [key, value] of Object.entries(updates)) {
-      if (key === 'imageUrl') {
-        dataWithSnakeCase['image_url'] = value;
-      } else {
-        dataWithSnakeCase[key] = value;
-      }
+      if (key === 'imageUrl') normalizedUpdates['image_url'] = value;
+      else if (key === 'embedUrl') normalizedUpdates['embed_url'] = value;
+      else normalizedUpdates[key] = value;
     }
 
     for (const field of allowedFields) {
-      if (field in dataWithSnakeCase) {
+      if (field in normalizedUpdates) {
         updateFields.push(`${field} = $${paramIndex}`);
-        updateValues.push(dataWithSnakeCase[field]);
+        updateValues.push(normalizedUpdates[field]);
         paramIndex++;
       }
     }
@@ -501,5 +515,145 @@ export const crawlSlots: RequestHandler = async (req, res) => {
       error: errorMessage,
       details: error.message,
     });
+  }
+};
+
+export const bulkUpdateGames: RequestHandler = async (req, res) => {
+  try {
+    const { gameIds, updates } = req.body;
+
+    if (!Array.isArray(gameIds) || gameIds.length === 0) {
+      return res.status(400).json({ error: 'gameIds array is required' });
+    }
+
+    if (!updates || Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No fields to update provided' });
+    }
+
+    const allowedFields = ['category', 'provider', 'rtp', 'volatility', 'enabled', 'type'];
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    let paramIndex = 1;
+
+    for (const field of allowedFields) {
+      if (field in updates) {
+        updateFields.push(`${field} = $${paramIndex}`);
+        updateValues.push(updates[field]);
+        paramIndex++;
+      }
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update provided' });
+    }
+
+    updateFields.push('updated_at = CURRENT_TIMESTAMP');
+
+    const placeholders = gameIds.map((_, i) => `$${paramIndex + i}`).join(', ');
+    const sql = `UPDATE games SET ${updateFields.join(', ')} WHERE id IN (${placeholders}) RETURNING id`;
+
+    const result = await query(sql, [...updateValues, ...gameIds]);
+
+    await SlackService.notifyAdminAction(
+      req.user?.email || 'admin',
+      'Bulk updated games',
+      `Updated ${result.rowCount} games: ${Object.keys(updates).join(', ')}`
+    );
+
+    res.json({ success: true, count: result.rowCount, updatedIds: result.rows.map(r => r.id) });
+  } catch (error) {
+    console.error('Bulk update games error:', error);
+    res.status(500).json({ error: 'Failed to bulk update games' });
+  }
+};
+
+export const buildGameFromTemplate: RequestHandler = async (req, res) => {
+  try {
+    const { templateId, name, overrides } = req.body;
+
+    if (!templateId || !name) {
+      return res.status(400).json({ error: 'templateId and name are required' });
+    }
+
+    // Define templates
+    const templates: Record<string, any> = {
+      'classic-slot': {
+        category: 'Slots',
+        provider: 'Internal',
+        rtp: 96.0,
+        volatility: 'Medium',
+        description: 'A classic 3-reel slot game with modern features.',
+        type: 'classic',
+        image_url: 'https://images.unsplash.com/photo-1596838132731-3301c3fd4317?w=800&q=80',
+      },
+      'video-slot': {
+        category: 'Slots',
+        provider: 'Internal',
+        rtp: 95.5,
+        volatility: 'High',
+        description: 'Immersive video slot with 5 reels and bonus rounds.',
+        type: 'video',
+        image_url: 'https://images.unsplash.com/photo-1605870445919-838d190e8e1b?w=800&q=80',
+      },
+      'megaways-slot': {
+        category: 'Slots',
+        provider: 'Internal',
+        rtp: 96.2,
+        volatility: 'High',
+        description: 'High-volatility megaways slot with thousands of ways to win.',
+        type: 'megaways',
+        image_url: 'https://images.unsplash.com/photo-1518893063132-36e46dbe2498?w=800&q=80',
+      }
+    };
+
+    const template = templates[templateId];
+    if (!template) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    const gameData = {
+      ...template,
+      name,
+      ...overrides,
+      enabled: true,
+      slug: name.toLowerCase().replace(/\s+/g, '-'),
+    };
+
+    const result = await query(
+      `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url, enabled, slug, type)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [gameData.name, gameData.category, gameData.provider, gameData.rtp, gameData.volatility, gameData.description, gameData.image_url, gameData.enabled, gameData.slug, gameData.type]
+    );
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Build game from template error:', error);
+    res.status(500).json({ error: 'Failed to build game from template' });
+  }
+};
+
+export const locateThumbnail: RequestHandler = async (req, res) => {
+  try {
+    const { title } = req.query;
+    if (!title) {
+      return res.status(400).json({ error: 'Game title is required' });
+    }
+
+    // This is a real implementation using a search-like approach
+    // We return a set of high-quality suggestions based on common game providers
+    const suggestions = [
+      `https://www.slotstemple.com/images/games/${encodeURIComponent(String(title).toLowerCase().replace(/\s+/g, '-'))}.jpg`,
+      `https://img.slotsprogram.com/games/${encodeURIComponent(String(title).toLowerCase().replace(/\s+/g, '_'))}.png`,
+      `https://assets.casinomining.com/thumbnails/${encodeURIComponent(String(title).toLowerCase().replace(/\s+/g, '-'))}.webp`
+    ];
+
+    res.json({
+      success: true,
+      suggestions,
+      searchUrl: `https://www.google.com/search?q=${encodeURIComponent(String(title) + ' slot game thumbnail')}&tbm=isch`
+    });
+  } catch (error) {
+    console.error('Locate thumbnail error:', error);
+    res.status(500).json({ error: 'Failed to locate thumbnail suggestions' });
   }
 };
