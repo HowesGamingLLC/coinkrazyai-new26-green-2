@@ -153,19 +153,21 @@ class GameAggregationService {
             await query(
               `UPDATE games SET
                description = $1, category = $2, rtp = $3, volatility = $4,
-               image_url = $5, enabled = $6
-               WHERE name = $7 AND provider = $8`,
+               image_url = $5, enabled = $6, embed_url = $7
+               WHERE name = $8 AND provider = $9`,
               [game.description, game.category, game.rtp, game.volatility,
-               game.image_url, true, game.name, 'External']
+               game.image_url, true, this.generateEmbedUrl(game.name, game.external_id),
+               game.name, 'External']
             );
             updated++;
           } else {
             // Insert new game
             await query(
-              `INSERT INTO games (name, description, category, provider, rtp, volatility, image_url, enabled)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+              `INSERT INTO games (name, description, category, provider, rtp, volatility, image_url, embed_url, enabled)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
               [game.name, game.description || '', game.category, 'External',
-               game.rtp || 95.0, game.volatility || 'Medium', game.image_url || null, true]
+               game.rtp || 95.0, game.volatility || 'Medium', game.image_url || null,
+               this.generateEmbedUrl(game.name, game.external_id), true]
             );
             imported++;
           }
@@ -297,6 +299,19 @@ class GameAggregationService {
     return 'Medium';
   }
 
+  // Generate embed URL for a game
+  private generateEmbedUrl(gameName: string, externalId: string): string {
+    // Create a slug-friendly version of the game name
+    const slug = gameName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    // Return a placeholder embed URL - can be customized per provider
+    // In production, this would be replaced with actual embed URLs from providers
+    return `/games/${slug}`;
+  }
+
   // Get aggregated game stats
   async getAggregationStats(): Promise<{
     totalGames: number;
@@ -349,19 +364,21 @@ class GameAggregationService {
           await query(
             `UPDATE games SET
              description = $1, category = $2, rtp = $3, volatility = $4,
-             image_url = $5, enabled = $6
-             WHERE name = $7 AND provider = $8`,
+             image_url = $5, enabled = $6, embed_url = $7
+             WHERE name = $8 AND provider = $9`,
             [game.description, game.category, game.rtp, game.volatility,
-             game.image_url, game.enabled || true, game.name, 'External']
+             game.image_url, game.enabled || true, this.generateEmbedUrl(game.name, game.external_id),
+             game.name, 'External']
           );
           updated++;
         } else {
           // Insert new game
           await query(
-            `INSERT INTO games (name, description, category, provider, rtp, volatility, image_url, enabled)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            `INSERT INTO games (name, description, category, provider, rtp, volatility, image_url, embed_url, enabled)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
             [game.name, game.description || '', game.category, 'External',
-             game.rtp || 95.0, game.volatility || 'Medium', game.image_url || null, true]
+             game.rtp || 95.0, game.volatility || 'Medium', game.image_url || null,
+             this.generateEmbedUrl(game.name, game.external_id), true]
           );
           imported++;
         }
