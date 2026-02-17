@@ -24,6 +24,7 @@ interface GameData {
   rtp: number;
   volatility: 'Low' | 'Medium' | 'High';
   image_url?: string;
+  embed_url?: string;
   features?: string[];
   themes?: string[];
   enabled?: boolean;
@@ -87,6 +88,7 @@ const GameAggregationManager = () => {
       rtp: 96.49,
       volatility: 'High',
       image_url: 'https://via.placeholder.com/300x200?text=Sweet+Bonanza',
+      embed_url: 'https://demogamesfree.pragmaticplay.net/gs2c/openGame.do?stylename=demo_clienthub&lang=en&cur=USD&websiteUrl=https%3A%2F%2Fclienthub.pragmaticplay.com%2Fru%2F&gcpif=2273&gameSymbol=vs20sweetbonanza&jurisdiction=99',
       features: ['Free Spins', 'Multipliers', 'Bonus Buy'],
       themes: ['Candy', 'Adventure'],
       enabled: true
@@ -100,6 +102,7 @@ const GameAggregationManager = () => {
       rtp: 96.5,
       volatility: 'Medium',
       image_url: 'https://via.placeholder.com/300x200?text=Great+Rhino',
+      embed_url: 'https://demogamesfree.pragmaticplay.net/gs2c/openGame.do?stylename=demo_clienthub&lang=en&cur=USD&websiteUrl=https%3A%2F%2Fclienthub.pragmaticplay.com%2Fru%2F&gcpif=2273&gameSymbol=vs20rhino&jurisdiction=99',
       features: ['Free Spins', 'Wild Reels', 'Expanding Symbols'],
       themes: ['Safari', 'Animals'],
       enabled: true

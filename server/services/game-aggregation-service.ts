@@ -25,6 +25,7 @@ export interface AggregatedGame {
   provider_rating?: number;
   max_bet?: number;
   min_bet?: number;
+  embed_url?: string;
   features: string[];
   themes: string[];
   enabled: boolean;
@@ -156,7 +157,7 @@ class GameAggregationService {
                image_url = $5, enabled = $6, embed_url = $7
                WHERE name = $8 AND provider = $9`,
               [game.description, game.category, game.rtp, game.volatility,
-               game.image_url, true, this.generateEmbedUrl(game.name, game.external_id),
+               game.image_url, true, game.embed_url || this.generateEmbedUrl(game.name, game.external_id),
                game.name, 'External']
             );
             updated++;
@@ -167,7 +168,7 @@ class GameAggregationService {
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
               [game.name, game.description || '', game.category, 'External',
                game.rtp || 95.0, game.volatility || 'Medium', game.image_url || null,
-               this.generateEmbedUrl(game.name, game.external_id), true]
+               game.embed_url || this.generateEmbedUrl(game.name, game.external_id), true]
             );
             imported++;
           }
@@ -368,7 +369,7 @@ class GameAggregationService {
              image_url = $5, enabled = $6, embed_url = $7
              WHERE name = $8 AND provider = $9`,
             [game.description, game.category, game.rtp, game.volatility,
-             game.image_url, game.enabled || true, this.generateEmbedUrl(game.name, game.external_id),
+             game.image_url, game.enabled || true, game.embed_url || this.generateEmbedUrl(game.name, game.external_id),
              game.name, 'External']
           );
           updated++;
@@ -379,7 +380,7 @@ class GameAggregationService {
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
             [game.name, game.description || '', game.category, 'External',
              game.rtp || 95.0, game.volatility || 'Medium', game.image_url || null,
-             this.generateEmbedUrl(game.name, game.external_id), true]
+             game.embed_url || this.generateEmbedUrl(game.name, game.external_id), true]
           );
           imported++;
         }

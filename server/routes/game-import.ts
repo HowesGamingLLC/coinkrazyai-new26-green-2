@@ -239,24 +239,27 @@ export const handleImportGames: RequestHandler = async (req, res) => {
 
     for (const game of GAMES_TO_ADD) {
       try {
+        // Generate slug if not present
+        const slug = game.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
         // Check if game already exists
         const existingGame = await query(
-          'SELECT id FROM games WHERE title = $1 AND provider = $2',
-          [game.title, game.provider]
+          'SELECT id FROM games WHERE name = $1 AND provider = $2',
+          [game.title, 'External']
         );
 
         if (existingGame.rows.length > 0) {
-          console.log(`[GameImport] Game already exists: ${game.title} by ${game.provider}`);
+          console.log(`[GameImport] Game already exists: ${game.title} by External`);
           skipped++;
           continue;
         }
 
         // Insert new game
         const result = await query(
-          `INSERT INTO games (title, provider, category, image, game_url, rtp, enabled, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+          `INSERT INTO games (name, provider, category, image_url, embed_url, rtp, enabled, slug, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
            RETURNING id`,
-          [game.title, game.provider, game.category, game.image, game.game_url, game.rtp, game.enabled]
+          [game.title, 'External', 'Slots', game.image, game.game_url, game.rtp, game.enabled, slug]
         );
 
         console.log(`[GameImport] Added: ${game.title} (ID: ${result.rows[0].id})`);
