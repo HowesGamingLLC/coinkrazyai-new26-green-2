@@ -3,8 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
 import { useWallet } from '@/hooks/use-wallet';
+import { DailyLoginBonusPopup } from '@/components/popups/DailyLoginBonusPopup';
+import { useDailyBonus } from '@/hooks/use-daily-bonus';
+import { AIChatWidget } from '@/components/AIChatWidget';
 import { PageTransition } from '@/components/PageTransition';
-import { Coins, User, Home, Gamepad2, ShoppingCart, BarChart3, MessageSquare, Trophy, Award, Headphones, Settings, Zap, LogOut, Ticket, Dice5, Star } from 'lucide-react';
+import { Coins, User, Home, Gamepad2, ShoppingCart, BarChart3, MessageSquare, Trophy, Award, Headphones, Settings, Zap, LogOut, Ticket, Dice5, Star, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ChallengesPopup } from '@/components/popups/ChallengesPopup';
 
@@ -17,6 +20,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { wallet, currency, toggleCurrency } = useWallet();
   const location = useLocation();
   const [isChallengesOpen, setIsChallengesOpen] = React.useState(false);
+  const {
+    showPopup: showDailyBonus,
+    setShowPopup: setShowDailyBonus,
+    bonusData: dailyBonus,
+    claimBonus: onClaimDailyBonus
+  } = useDailyBonus();
 
   // Auto-open challenges popup on login
   React.useEffect(() => {
@@ -208,6 +217,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         isOpen={isChallengesOpen}
         onClose={() => setIsChallengesOpen(false)}
       />
+
+      <AIChatWidget />
+
+      {showDailyBonus && dailyBonus && (
+        <DailyLoginBonusPopup
+          currentDay={dailyBonus.day}
+          currentBonus={{ day: dailyBonus.day, sc: dailyBonus.sc, gc: dailyBonus.gc }}
+          nextBonus={{
+            day: dailyBonus.day < 7 ? dailyBonus.day + 1 : 1,
+            sc: dailyBonus.day < 7 ? dailyBonus.sc + 0.5 : 0.5,
+            gc: dailyBonus.day < 7 ? dailyBonus.gc + 100 : 100
+          }}
+          onClaim={onClaimDailyBonus}
+          onSkip={() => setShowDailyBonus(false)}
+        />
+      )}
 
       {/* Mobile Nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-border/40 bg-background/95 backdrop-blur md:hidden supports-[backdrop-filter]:bg-background/80">

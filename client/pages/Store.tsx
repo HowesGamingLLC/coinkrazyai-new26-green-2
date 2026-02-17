@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
 import { store } from '@/lib/api';
@@ -31,6 +31,8 @@ const Store = () => {
   const [wishlist, setWishlist] = useState<Set<number>>(new Set());
   const [sortBy, setSortBy] = useState<'price' | 'value' | 'popular'>('popular');
   const [filterByPrice, setFilterByPrice] = useState<'all' | 'under50' | 'under100' | 'over100'>('all');
+  const [googlePayReady, setGooglePayReady] = useState(false);
+  const googlePayButtonRef = useRef<HTMLDivElement>(null);
 
   // Receipt State
   const [showReceipt, setShowReceipt] = useState(false);
@@ -187,6 +189,71 @@ const Store = () => {
     }
     if (paymentMethods.length === 1) {
       setSelectedPaymentMethod(paymentMethods[0]);
+    }
+  };
+
+  const processGooglePayPayment = async () => {
+    if (!selectedPack) return;
+
+    setIsPurchasing(selectedPack.id);
+    try {
+      const paymentsClient = new (window as any).google.payments.api.PaymentsClient({
+        environment: 'PRODUCTION'
+      });
+
+      const paymentDataRequest = {
+        apiVersion: 2,
+        apiVersionMinor: 0,
+        allowedPaymentMethods: [
+          {
+            type: 'CARD',
+            parameters: {
+              allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+              allowedCardNetworks: ['MASTERCARD', 'VISA']
+            },
+            tokenizationSpecification: {
+              type: 'PAYMENT_GATEWAY',
+              parameters: {
+                gateway: 'stripe',
+                'stripe:publishableKey': 'pk_live_placeholder',
+                'stripe:version': '2020-08-27'
+              }
+            }
+          }
+        ],
+        merchantInfo: {
+          merchantId: GOOGLE_PAY_MERCHANT_ID,
+          merchantName: 'CoinKrazy'
+        },
+        transactionInfo: {
+          totalPriceStatus: 'FINAL',
+          totalPriceLabel: 'Total',
+          totalPrice: String(selectedPack.price_usd),
+          currencyCode: 'USD',
+          countryCode: 'US'
+        }
+      };
+
+      const paymentData = await paymentsClient.loadPaymentData(paymentDataRequest);
+      console.log('[GooglePay] Payment successful:', paymentData);
+
+      const response = await store.purchase(selectedPack.id, 'google_pay', paymentData.paymentMethodData.tokenizationData.token);
+
+      if (response.success) {
+        toast.success(`Purchase of ${selectedPack.title} completed via Google Pay!`);
+        setSelectedPack(null);
+        setSelectedPaymentMethod(null);
+        setTimeout(() => navigate('/wallet'), 1500);
+      }
+    } catch (error: any) {
+      console.error('[GooglePay] Payment failed:', error);
+      if (error.statusCode === 'CANCELED') {
+        toast.info('Payment cancelled');
+      } else {
+        toast.error('Google Pay payment failed');
+      }
+    } finally {
+      setIsPurchasing(null);
     }
   };
 

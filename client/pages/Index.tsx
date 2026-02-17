@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Gamepad2, Coins, TrendingUp, Users, Zap, MessageSquare, Loader2, Sparkles, Trophy, Star, Gift, Crown, ArrowRight, Dice5 } from 'lucide-react';
+import { RecentWinners } from '@/components/RecentWinners';
+import { Gamepad2, Coins, TrendingUp, Users, Zap, MessageSquare, Loader2, Sparkles, Trophy, Star, Gift, Crown, ArrowRight, Dice5, ShieldCheck, Cpu } from 'lucide-react';
 import { games as gamesApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -245,6 +246,9 @@ const Index = () => {
         ))}
       </div>
 
+      {/* Recent Winners Section */}
+      <RecentWinners />
+
       {/* Games Grid */}
       <section className="space-y-6">
         <div className="flex items-center justify-between">
@@ -386,16 +390,44 @@ const Index = () => {
       </section>
 
       {/* AI Employment Notice */}
-      <section className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-6">
-        <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center shrink-0">
-          <MessageSquare className="w-8 h-8 text-primary-foreground" />
-        </div>
-        <div className="space-y-1">
-          <h3 className="font-bold text-lg">AI-Managed Integrity</h3>
-          <p className="text-muted-foreground text-sm">
-            CoinKrazyAI2 is monitored in real-time by LuckyAI and our suite of specialized AI employees. All gameplay,
-            payouts, and chat are moderated for a safe and fair experience.
-          </p>
+      <section className="bg-slate-950 border-4 border-yellow-500/20 rounded-[2.5rem] p-8 md:p-12 relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-transparent pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
+          <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shrink-0 shadow-[0_0_50px_rgba(234,179,8,0.3)] animate-pulse">
+            <Cpu className="w-16 h-16 md:w-24 md:h-24 text-slate-950" />
+          </div>
+          <div className="space-y-6 text-center md:text-left">
+            <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-4 py-1.5">
+              <ShieldCheck className="w-4 h-4 text-yellow-500" />
+              <span className="text-yellow-500 font-black uppercase tracking-widest text-[10px]">AI-POWERED INTEGRITY</span>
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-4xl md:text-5xl font-black italic uppercase tracking-tighter text-white leading-none">
+                MEET THE <br />
+                <span className="text-yellow-500">KRAZY AI TEAM</span>
+              </h2>
+              <p className="text-slate-400 font-bold text-lg max-w-2xl">
+                CoinKrazy AI is the world's first platform managed entirely by specialized AI employees.
+                From LuckyAI optimizing your odds to SecurityAI protecting your wallet, our team works 24/7.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+              {[
+                { name: 'LuckyAI', role: 'Optimizer', color: 'bg-green-500' },
+                { name: 'SecurityAI', role: 'Protector', color: 'bg-blue-500' },
+                { name: 'SlotsAI', role: 'Dealer', color: 'bg-purple-500' },
+                { name: 'SocialAI', role: 'Moderator', color: 'bg-orange-500' },
+              ].map((ai) => (
+                <div key={ai.name} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2">
+                   <div className={cn("w-2 h-2 rounded-full animate-pulse", ai.color)} />
+                   <div className="text-left">
+                     <p className="text-[10px] font-black uppercase text-slate-500 leading-none">{ai.role}</p>
+                     <p className="text-xs font-black text-white">{ai.name}</p>
+                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
     </div>
