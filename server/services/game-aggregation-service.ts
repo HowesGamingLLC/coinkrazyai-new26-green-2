@@ -153,7 +153,7 @@ class GameAggregationService {
             await query(
               `UPDATE games SET
                description = $1, category = $2, rtp = $3, volatility = $4,
-               image_url = $5, enabled = $6, updated_at = NOW()
+               image_url = $5, enabled = $6
                WHERE name = $7 AND provider = $8`,
               [game.description, game.category, game.rtp, game.volatility,
                game.image_url, true, game.name, 'External']
@@ -162,9 +162,8 @@ class GameAggregationService {
           } else {
             // Insert new game
             await query(
-              `INSERT INTO games (name, description, category, provider, rtp, volatility,
-               image_url, enabled, created_at, updated_at)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())`,
+              `INSERT INTO games (name, description, category, provider, rtp, volatility, image_url, enabled)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
               [game.name, game.description || '', game.category, 'External',
                game.rtp || 95.0, game.volatility || 'Medium', game.image_url || null, true]
             );
@@ -350,7 +349,7 @@ class GameAggregationService {
           await query(
             `UPDATE games SET
              description = $1, category = $2, rtp = $3, volatility = $4,
-             image_url = $5, enabled = $6, updated_at = NOW()
+             image_url = $5, enabled = $6
              WHERE name = $7 AND provider = $8`,
             [game.description, game.category, game.rtp, game.volatility,
              game.image_url, game.enabled || true, game.name, 'External']
@@ -359,9 +358,8 @@ class GameAggregationService {
         } else {
           // Insert new game
           await query(
-            `INSERT INTO games (name, description, category, provider, rtp, volatility,
-             image_url, enabled, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())`,
+            `INSERT INTO games (name, description, category, provider, rtp, volatility, image_url, enabled)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
             [game.name, game.description || '', game.category, 'External',
              game.rtp || 95.0, game.volatility || 'Medium', game.image_url || null, true]
           );
