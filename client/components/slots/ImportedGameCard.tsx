@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Play, ExternalLink, Info } from 'lucide-react';
+import { GamePlayerModal } from './GamePlayerModal';
 
 interface ImportedGame {
   id: number;
@@ -27,14 +28,19 @@ interface ImportedGameCardProps {
   variant?: 'grid' | 'list';
 }
 
-export const ImportedGameCard = ({ 
-  game, 
-  onPlay, 
+export const ImportedGameCard = ({
+  game,
+  onPlay,
   onOpenUrl,
-  variant = 'grid' 
+  variant = 'grid'
 }: ImportedGameCardProps) => {
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const imageUrl = game.image_url || game.thumbnail || '';
-  
+
+  const handlePlayClick = () => {
+    setIsPlayerOpen(true);
+  };
+
   if (variant === 'list') {
     return (
       <div className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
@@ -67,17 +73,7 @@ export const ImportedGameCard = ({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onOpenUrl?.(game.embed_url!)}
-              className="gap-1"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Open
-            </Button>
-          )}
-          {onPlay && (
-            <Button
-              size="sm"
-              onClick={() => onPlay(game)}
+              onClick={handlePlayClick}
               className="gap-1"
             >
               <Play className="w-4 h-4" />
@@ -110,10 +106,10 @@ export const ImportedGameCard = ({
 
           {/* Overlay with Play Button */}
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-            {onPlay && game.embed_url && (
+            {game.embed_url && (
               <Button
                 size="lg"
-                onClick={() => onPlay(game)}
+                onClick={handlePlayClick}
                 className="gap-2 font-bold"
               >
                 <Play className="w-5 h-5" />
@@ -177,27 +173,23 @@ export const ImportedGameCard = ({
         <div className="flex gap-2 pt-2">
           {game.embed_url && (
             <Button
-              variant="outline"
               size="sm"
               className="flex-1 gap-1"
-              onClick={() => onOpenUrl?.(game.embed_url!)}
-            >
-              <ExternalLink className="w-3 h-3" />
-              Open
-            </Button>
-          )}
-          {onPlay && (
-            <Button
-              size="sm"
-              className="flex-1 gap-1"
-              onClick={() => onPlay(game)}
+              onClick={handlePlayClick}
             >
               <Play className="w-3 h-3" />
-              Play
+              Play Now
             </Button>
           )}
         </div>
       </CardContent>
+
+      {/* Game Player Modal */}
+      <GamePlayerModal
+        isOpen={isPlayerOpen}
+        onClose={() => setIsPlayerOpen(false)}
+        game={game}
+      />
     </Card>
   );
 };

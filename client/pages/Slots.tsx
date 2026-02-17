@@ -7,7 +7,6 @@ import { Loader2, Search, Filter, Grid, List as ListIcon, Upload } from 'lucide-
 import { toast } from 'sonner';
 import { games, adminApiCall } from '@/lib/api';
 import { ImportedGameCard } from '@/components/slots/ImportedGameCard';
-import { GameEmbedModal } from '@/components/slots/GameEmbedModal';
 import { ALL_SLOT_GAMES } from '@/data/slotGamesDatabase';
 
 interface Game {
@@ -35,8 +34,6 @@ const Slots = () => {
   const [selectedVolatility, setSelectedVolatility] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedGameForEmbed, setSelectedGameForEmbed] = useState<Game | null>(null);
-  const [isEmbedModalOpen, setIsEmbedModalOpen] = useState(false);
   const [isImportingFromDb, setIsImportingFromDb] = useState(false);
 
   // Fetch games on mount
@@ -97,15 +94,6 @@ const Slots = () => {
   const providers = [...new Set(gamesList.map((g) => g.provider))].sort();
   const volatilities = [...new Set(gamesList.map((g) => g.volatility).filter(Boolean))].sort();
 
-  const handlePlayGame = (game: Game) => {
-    if (game.embed_url) {
-      setSelectedGameForEmbed(game);
-      setIsEmbedModalOpen(true);
-    } else {
-      toast.error('Game embed URL not available');
-    }
-  };
-
   const handleImportGamesFromDatabase = async () => {
     try {
       setIsImportingFromDb(true);
@@ -134,10 +122,6 @@ const Slots = () => {
     } finally {
       setIsImportingFromDb(false);
     }
-  };
-
-  const handleOpenUrl = (url: string) => {
-    window.open(url, '_blank');
   };
 
   return (
@@ -398,8 +382,6 @@ const Slots = () => {
                 <ImportedGameCard
                   key={game.id}
                   game={game}
-                  onPlay={handlePlayGame}
-                  onOpenUrl={handleOpenUrl}
                   variant="grid"
                 />
               ))}
@@ -410,8 +392,6 @@ const Slots = () => {
                 <ImportedGameCard
                   key={game.id}
                   game={game}
-                  onPlay={handlePlayGame}
-                  onOpenUrl={handleOpenUrl}
                   variant="list"
                 />
               ))}
@@ -453,17 +433,6 @@ const Slots = () => {
         </Card>
       )}
 
-      {/* Embed Modal */}
-      {selectedGameForEmbed && (
-        <GameEmbedModal
-          isOpen={isEmbedModalOpen}
-          onClose={() => {
-            setIsEmbedModalOpen(false);
-            setSelectedGameForEmbed(null);
-          }}
-          game={selectedGameForEmbed}
-        />
-      )}
     </div>
   );
 };

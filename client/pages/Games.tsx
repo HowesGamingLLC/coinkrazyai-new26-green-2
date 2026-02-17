@@ -7,7 +7,6 @@ import { Loader2, Search, Filter, Grid, List as ListIcon, ChevronDown } from 'lu
 import { toast } from 'sonner';
 import { games } from '@/lib/api';
 import { ImportedGameCard } from '@/components/slots/ImportedGameCard';
-import { GameEmbedModal } from '@/components/slots/GameEmbedModal';
 
 interface Game {
   id: number;
@@ -40,8 +39,6 @@ const Games = () => {
   const [maxRTP, setMaxRTP] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [selectedGameForEmbed, setSelectedGameForEmbed] = useState<Game | null>(null);
-  const [isEmbedModalOpen, setIsEmbedModalOpen] = useState(false);
 
   // Game type definitions
   const gameTypes: { value: GameType; label: string; count?: number }[] = [
@@ -139,19 +136,6 @@ const Games = () => {
   const avgRTP = filteredGames.length > 0
     ? (filteredGames.reduce((sum, g) => sum + (g.rtp || 0), 0) / filteredGames.length).toFixed(1)
     : 0;
-
-  const handlePlayGame = (game: Game) => {
-    if (game.embed_url) {
-      setSelectedGameForEmbed(game);
-      setIsEmbedModalOpen(true);
-    } else {
-      toast.error('Game embed URL not available');
-    }
-  };
-
-  const handleOpenUrl = (url: string) => {
-    window.open(url, '_blank');
-  };
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -457,25 +441,12 @@ const Games = () => {
             <ImportedGameCard
               key={game.id}
               game={game}
-              onPlay={handlePlayGame}
-              onOpenUrl={handleOpenUrl}
               variant={viewMode === 'list' ? 'list' : 'grid'}
             />
           ))}
         </div>
       )}
 
-      {/* Game Embed Modal */}
-      {selectedGameForEmbed && (
-        <GameEmbedModal
-          game={selectedGameForEmbed}
-          isOpen={isEmbedModalOpen}
-          onClose={() => {
-            setIsEmbedModalOpen(false);
-            setSelectedGameForEmbed(null);
-          }}
-        />
-      )}
     </div>
   );
 };
