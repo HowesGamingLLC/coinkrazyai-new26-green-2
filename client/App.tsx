@@ -26,6 +26,7 @@ import Achievements from "./pages/Achievements";
 import Support from "./pages/Support";
 import Games from "./pages/Games";
 import Casino from "./pages/Casino";
+import ExternalGames from "./pages/ExternalGames";
 import ScratchTickets from "./pages/ScratchTickets";
 import PullTabs from "./pages/PullTabs";
 
@@ -57,6 +58,14 @@ const AppRoutes = () => (
       element={
         <Layout>
           <Casino />
+        </Layout>
+      }
+    />
+    <Route
+      path="/external-games"
+      element={
+        <Layout>
+          <ExternalGames />
         </Layout>
       }
     />

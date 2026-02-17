@@ -78,6 +78,14 @@ import {
   handleDebugGetGames
 } from "./routes/games";
 import {
+  handleGetGameConfig,
+  handleProcessSpin,
+  handleGetSpinHistory,
+  handleGetExternalGames,
+  handleUpdateGameMaxWin,
+  handleGetAllGameConfigs
+} from "./routes/external-games";
+import {
   handleGetLiveGames,
   handlePlaceParlay,
   handleSingleBet,
@@ -465,6 +473,14 @@ export function createServer() {
   app.get("/api/games/debug", handleDebugGetGames);
   app.get("/api/games", handleGetGames);
   app.get("/api/games/:id", handleGetGameById);
+
+  // ===== EXTERNAL GAMES ROUTES (Sweepstake/Social Casino) =====
+  app.get("/api/external-games", handleGetExternalGames);
+  app.get("/api/games/:gameId/config", handleGetGameConfig);
+  app.post("/api/games/spin", verifyPlayer, handleProcessSpin);
+  app.get("/api/games/history", verifyPlayer, handleGetSpinHistory);
+  app.get("/api/admin/v2/games/configs", verifyAdmin, handleGetAllGameConfigs);
+  app.put("/api/admin/v2/games/:gameId/max-win", verifyAdmin, handleUpdateGameMaxWin);
 
   // ===== ADMIN ROUTES =====
   app.post("/api/admin/login", handleAdminLogin);
