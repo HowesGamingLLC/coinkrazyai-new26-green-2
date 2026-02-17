@@ -220,7 +220,7 @@ export const GamesEmbedSettings = () => {
     }
   };
 
-  const providers = [...new Set(games.map(g => g.provider))].sort();
+  const providers = [...new Set(games.map(g => g.provider).filter(Boolean))].sort();
 
   if (isLoading) {
     return (
@@ -389,12 +389,12 @@ export const GamesEmbedSettings = () => {
           onChange={e => setSearchTerm(e.target.value)}
           className="flex-1 min-w-[200px]"
         />
-        <Select value={selectedProvider || ''} onValueChange={value => setSelectedProvider(value || null)}>
+        <Select value={selectedProvider || 'all'} onValueChange={value => setSelectedProvider(value === 'all' ? null : value)}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Filter by provider" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Providers</SelectItem>
+            <SelectItem value="all">All Providers</SelectItem>
             {providers.map(provider => (
               <SelectItem key={provider} value={provider}>
                 {provider}

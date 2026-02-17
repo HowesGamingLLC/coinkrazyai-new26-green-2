@@ -259,7 +259,7 @@ export const GameManagementDashboard: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Providers</SelectItem>
-                    {[...new Set(games.map((g) => g.provider))].map((provider) => (
+                    {[...new Set(games.map((g) => g.provider).filter(Boolean))].map((provider) => (
                       <SelectItem key={provider} value={provider}>
                         {provider}
                       </SelectItem>
