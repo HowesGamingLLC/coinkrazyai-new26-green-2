@@ -56,32 +56,44 @@ export const AIChatWidget = () => {
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      let aiResponse = "I'm analyzing the platform data for you. Everything looks optimal!";
-      let agent = "LuckyAI";
+    // Call real AI API
+    try {
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({ message: inputValue })
+      });
 
-      if (inputValue.toLowerCase().includes('win') || inputValue.toLowerCase().includes('luck')) {
-        aiResponse = "I've optimized the slots RTP for your next session. Good luck!";
-      } else if (inputValue.toLowerCase().includes('security') || inputValue.toLowerCase().includes('safe')) {
-        aiResponse = "SecurityAI here. Your wallet and account are fully protected by our 256-bit encryption.";
-        agent = "SecurityAI";
-      } else if (inputValue.toLowerCase().includes('bonus') || inputValue.toLowerCase().includes('free')) {
-        aiResponse = "PromotionsAI has just added a small surprise to your account. Check your daily bonus!";
-        agent = "PromotionsAI";
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: result.data.message,
+          sender: 'ai',
+          agent: result.data.agent,
+          timestamp: new Date(result.data.timestamp),
+        };
+        setMessages((prev) => [...prev, aiMessage]);
+      } else {
+        throw new Error('Failed to get AI response');
       }
-
-      const aiMessage: Message = {
+    } catch (error) {
+      console.error('AI Chat failed:', error);
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: aiResponse,
+        text: "I'm having trouble connecting to the optimization engine. Please try again soon.",
         sender: 'ai',
-        agent,
+        agent: 'System',
         timestamp: new Date(),
       };
-
-      setMessages((prev) => [...prev, aiMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   return (

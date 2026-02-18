@@ -375,6 +375,7 @@ import {
 
 import { getChallenges, claimChallengeReward } from "./routes/challenges";
 import { getPlatformStats } from "./routes/platform";
+import { handleAIChat } from "./routes/ai";
 
 export function createServer() {
   const app = express();
@@ -861,6 +862,9 @@ export function createServer() {
 
   // Platform Stats (Public)
   app.get("/api/platform/stats", getPlatformStats);
+
+  // AI Chat
+  app.post("/api/ai/chat", verifyPlayer, handleAIChat);
 
   // ===== DEBUG ROUTES =====
   app.get("/api/debug/store-packs", async (_req, res) => {

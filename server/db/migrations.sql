@@ -353,3 +353,11 @@ TRUNCATE TABLE game_features CASCADE;
 TRUNCATE TABLE game_themes CASCADE;
 TRUNCATE TABLE game_feature_mappings CASCADE;
 TRUNCATE TABLE game_theme_mappings CASCADE;
+
+-- Add result_data column to casino_game_spins if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'casino_game_spins' AND column_name = 'result_data') THEN
+        ALTER TABLE casino_game_spins ADD COLUMN result_data JSONB DEFAULT '{}';
+    END IF;
+END $$;

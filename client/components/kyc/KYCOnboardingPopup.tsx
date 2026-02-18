@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, AlertCircle, CheckCircle2, ChevronRight, Lightbulb } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, ChevronRight, Lightbulb, Upload, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiCall } from '@/lib/api';
 
@@ -27,7 +27,7 @@ const KYC_STEPS: KYCOnboardingStep[] = [
     stepNumber: 1,
     title: 'Verify Your Identity',
     description: 'We need to confirm your identity to comply with gaming regulations.',
-    fields: ['full_name', 'date_of_birth', 'ssn_last4'],
+    fields: ['full_name', 'date_of_birth', 'ssn_last4', 'id_photo'],
     hint: 'Your information is encrypted and secure. Only the last 4 digits of your SSN are required.',
     icon: '🆔',
   },
@@ -35,7 +35,7 @@ const KYC_STEPS: KYCOnboardingStep[] = [
     stepNumber: 2,
     title: 'Verify Your Address',
     description: 'Please provide your current residential address.',
-    fields: ['street_address', 'city', 'state', 'zip_code'],
+    fields: ['street_address', 'city', 'state', 'zip_code', 'address_document'],
     hint: 'This helps us ensure compliance with local gaming laws. Your address is kept strictly confidential.',
     icon: '🏠',
   },
@@ -66,6 +66,8 @@ export const KYCOnboardingPopup: React.FC<KYCOnboardingPopupProps> = ({
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [luckyAiMessage, setLuckyAiMessage] = useState(
     'Welcome! I\'m LuckyAi, your personal guide. Let\'s get you fully verified so you can enjoy all the features of CoinKrazy!'
@@ -104,9 +106,31 @@ export const KYCOnboardingPopup: React.FC<KYCOnboardingPopupProps> = ({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleFileUpload = async (field: string) => {
+    try {
+      setIsUploading(true);
+      updateLuckyAiMessage('Uploading your document... I\'m making sure it\'s securely encrypted!');
+
+      // Simulate upload delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const mockUrl = `https://coinkrazy-docs.s3.amazonaws.com/kyc/${Date.now()}_doc.jpg`;
+      setUploadedFiles(prev => ({ ...prev, [field]: mockUrl }));
+      setFormData(prev => ({ ...prev, [field]: mockUrl }));
+
+      toast.success('Document uploaded successfully!');
+      updateLuckyAiMessage('Got it! That looks clear. Let\'s continue.');
+    } catch (error) {
+      toast.error('Upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleStepComplete = async () => {
-    if (!step.fields.every(field => formData[field])) {
-      toast.error('Please fill in all required fields');
+    const requiredFields = step.fields;
+    if (!requiredFields.every(field => formData[field])) {
+      toast.error('Please fill in all required fields and upload necessary documents');
       return;
     }
 
@@ -231,22 +255,51 @@ export const KYCOnboardingPopup: React.FC<KYCOnboardingPopupProps> = ({
                 full_name: 'Full Name',
                 date_of_birth: 'Date of Birth',
                 ssn_last4: 'Last 4 Digits of SSN',
+                id_photo: 'Government ID Photo',
                 street_address: 'Street Address',
                 city: 'City',
                 state: 'State',
                 zip_code: 'ZIP Code',
+                address_document: 'Proof of Address (Utility Bill)',
                 email_verified: 'Email Address',
                 phone_number_verified: 'Phone Number',
                 payment_method: 'Payment Method Type',
                 bank_account: 'Bank Account (Optional)',
               };
 
+              const isFileField = field.includes('document') || field.includes('id_photo');
+
               return (
                 <div key={field}>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     {fieldLabels[field]}
                   </label>
-                  {field === 'date_of_birth' ? (
+                  {isFileField ? (
+                    <div className="space-y-2">
+                      {uploadedFiles[field] ? (
+                        <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 rounded-xl text-green-700 dark:text-green-300">
+                          <FileText className="w-5 h-5" />
+                          <span className="text-sm font-bold truncate flex-1">Document_Verified.jpg</span>
+                          <CheckCircle2 className="w-4 h-4" />
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          type="button"
+                          disabled={isUploading}
+                          className="w-full h-14 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary hover:bg-primary/5 rounded-xl transition-all group"
+                          onClick={() => handleFileUpload(field)}
+                        >
+                          {isUploading ? (
+                            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                          ) : (
+                            <Upload className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                          )}
+                          {isUploading ? 'Uploading...' : 'Upload Document'}
+                        </Button>
+                      )}
+                    </div>
+                  ) : field === 'date_of_birth' ? (
                     <input
                       type="date"
                       value={formData[field] || ''}

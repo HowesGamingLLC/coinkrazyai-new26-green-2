@@ -29,6 +29,10 @@ import Casino from "./pages/Casino";
 import ExternalGames from "./pages/ExternalGames";
 import ScratchTickets from "./pages/ScratchTickets";
 import PullTabs from "./pages/PullTabs";
+import Dice from "./pages/Dice";
+import Plinko from "./pages/Plinko";
+import Community from "./pages/Community";
+import PoolShark from "./pages/PoolShark";
 
 const queryClient = new QueryClient();
 
@@ -122,6 +126,38 @@ const AppRoutes = () => (
       element={
         <Layout>
           <PullTabs />
+        </Layout>
+      }
+    />
+    <Route
+      path="/dice"
+      element={
+        <Layout>
+          <Dice />
+        </Layout>
+      }
+    />
+    <Route
+      path="/plinko"
+      element={
+        <Layout>
+          <Plinko />
+        </Layout>
+      }
+    />
+    <Route
+      path="/community"
+      element={
+        <Layout>
+          <Community />
+        </Layout>
+      }
+    />
+    <Route
+      path="/pool-shark"
+      element={
+        <Layout>
+          <PoolShark />
         </Layout>
       }
     />

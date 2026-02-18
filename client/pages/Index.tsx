@@ -344,24 +344,28 @@ const Index = () => {
             <Button variant="outline" size="sm" className="font-black italic text-xs uppercase border-2">PLAY MINI</Button>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Card className="bg-slate-900 border-2 border-white/5 overflow-hidden group hover:border-yellow-500/30 transition-all">
-              <div className="h-32 bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                <Dice5 className="w-12 h-12 text-white animate-bounce" />
-              </div>
-              <CardContent className="p-4">
-                <h4 className="font-black italic uppercase text-sm">Krazy Dice</h4>
-                <p className="text-[10px] text-slate-500 font-bold uppercase">Multiplayer Fun</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-slate-900 border-2 border-white/5 overflow-hidden group hover:border-yellow-500/30 transition-all">
-              <div className="h-32 bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center">
-                <Zap className="w-12 h-12 text-white animate-pulse" />
-              </div>
-              <CardContent className="p-4">
-                <h4 className="font-black italic uppercase text-sm">Power Plinko</h4>
-                <p className="text-[10px] text-slate-500 font-bold uppercase">Instant Drops</p>
-              </CardContent>
-            </Card>
+            <Link to="/dice" className="block">
+              <Card className="bg-slate-900 border-2 border-white/5 overflow-hidden group hover:border-yellow-500/30 transition-all">
+                <div className="h-32 bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                  <Dice5 className="w-12 h-12 text-white animate-bounce" />
+                </div>
+                <CardContent className="p-4">
+                  <h4 className="font-black italic uppercase text-sm">Krazy Dice</h4>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">Multiplayer Fun</p>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link to="/plinko" className="block">
+              <Card className="bg-slate-900 border-2 border-white/5 overflow-hidden group hover:border-yellow-500/30 transition-all">
+                <div className="h-32 bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center">
+                  <Zap className="w-12 h-12 text-white animate-pulse" />
+                </div>
+                <CardContent className="p-4">
+                  <h4 className="font-black italic uppercase text-sm">Power Plinko</h4>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">Instant Drops</p>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
 
@@ -370,22 +374,24 @@ const Index = () => {
             <h2 className="text-3xl font-black italic uppercase tracking-tight text-slate-400">Coming Soon</h2>
             <Badge className="bg-slate-800 text-slate-400 border-none font-black italic uppercase">WINTER 2025</Badge>
           </div>
-          <Card className="bg-slate-950 border-4 border-dashed border-white/5 h-[230px] flex items-center justify-center relative overflow-hidden group">
-            <div className="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors" />
-            <div className="relative z-10 text-center space-y-4">
-              <div className="w-20 h-20 bg-slate-900 rounded-full flex items-center justify-center mx-auto border-2 border-white/10 shadow-2xl">
-                <Trophy className="w-10 h-10 text-slate-700" />
+          <Link to="/pool-shark" className="block">
+            <Card className="bg-slate-950 border-4 border-dashed border-white/5 h-[230px] flex items-center justify-center relative overflow-hidden group cursor-pointer">
+              <div className="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors" />
+              <div className="relative z-10 text-center space-y-4">
+                <div className="w-20 h-20 bg-slate-900 rounded-full flex items-center justify-center mx-auto border-2 border-white/10 shadow-2xl">
+                  <Trophy className="w-10 h-10 text-slate-700" />
+                </div>
+                <div>
+                  <h3 className="text-4xl font-black italic uppercase tracking-tighter text-slate-300">POOL SHARK</h3>
+                  <p className="text-slate-500 font-black uppercase text-[10px] tracking-widest mt-1">Multiplayer Billiards Arena</p>
+                </div>
+                <div className="flex items-center justify-center gap-2">
+                   <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                   <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Under Development</span>
+                </div>
               </div>
-              <div>
-                <h3 className="text-4xl font-black italic uppercase tracking-tighter text-slate-300">POOL SHARK</h3>
-                <p className="text-slate-500 font-black uppercase text-[10px] tracking-widest mt-1">Multiplayer Billiards Arena</p>
-              </div>
-              <div className="flex items-center justify-center gap-2">
-                 <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                 <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Under Development</span>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </Link>
         </div>
       </section>
 

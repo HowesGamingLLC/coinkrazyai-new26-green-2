@@ -24,21 +24,62 @@ export const handleGetOnboardingProgress: RequestHandler = async (req, res) => {
 export const handleUpdateOnboardingStep: RequestHandler = async (req, res) => {
   try {
     const playerId = req.user?.id;
-    const { step, identityVerified, addressVerified, paymentVerified, emailVerified, phoneVerified } = req.body;
+    const { step, data, identityVerified, addressVerified, paymentVerified, emailVerified, phoneVerified } = req.body;
 
     if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
     if (!step) return res.status(400).json({ error: 'Step required' });
 
+    console.log('[KYC] Updating onboarding step:', step, 'for player:', playerId, 'with data:', data);
+
+    // If data contains document info, save it to kyc_documents
+    if (data) {
+      if (data.id_photo && data.id_photo !== 'Document Uploaded') {
+        await dbQueries.query(
+          'INSERT INTO kyc_documents (player_id, document_type, document_url, status) VALUES ($1, $2, $3, $4)',
+          [playerId, 'Government ID', data.id_photo, 'pending']
+        );
+      }
+      if (data.address_document && data.address_document !== 'Document Uploaded') {
+        await dbQueries.query(
+          'INSERT INTO kyc_documents (player_id, document_type, document_url, status) VALUES ($1, $2, $3, $4)',
+          [playerId, 'Proof of Address', data.address_document, 'pending']
+        );
+      }
+
+      // Update player profile with basic info if provided
+      if (data.full_name || data.date_of_birth) {
+        const updates: string[] = [];
+        const values: any[] = [];
+        let idx = 1;
+        if (data.full_name) {
+          updates.push(`name = $${idx++}`);
+          values.push(data.full_name);
+        }
+        if (data.date_of_birth) {
+          updates.push(`date_of_birth = $${idx++}`);
+          values.push(data.date_of_birth);
+        }
+        values.push(playerId);
+        await dbQueries.query(
+          `UPDATE players SET ${updates.join(', ')} WHERE id = $${idx}`,
+          values
+        );
+      }
+    }
+
     const verificationData = {
-      identityVerified: identityVerified || false,
-      addressVerified: addressVerified || false,
+      identityVerified: identityVerified || (step === 1 && !!data?.id_photo) || false,
+      addressVerified: addressVerified || (step === 2 && !!data?.address_document) || false,
       paymentVerified: paymentVerified || false,
       emailVerified: emailVerified || false,
       phoneVerified: phoneVerified || false
     };
 
     const result = await dbQueries.updateKYCOnboardingStep(playerId, step, verificationData);
-    res.json(result.rows[0]);
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
   } catch (error) {
     console.error('Error updating onboarding step:', error);
     res.status(500).json({ error: 'Failed to update step' });

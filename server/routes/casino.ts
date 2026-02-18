@@ -17,6 +17,18 @@ export const handlePlayCasinoGame: RequestHandler = async (req, res) => {
   }
 
   try {
+    const { game_id, bet_amount: raw_bet_amount, gameData } = req.body;
+    const playerId = (req as any).user?.playerId;
+    const bet_amount = parseFloat(raw_bet_amount);
+
+    if (!playerId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    if (!game_id || isNaN(bet_amount) || bet_amount <= 0) {
+      return res.status(400).json({ error: 'Invalid game_id or bet_amount' });
+    }
+
     // Get current player
     const playerResult = await query(
       'SELECT sc_balance FROM players WHERE id = $1',
@@ -31,21 +43,50 @@ export const handlePlayCasinoGame: RequestHandler = async (req, res) => {
 
     // Check if player has enough balance
     if (currentBalance < bet_amount) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Insufficient balance',
         current_balance: currentBalance,
         required: bet_amount
       });
     }
 
-    // Determine if player wins (random 40% win rate)
-    const wins = Math.random() < 0.4;
+    // Game Logic
+    let wins = false;
     let winnings = 0;
+    let result_data: any = {};
 
-    if (wins) {
-      // Calculate random winnings (1x to 5x bet)
-      const multiplier = 1 + Math.random() * 4;
+    if (game_id === 'krazy-dice') {
+      const { targetNumber, isRollUnder } = gameData || { targetNumber: 50, isRollUnder: true };
+      const roll = Math.random() * 100;
+      wins = isRollUnder ? (roll < targetNumber) : (roll > targetNumber);
+
+      if (wins) {
+        const winChance = isRollUnder ? targetNumber : (100 - targetNumber);
+        const multiplier = 99 / winChance;
+        winnings = Math.round(bet_amount * multiplier * 100) / 100;
+      }
+      result_data = { roll, targetNumber, isRollUnder };
+    } else if (game_id === 'power-plinko') {
+      const multipliers = [5.6, 2.1, 1.1, 0.5, 0.2, 0.5, 1.1, 2.1, 5.6];
+      // Simple random walk for plinko
+      let pos = 4; // Start at center
+      const rows = 8;
+      for (let i = 0; i < rows; i++) {
+        pos += Math.random() > 0.5 ? 0.5 : -0.5;
+      }
+      // Map pos to index in multipliers array (0 to 8)
+      const finalIndex = Math.max(0, Math.min(8, Math.round(pos + 4)));
+      const multiplier = multipliers[finalIndex];
       winnings = Math.round(bet_amount * multiplier * 100) / 100;
+      wins = winnings > bet_amount;
+      result_data = { finalIndex, multiplier };
+    } else {
+      // Default random 40% win rate for other games
+      wins = Math.random() < 0.4;
+      if (wins) {
+        const multiplier = 1 + Math.random() * 4;
+        winnings = Math.round(bet_amount * multiplier * 100) / 100;
+      }
     }
 
     // Calculate new balance
@@ -74,19 +115,20 @@ export const handlePlayCasinoGame: RequestHandler = async (req, res) => {
     // Track spin in casino_game_spins table
     try {
       await query(
-        `INSERT INTO casino_game_spins 
-        (player_id, game_id, game_name, provider, bet_amount, winnings, balance_before, balance_after, result) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        `INSERT INTO casino_game_spins
+        (player_id, game_id, game_name, provider, bet_amount, winnings, balance_before, balance_after, result, result_data)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           playerId,
           game_id,
           game_id, // game_name - use game_id for now, could be enhanced
-          'Pragmatic', // provider - could be parameterized
+          'CoinKrazy', // provider
           bet_amount,
           winnings,
           currentBalance,
           newBalance,
-          wins ? 'win' : 'loss'
+          wins ? 'win' : 'loss',
+          JSON.stringify(result_data)
         ]
       );
     } catch (err: any) {
@@ -135,7 +177,7 @@ export const handleGetSpinHistory: RequestHandler = async (req, res) => {
   try {
     // Get spin history
     const spinsResult = await query(
-      `SELECT id, game_id, game_name, provider, bet_amount, winnings, balance_before, balance_after, result, created_at
+      `SELECT id, game_id, game_name, provider, bet_amount, winnings, balance_before, balance_after, result, result_data, created_at
        FROM casino_game_spins
        WHERE player_id = $1
        ORDER BY created_at DESC
