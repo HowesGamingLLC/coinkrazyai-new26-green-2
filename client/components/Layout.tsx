@@ -7,7 +7,7 @@ import { DailyLoginBonusPopup } from '@/components/popups/DailyLoginBonusPopup';
 import { useDailyBonus } from '@/hooks/use-daily-bonus';
 import { AIChatWidget } from '@/components/AIChatWidget';
 import { PageTransition } from '@/components/PageTransition';
-import { Coins, User, Home, Gamepad2, ShoppingCart, BarChart3, MessageSquare, Trophy, Award, Headphones, Settings, Zap, LogOut, Ticket, Dice5, Star, ShieldCheck } from 'lucide-react';
+import { Coins, User, Users, Home, Gamepad2, ShoppingCart, BarChart3, MessageSquare, Trophy, Award, Headphones, Settings, Zap, LogOut, Ticket, Dice5, Star, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ChallengesPopup } from '@/components/popups/ChallengesPopup';
 
