@@ -286,11 +286,11 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
               src={game.embed_url}
               title={game.name}
               className="w-full h-full border-0"
-              allow="autoplay; fullscreen; picture-in-picture"
+              allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write"
               allowFullScreen
               onLoad={handleIframeLoad}
               onError={handleIframeError}
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox"
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-storage-access-by-user-activation"
             />
           </div>
 

@@ -210,9 +210,10 @@ export const ExternalGamePlayer: React.FC<ExternalGamePlayerProps> = ({ gameId }
               {gameConfig.embed_url ? (
                 <iframe
                   src={gameConfig.embed_url}
-                  className="w-full aspect-video rounded-lg"
-                  allow="autoplay; encrypted-media"
+                  className="w-full aspect-video rounded-lg border-0"
+                  allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write"
                   allowFullScreen
+                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-storage-access-by-user-activation"
                 />
               ) : (
                 <div className="text-muted-foreground">
