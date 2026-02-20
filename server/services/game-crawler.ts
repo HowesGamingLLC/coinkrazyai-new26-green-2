@@ -54,6 +54,9 @@ const DEFAULT_CRAWLER_CONFIG: CrawlerConfig = {
     'Sec-Fetch-Site': 'none',
     'Sec-Fetch-User': '?1',
     'Cache-Control': 'max-age=0',
+    'sec-ch-ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Windows"',
   },
 };
 
@@ -71,6 +74,12 @@ class GameCrawler {
     try {
       console.log(`[Crawler] Starting extraction for ${url}`);
       const $ = cheerio.load(html);
+
+      // Check if this is a list page instead of a game page
+      if (this.isListPage($, html)) {
+        console.log(`[Crawler] Detected list page at ${url}`);
+        return null; // crawlMultiple will handle link extraction if needed
+      }
 
       // Extract title from multiple possible locations
       let title = this.extractTitle(html, $);
@@ -143,15 +152,62 @@ class GameCrawler {
     }
   }
 
+  private isListPage($: cheerio.CheerioAPI, html: string): boolean {
+    // List pages usually have many game links and lack specific game details like RTP in a header
+    const gameLinkCount = $('a[href*="/slots/"], a[href*="/game/"]').length;
+    const hasRTPHeader = html.includes('RTP') && (html.includes('%') || html.includes('Return to Player'));
+
+    // If there are many game links and no clear single game title/RTP area, it's likely a list
+    if (gameLinkCount > 10 && !$('h1').text().toLowerCase().includes('slot review')) {
+      return true;
+    }
+
+    return false;
+  }
+
+  public extractLinks(html: string, baseUrl: string): string[] {
+    const $ = cheerio.load(html);
+    const links: string[] = [];
+    const urlObj = new URL(baseUrl);
+
+    // Look for links that look like game pages
+    $('a').each((_, el) => {
+      const href = $(el).attr('href');
+      if (!href) return;
+
+      try {
+        const absoluteUrl = new URL(href, urlObj.origin).toString();
+
+        // Filter for URLs that likely point to games
+        if (
+          (absoluteUrl.includes('/slots/') || absoluteUrl.includes('/game/')) &&
+          !absoluteUrl.includes('/en/The-Best-Slots') && // Avoid the list page itself
+          !links.includes(absoluteUrl) &&
+          absoluteUrl.startsWith(urlObj.origin)
+        ) {
+          links.push(absoluteUrl);
+        }
+      } catch (e) {}
+    });
+
+    return links.slice(0, 20); // Limit to first 20 games to avoid overloading
+  }
+
   private extractTitle(html: string, $: cheerio.CheerioAPI): string {
     // Try various title extraction methods
     let title = '';
 
-    // Try specific game title elements first
-    title = $('.game-title').first().text().trim() ||
-            $('.slot-title').first().text().trim() ||
-            $('.entry-title').first().text().trim() ||
-            $('h1').first().text().trim();
+    // SlotCatalog specific
+    const scTitle = $('.game-header h1, .slot-header h1').first().text().trim();
+    if (scTitle) title = scTitle;
+
+    if (!title) {
+      // Try specific game title elements
+      title = $('.game-title').first().text().trim() ||
+              $('.slot-title').first().text().trim() ||
+              $('.entry-title').first().text().trim() ||
+              $('h1').first().text().trim();
+    }
 
     if (!title || title.toLowerCase().includes('just a moment')) {
       title = $('title').text().trim();
@@ -189,6 +245,16 @@ class GameCrawler {
   }
 
   private extractRTP(html: string, $: cheerio.CheerioAPI): number {
+    // Try to find in SlotCatalog specific tables
+    const scRTP = $('td:contains("RTP"), span:contains("RTP")').next().text().trim();
+    if (scRTP) {
+      const match = scRTP.match(/(\d+(?:\.\d+)?)/);
+      if (match) {
+        const val = parseFloat(match[1]);
+        if (val > 0 && val <= 100) return val;
+      }
+    }
+
     // Multiple regex patterns for RTP extraction
     const patterns = [
       /RTP[:\s]+(\d{2,3}(?:\.\d{1,2})?)%/i,
@@ -223,6 +289,14 @@ class GameCrawler {
   }
 
   private extractVolatility(html: string, $: cheerio.CheerioAPI): 'Low' | 'Medium' | 'High' {
+    // SlotCatalog specific
+    const scVol = $('td:contains("Volatility"), span:contains("Volatility")').next().text().trim().toLowerCase();
+    if (scVol) {
+      if (scVol.includes('low')) return 'Low';
+      if (scVol.includes('high')) return 'High';
+      if (scVol.includes('med')) return 'Medium';
+    }
+
     const patterns = [
       /(Low|Medium|High)[\s]+Volatility/i,
       /Volatility[:\s]+(Low|Medium|High)/i,
@@ -272,8 +346,14 @@ class GameCrawler {
   }
 
   private extractImageUrl(html: string, $: cheerio.CheerioAPI, baseUrl: string): string | undefined {
-    // Try OG image first
-    let imageUrl = $('meta[property="og:image"]').attr('content');
+    // SlotCatalog specific
+    let imageUrl = $('.game-img-wrapper img, .slot-img-wrapper img').first().attr('src') ||
+                   $('img[src*="/games/"]').first().attr('src');
+
+    if (!imageUrl) {
+      // Try OG image first
+      imageUrl = $('meta[property="og:image"]').attr('content');
+    }
 
     if (!imageUrl) {
       imageUrl = $('meta[name="image"]').attr('content');
@@ -571,8 +651,18 @@ class GameCrawler {
     try {
       console.log(`[Crawler] Fetching: ${url} (Attempt ${retryCount + 1}/${this.config.maxRetries + 1})`);
 
+      const headers = { ...this.config.headers };
+
+      // Add referer if it's a sub-page
+      if (url.includes('/slots/') || url.includes('/game/')) {
+        try {
+          const urlObj = new URL(url);
+          headers['Referer'] = urlObj.origin + '/';
+        } catch (e) {}
+      }
+
       const response = await axios.get(url, {
-        headers: this.config.headers,
+        headers,
         timeout: this.config.timeout,
         maxRedirects: 10,
         validateStatus: (status) => status < 500,
@@ -651,10 +741,39 @@ class GameCrawler {
   async crawlMultiple(urls: string[]): Promise<{ games: CrawledGame[]; errors: { url: string; error: string }[] }> {
     const games: CrawledGame[] = [];
     const errors: { url: string; error: string }[] = [];
+    const urlsToProcess = [...urls];
+    const processedUrls = new Set<string>();
 
-    for (const url of urls) {
+    while (urlsToProcess.length > 0 && games.length < 50) {
+      const url = urlsToProcess.shift()!;
+      if (processedUrls.has(url)) continue;
+      processedUrls.add(url);
+
       try {
-        const gameData = await this.crawlUrl(url);
+        // Add a small delay between requests to be polite and avoid rate limits
+        if (processedUrls.size > 1) {
+          const delay = 500 + Math.random() * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        const html = await this.fetchHtml(url);
+        const $ = cheerio.load(html);
+
+        if (this.isListPage($, html)) {
+          console.log(`[Crawler] Processing list page: ${url}`);
+          const discoveredLinks = this.extractLinks(html, url);
+          console.log(`[Crawler] Found ${discoveredLinks.length} links on list page`);
+
+          // Add discovered links to the queue if we haven't seen them
+          for (const link of discoveredLinks) {
+            if (!processedUrls.has(link)) {
+              urlsToProcess.push(link);
+            }
+          }
+          continue; // Move to next URL in queue
+        }
+
+        const gameData = this.extractGameData(html, url);
         if (gameData) {
           games.push(gameData);
         } else {
@@ -666,7 +785,7 @@ class GameCrawler {
       }
     }
 
-    console.log(`[Crawler] Successfully crawled ${games.length} out of ${urls.length} URLs`);
+    console.log(`[Crawler] Successfully crawled ${games.length} games. Total URLs processed: ${processedUrls.size}`);
     return { games, errors };
   }
 
