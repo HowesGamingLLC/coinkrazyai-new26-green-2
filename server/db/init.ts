@@ -135,6 +135,14 @@ export const initializeDatabase = async () => {
       console.log('[DB] Schema check for games.embed_url:', err.message?.substring(0, 100));
     }
 
+    // Add launch_url column to games table if it doesn't exist
+    try {
+      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS launch_url VARCHAR(500)`);
+      console.log('[DB] Verified launch_url column in games');
+    } catch (err: any) {
+      console.log('[DB] Schema check for games.launch_url:', err.message?.substring(0, 100));
+    }
+
     // Add updated_at column to games table if it doesn't exist
     try {
       await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);

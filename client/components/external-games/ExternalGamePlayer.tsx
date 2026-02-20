@@ -18,6 +18,7 @@ interface GameConfig {
   description: string;
   image_url: string;
   embed_url: string;
+  launch_url?: string;
   is_sweepstake: boolean;
   max_win_amount: number;
   min_bet: number;
@@ -151,9 +152,10 @@ export const ExternalGamePlayer: React.FC<ExternalGamePlayerProps> = ({ gameId }
 
   // Enhance embed URL with bet and wallet data if possible
   const enhancedEmbedUrl = React.useMemo(() => {
-    if (!gameConfig?.embed_url) return '';
+    const gameUrl = gameConfig?.launch_url || gameConfig?.embed_url;
+    if (!gameUrl) return '';
     try {
-      const url = new URL(gameConfig.embed_url);
+      const url = new URL(gameUrl);
       // We don't have a local 'currentBet' state in this component yet,
       // but we can pass the min_bet or a default
       url.searchParams.set('balance', scBalance.toString());
@@ -163,10 +165,10 @@ export const ExternalGamePlayer: React.FC<ExternalGamePlayerProps> = ({ gameId }
       url.searchParams.set('username', user?.username || 'Guest');
       return url.toString();
     } catch (e) {
-      const separator = gameConfig.embed_url.includes('?') ? '&' : '?';
-      return `${gameConfig.embed_url}${separator}balance=${scBalance}&sc_balance=${scBalance}&gc_balance=${gcBalance}&currency=SC&username=${user?.username || 'Guest'}`;
+      const separator = gameUrl.includes('?') ? '&' : '?';
+      return `${gameUrl}${separator}balance=${scBalance}&sc_balance=${scBalance}&gc_balance=${gcBalance}&currency=SC&username=${user?.username || 'Guest'}`;
     }
-  }, [gameConfig?.embed_url, scBalance, gcBalance, user?.username]);
+  }, [gameConfig?.launch_url, gameConfig?.embed_url, scBalance, gcBalance, user?.username]);
 
   if (loading) {
     return (
@@ -225,7 +227,7 @@ export const ExternalGamePlayer: React.FC<ExternalGamePlayerProps> = ({ gameId }
                </div>
             </div>
             <div className="flex-1 relative bg-[#020617]">
-              {gameConfig.embed_url ? (
+              {(gameConfig.launch_url || gameConfig.embed_url) ? (
                 <iframe
                   key={refreshKey}
                   src={enhancedEmbedUrl}

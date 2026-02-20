@@ -63,10 +63,11 @@ export const importSingleGame: RequestHandler = async (req, res) => {
         family,
         type,
         embed_url,
+        launch_url,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
-       RETURNING id, name, provider, category, rtp, image_url, slug, series, family, type, embed_url, enabled`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())
+       RETURNING id, name, provider, category, rtp, image_url, slug, series, family, type, embed_url, launch_url, enabled`,
       [
         gameData.name,
         gameData.provider,
@@ -81,10 +82,27 @@ export const importSingleGame: RequestHandler = async (req, res) => {
         gameData.family || null,
         gameData.type || null,
         gameData.embed_url || null,
+        gameData.embed_url || null, // launch_url
       ]
     );
 
     const importedGame = result.rows[0];
+
+    // Configure SC wallet
+    try {
+      await query(
+        `INSERT INTO game_compliance (game_id, is_external, is_sweepstake, is_social_casino, currency, max_win_amount, min_bet, max_bet)
+         VALUES ($1, true, true, true, 'SC', 20.00, 0.01, 5.00)
+         ON CONFLICT (game_id) DO UPDATE SET
+            is_external = true,
+            is_sweepstake = true,
+            is_social_casino = true,
+            currency = 'SC'`,
+        [importedGame.id]
+      );
+    } catch (compErr) {
+      console.warn(`[GameProviderImport] Failed to configure SC wallet for ${gameData.name}:`, (compErr as Error).message);
+    }
 
     // Log import
     await logImport(
@@ -173,10 +191,11 @@ export const bulkImportGamesProvider: RequestHandler = async (req, res) => {
             family,
             type,
             embed_url,
+            launch_url,
             created_at,
             updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
-           RETURNING id, name, provider, category, rtp, image_url, slug, series, family, type, embed_url, enabled`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())
+           RETURNING id, name, provider, category, rtp, image_url, slug, series, family, type, embed_url, launch_url, enabled`,
           [
             game.name,
             game.provider,
@@ -191,10 +210,29 @@ export const bulkImportGamesProvider: RequestHandler = async (req, res) => {
             game.family || null,
             game.type || null,
             game.embed_url || null,
+            game.embed_url || null, // launch_url
           ]
         );
 
-        importedGames.push(result.rows[0]);
+        const importedGame = result.rows[0];
+        importedGames.push(importedGame);
+
+        // Configure SC wallet
+        try {
+          await query(
+            `INSERT INTO game_compliance (game_id, is_external, is_sweepstake, is_social_casino, currency, max_win_amount, min_bet, max_bet)
+             VALUES ($1, true, true, true, 'SC', 20.00, 0.01, 5.00)
+             ON CONFLICT (game_id) DO UPDATE SET
+                is_external = true,
+                is_sweepstake = true,
+                is_social_casino = true,
+                currency = 'SC'`,
+            [importedGame.id]
+          );
+        } catch (compErr) {
+          console.warn(`[GameProviderImport] Failed to configure SC wallet for ${game.name}:`, (compErr as Error).message);
+        }
+
         imported++;
       } catch (gameError: any) {
         errors.push({

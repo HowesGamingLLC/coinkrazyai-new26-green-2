@@ -26,6 +26,7 @@ export interface AggregatedGame {
   max_bet?: number;
   min_bet?: number;
   embed_url?: string;
+  launch_url?: string;
   features: string[];
   themes: string[];
   enabled: boolean;
@@ -150,26 +151,52 @@ class GameAggregationService {
           );
 
           if (existingResult.rows.length > 0) {
+            const gameId = existingResult.rows[0].id;
             // Update existing game
             await query(
               `UPDATE games SET
                description = $1, category = $2, rtp = $3, volatility = $4,
-               image_url = $5, enabled = $6, embed_url = $7
-               WHERE name = $8 AND provider = $9`,
-              [game.description, game.category, game.rtp, game.volatility,
-               game.image_url, true, game.embed_url || this.generateEmbedUrl(game.name, game.external_id),
-               game.name, 'External']
+               image_url = $5, enabled = $6, embed_url = $7, launch_url = $8
+               WHERE id = $9`,
+              [
+                game.description,
+                game.category,
+                game.rtp,
+                game.volatility,
+                game.image_url,
+                true,
+                game.embed_url || this.generateEmbedUrl(game.name, game.external_id),
+                game.launch_url || game.embed_url || this.generateEmbedUrl(game.name, game.external_id),
+                gameId
+              ]
             );
+
+            // Configure SC wallet
+            await this.ensureScWalletConfig(gameId);
             updated++;
           } else {
             // Insert new game
-            await query(
-              `INSERT INTO games (name, description, category, provider, rtp, volatility, image_url, embed_url, enabled)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-              [game.name, game.description || '', game.category, 'External',
-               game.rtp || 95.0, game.volatility || 'Medium', game.image_url || null,
-               game.embed_url || this.generateEmbedUrl(game.name, game.external_id), true]
+            const result = await query(
+              `INSERT INTO games (name, description, category, provider, rtp, volatility, image_url, embed_url, launch_url, enabled)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+              [
+                game.name,
+                game.description || '',
+                game.category,
+                'External',
+                game.rtp || 95.0,
+                game.volatility || 'Medium',
+                game.image_url || null,
+                game.embed_url || this.generateEmbedUrl(game.name, game.external_id),
+                game.launch_url || game.embed_url || this.generateEmbedUrl(game.name, game.external_id),
+                true
+              ]
             );
+
+            // Configure SC wallet
+            if (result.rows.length > 0) {
+              await this.ensureScWalletConfig(result.rows[0].id);
+            }
             imported++;
           }
         } catch (err) {
@@ -362,26 +389,52 @@ class GameAggregationService {
         );
 
         if (existingResult.rows.length > 0) {
+          const gameId = existingResult.rows[0].id;
           // Update existing game
           await query(
             `UPDATE games SET
              description = $1, category = $2, rtp = $3, volatility = $4,
-             image_url = $5, enabled = $6, embed_url = $7
-             WHERE name = $8 AND provider = $9`,
-            [game.description, game.category, game.rtp, game.volatility,
-             game.image_url, game.enabled || true, game.embed_url || this.generateEmbedUrl(game.name, game.external_id),
-             game.name, 'External']
+             image_url = $5, enabled = $6, embed_url = $7, launch_url = $8
+             WHERE id = $9`,
+            [
+              game.description,
+              game.category,
+              game.rtp,
+              game.volatility,
+              game.image_url,
+              game.enabled || true,
+              game.embed_url || this.generateEmbedUrl(game.name, game.external_id),
+              game.launch_url || game.embed_url || this.generateEmbedUrl(game.name, game.external_id),
+              gameId
+            ]
           );
+
+          // Configure SC wallet
+          await this.ensureScWalletConfig(gameId);
           updated++;
         } else {
           // Insert new game
-          await query(
-            `INSERT INTO games (name, description, category, provider, rtp, volatility, image_url, embed_url, enabled)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-            [game.name, game.description || '', game.category, 'External',
-             game.rtp || 95.0, game.volatility || 'Medium', game.image_url || null,
-             game.embed_url || this.generateEmbedUrl(game.name, game.external_id), true]
+          const result = await query(
+            `INSERT INTO games (name, description, category, provider, rtp, volatility, image_url, embed_url, launch_url, enabled)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+            [
+              game.name,
+              game.description || '',
+              game.category,
+              'External',
+              game.rtp || 95.0,
+              game.volatility || 'Medium',
+              game.image_url || null,
+              game.embed_url || this.generateEmbedUrl(game.name, game.external_id),
+              game.launch_url || game.embed_url || this.generateEmbedUrl(game.name, game.external_id),
+              true
+            ]
           );
+
+          // Configure SC wallet
+          if (result.rows.length > 0) {
+            await this.ensureScWalletConfig(result.rows[0].id);
+          }
           imported++;
         }
       } catch (err) {
@@ -424,6 +477,24 @@ class GameAggregationService {
       themes: [],
       enabled: row.enabled
     }));
+  }
+
+  // Ensure game is configured for seamless SC wallet
+  private async ensureScWalletConfig(gameId: number): Promise<void> {
+    try {
+      await query(
+        `INSERT INTO game_compliance (game_id, is_external, is_sweepstake, is_social_casino, currency, max_win_amount, min_bet, max_bet)
+         VALUES ($1, true, true, true, 'SC', 20.00, 0.01, 5.00)
+         ON CONFLICT (game_id) DO UPDATE SET
+            is_external = true,
+            is_sweepstake = true,
+            is_social_casino = true,
+            currency = 'SC'`,
+        [gameId]
+      );
+    } catch (err) {
+      console.warn(`[GameAgg] Failed to ensure SC wallet config for game ${gameId}:`, (err as Error).message);
+    }
   }
 }
 

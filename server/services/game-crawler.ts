@@ -11,6 +11,7 @@ export interface CrawledGame {
   image_url?: string;
   thumbnail_url?: string;
   embed_url?: string;
+  launch_url?: string;
   max_paylines?: number;
   reels?: number;
   rows?: number;
@@ -109,6 +110,10 @@ class GameCrawler {
       const embed_url = this.extractEmbedUrl(html, $, url);
       console.log(`[Crawler] Extracted Embed URL: ${embed_url || 'None'}`);
 
+      // Extract launch URL (force launch_url for all)
+      const launch_url = embed_url;
+      console.log(`[Crawler] Set Launch URL: ${launch_url || 'None'}`);
+
       // Extract additional data
       const max_paylines = this.extractPaylines(html, $);
       const reels = this.extractReels(html, $);
@@ -137,6 +142,7 @@ class GameCrawler {
         image_url,
         thumbnail_url,
         embed_url,
+        launch_url,
         max_paylines,
         reels,
         rows,
@@ -867,7 +873,7 @@ class GameCrawler {
     try {
       // Check if game already exists
       const existingGameResult = await query(
-        'SELECT id, image_url, thumbnail, embed_url, description FROM games WHERE name = $1 AND provider = $2',
+        'SELECT id, image_url, thumbnail, embed_url, launch_url, description FROM games WHERE name = $1 AND provider = $2',
         [gameData.title, gameData.provider]
       );
 
@@ -894,6 +900,10 @@ class GameCrawler {
           updates.push(`embed_url = $${i++}`);
           values.push(gameData.embed_url);
         }
+        if (!existing.launch_url && gameData.launch_url) {
+          updates.push(`launch_url = $${i++}`);
+          values.push(gameData.launch_url);
+        }
         if ((!existing.description || existing.description.length < 50) && gameData.description) {
           updates.push(`description = $${i++}`);
           values.push(gameData.description);
@@ -916,8 +926,8 @@ class GameCrawler {
         const slug = gameData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
         const result = await query(
-          `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, thumbnail, embed_url, enabled)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true)
+          `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, thumbnail, embed_url, launch_url, enabled)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true)
            RETURNING *`,
           [
             gameData.title,
@@ -930,7 +940,8 @@ class GameCrawler {
             gameData.description,
             gameData.image_url,
             gameData.thumbnail_url,
-            gameData.embed_url
+            gameData.embed_url,
+            gameData.launch_url
           ]
         );
 
@@ -961,6 +972,24 @@ class GameCrawler {
       }
 
       console.log(`[Crawler] Processed game: ${gameData.title} (ID: ${savedGame.id})`);
+
+      // Ensure game_compliance is configured for seamless SC wallet (sweepstakes mode)
+      try {
+        await query(
+          `INSERT INTO game_compliance (game_id, is_external, is_sweepstake, is_social_casino, currency, max_win_amount, min_bet, max_bet)
+           VALUES ($1, true, true, true, 'SC', 20.00, 0.01, 5.00)
+           ON CONFLICT (game_id) DO UPDATE SET
+              is_external = true,
+              is_sweepstake = true,
+              is_social_casino = true,
+              currency = 'SC'`,
+          [savedGame.id]
+        );
+        console.log(`[Crawler] Configured seamless SC wallet for game: ${savedGame.name}`);
+      } catch (complianceError) {
+        console.warn(`[Crawler] Failed to configure game_compliance for ${savedGame.name}:`, (complianceError as Error).message);
+      }
+
       return savedGame;
     } catch (error) {
       console.error(`[Crawler] Error saving game:`, (error as Error).message);

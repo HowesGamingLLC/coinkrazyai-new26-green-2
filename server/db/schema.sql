@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS games (
     image_url VARCHAR(500),
     thumbnail VARCHAR(500),
     embed_url VARCHAR(500),
+    launch_url VARCHAR(500),
     enabled BOOLEAN DEFAULT TRUE,
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

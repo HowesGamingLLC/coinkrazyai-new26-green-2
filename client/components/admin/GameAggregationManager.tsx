@@ -26,6 +26,7 @@ interface GameData {
   volatility: 'Low' | 'Medium' | 'High';
   image_url?: string;
   embed_url?: string;
+  launch_url?: string;
   features?: string[];
   themes?: string[];
   enabled?: boolean;
@@ -1130,13 +1131,25 @@ const GameAggregationManager = () => {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold">Launch URL (Iframe)</label>
+                  <label className="text-sm font-semibold">Embed URL (Iframe)</label>
                   <Textarea
                     className="min-h-[80px] text-xs font-mono"
                     value={editingGame.data.embed_url}
                     onChange={(e) => setEditingGame({
                       ...editingGame,
                       data: { ...editingGame.data, embed_url: e.target.value }
+                    })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Launch URL (Forced)</label>
+                  <Textarea
+                    className="min-h-[80px] text-xs font-mono"
+                    value={editingGame.data.launch_url}
+                    onChange={(e) => setEditingGame({
+                      ...editingGame,
+                      data: { ...editingGame.data, launch_url: e.target.value }
                     })}
                   />
                 </div>
@@ -1209,9 +1222,9 @@ const GameAggregationManager = () => {
 
               {/* Game Iframe */}
               <div className="flex-1 w-full h-full relative group">
-                {previewingGame.embed_url ? (
+                {(previewingGame.launch_url || previewingGame.embed_url) ? (
                   <iframe
-                    src={previewingGame.embed_url}
+                    src={previewingGame.launch_url || previewingGame.embed_url}
                     className="w-full h-full border-none shadow-2xl"
                     allowFullScreen
                     allow="autoplay; encrypted-media; fullscreen"

@@ -24,8 +24,8 @@ export const handleGetGameConfig: RequestHandler = async (req, res) => {
     const { gameId } = req.params;
 
     const result = await query(
-      `SELECT 
-        g.id, g.name, g.description, g.image_url, g.embed_url,
+      `SELECT
+        g.id, g.name, g.description, g.image_url, g.embed_url, g.launch_url,
         gc.is_external, gc.is_sweepstake, gc.is_social_casino,
         gc.max_win_amount, gc.currency, gc.min_bet, gc.max_bet,
         gc.bet_increments
@@ -253,9 +253,9 @@ export const handleGetSpinHistory: RequestHandler = async (req, res) => {
 export const handleGetExternalGames: RequestHandler = async (req, res) => {
   try {
     const result = await query(
-      `SELECT 
-        g.id, g.name, g.description, g.image_url, g.embed_url, g.slug,
-        gc.is_external, gc.is_sweepstake, gc.max_win_amount, 
+      `SELECT
+        g.id, g.name, g.description, g.image_url, g.embed_url, g.launch_url, g.slug,
+        gc.is_external, gc.is_sweepstake, gc.max_win_amount,
         gc.min_bet, gc.max_bet, gc.currency
       FROM games g
       LEFT JOIN game_compliance gc ON g.id = gc.game_id
@@ -271,6 +271,7 @@ export const handleGetExternalGames: RequestHandler = async (req, res) => {
         description: row.description,
         image_url: row.image_url,
         embed_url: row.embed_url,
+        launch_url: row.launch_url,
         slug: row.slug,
         is_external: row.is_external,
         is_sweepstake: row.is_sweepstake,

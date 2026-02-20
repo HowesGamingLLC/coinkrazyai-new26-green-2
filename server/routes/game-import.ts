@@ -265,13 +265,31 @@ export const handleImportGames: RequestHandler = async (req, res) => {
 
         // Insert new game
         const result = await query(
-          `INSERT INTO games (name, provider, category, image_url, embed_url, rtp, enabled, slug, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+          `INSERT INTO games (name, provider, category, image_url, embed_url, launch_url, rtp, enabled, slug, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
            RETURNING id`,
-          [game.title, 'External', 'Slots', game.image, game.game_url, game.rtp, game.enabled, slug]
+          [game.title, 'External', 'Slots', game.image, game.game_url, game.game_url, game.rtp, game.enabled, slug]
         );
 
-        console.log(`[GameImport] Added: ${game.title} (ID: ${result.rows[0].id})`);
+        const gameId = result.rows[0].id;
+        console.log(`[GameImport] Added: ${game.title} (ID: ${gameId})`);
+
+        // Configure SC wallet
+        try {
+          await query(
+            `INSERT INTO game_compliance (game_id, is_external, is_sweepstake, is_social_casino, currency, max_win_amount, min_bet, max_bet)
+             VALUES ($1, true, true, true, 'SC', 20.00, 0.01, 5.00)
+             ON CONFLICT (game_id) DO UPDATE SET
+                is_external = true,
+                is_sweepstake = true,
+                is_social_casino = true,
+                currency = 'SC'`,
+            [gameId]
+          );
+        } catch (compErr) {
+          console.warn(`[GameImport] Failed to configure SC wallet for ${game.title}:`, (compErr as Error).message);
+        }
+
         imported++;
       } catch (gameError: any) {
         console.error(`[GameImport] Failed to add ${game.title}:`, gameError.message);

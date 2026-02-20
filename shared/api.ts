@@ -106,6 +106,7 @@ export interface SlotGame {
   provider: string;
   image: string;
   gameUrl: string;
+  launchUrl?: string;
   badges: ('New' | 'Buy Bonus')[];
   releaseDate?: string;
   slug?: string;
@@ -119,6 +120,8 @@ export interface GameMetadata {
   provider: string;
   description: string;
   image_url?: string;
+  embed_url?: string;
+  launch_url?: string;
   rtp: number;
   volatility: 'Low' | 'Medium' | 'High';
   max_paylines?: number;

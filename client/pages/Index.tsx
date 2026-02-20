@@ -23,6 +23,7 @@ interface Game {
   image_url?: string;
   thumbnail?: string;
   embed_url?: string;
+  launch_url?: string;
   enabled?: boolean;
 }
 
@@ -310,7 +311,7 @@ const Index = () => {
                     variant="secondary"
                     className="font-bold group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                     onClick={() => {
-                      if (game.embed_url) {
+                      if (game.launch_url || game.embed_url) {
                         setSelectedGame(game);
                         setIsPlayerOpen(true);
                       } else {

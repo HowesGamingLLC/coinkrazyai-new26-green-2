@@ -22,6 +22,7 @@ interface Game {
   image_url?: string;
   thumbnail?: string;
   embed_url?: string;
+  launch_url?: string;
   enabled?: boolean;
 }
 

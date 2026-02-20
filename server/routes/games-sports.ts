@@ -42,7 +42,7 @@ export const createGame: RequestHandler = async (req, res) => {
   try {
     const {
       name, category, provider, rtp, volatility, description,
-      image_url, imageUrl, enabled, embed_url, slug,
+      image_url, imageUrl, enabled, embed_url, launch_url, slug,
       series, family, type
     } = req.body;
 
@@ -64,9 +64,9 @@ export const createGame: RequestHandler = async (req, res) => {
     const finalSlug = slug || name.toLowerCase().replace(/\s+/g, '-');
 
     const result = await query(
-      `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url, enabled, embed_url, slug, series, family, type)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
-      [name, category, finalProvider, finalRtp, finalVolatility, finalDescription, finalImageUrl, finalEnabled, embed_url || null, finalSlug, series || null, family || null, type || null]
+      `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url, enabled, embed_url, launch_url, slug, series, family, type)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
+      [name, category, finalProvider, finalRtp, finalVolatility, finalDescription, finalImageUrl, finalEnabled, embed_url || null, launch_url || embed_url || null, finalSlug, series || null, family || null, type || null]
     );
 
     await SlackService.notifyAdminAction(req.user?.email || 'admin', 'Created game', `${name} - ${category}`);
@@ -90,7 +90,7 @@ export const updateGame: RequestHandler = async (req, res) => {
     // Whitelist allowed fields to prevent injection
     const allowedFields = [
       'name', 'category', 'provider', 'rtp', 'volatility',
-      'description', 'image_url', 'enabled', 'embed_url',
+      'description', 'image_url', 'enabled', 'embed_url', 'launch_url',
       'slug', 'series', 'family', 'type'
     ];
 
@@ -103,6 +103,7 @@ export const updateGame: RequestHandler = async (req, res) => {
     for (const [key, value] of Object.entries(updates)) {
       if (key === 'imageUrl') normalizedUpdates['image_url'] = value;
       else if (key === 'embedUrl') normalizedUpdates['embed_url'] = value;
+      else if (key === 'launchUrl') normalizedUpdates['launch_url'] = value;
       else normalizedUpdates[key] = value;
     }
 
@@ -555,6 +556,7 @@ export const handleSaveCrawledGame: RequestHandler = async (req, res) => {
       image_url: rawData.image_url || rawData.thumbnail || '',
       thumbnail_url: rawData.thumbnail_url || rawData.thumbnail || '',
       embed_url: rawData.embed_url || '',
+      launch_url: rawData.launch_url || rawData.embed_url || '',
       type: rawData.type || 'Video Slot',
       source: rawData.source || rawData.crawl_source_url || 'manual'
     };
@@ -688,9 +690,9 @@ export const buildGameFromTemplate: RequestHandler = async (req, res) => {
     };
 
     const result = await query(
-      `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url, enabled, slug, type)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-      [gameData.name, gameData.category, gameData.provider, gameData.rtp, gameData.volatility, gameData.description, gameData.image_url, gameData.enabled, gameData.slug, gameData.type]
+      `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url, enabled, slug, type, embed_url, launch_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+      [gameData.name, gameData.category, gameData.provider, gameData.rtp, gameData.volatility, gameData.description, gameData.image_url, gameData.enabled, gameData.slug, gameData.type, gameData.embed_url || null, gameData.launch_url || gameData.embed_url || null]
     );
 
     res.json(result.rows[0]);

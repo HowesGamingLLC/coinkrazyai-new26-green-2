@@ -19,6 +19,7 @@ interface GamePlayerModalProps {
     name: string;
     provider: string;
     embed_url?: string;
+    launch_url?: string;
     image_url?: string;
     type?: string;
   };
@@ -46,7 +47,8 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
 
   // Load game config on mount
   useEffect(() => {
-    if (isOpen && game.embed_url) {
+    const gameUrl = game.launch_url || game.embed_url;
+    if (isOpen && gameUrl) {
       const loadGameConfig = async () => {
         try {
           const response = await apiCall<any>(`/games/${game.id}/config`);
@@ -153,9 +155,10 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
 
   // Enhance embed URL with bet and wallet data if possible
   const enhancedEmbedUrl = React.useMemo(() => {
-    if (!game.embed_url) return '';
+    const gameUrl = game.launch_url || game.embed_url;
+    if (!gameUrl) return '';
     try {
-      const url = new URL(game.embed_url);
+      const url = new URL(gameUrl);
       url.searchParams.set('bet', currentBet.toString());
       url.searchParams.set('balance', scBalance.toString());
       url.searchParams.set('sc_balance', scBalance.toString());
@@ -165,12 +168,12 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
       return url.toString();
     } catch (e) {
       // Fallback for relative or invalid URLs
-      const separator = game.embed_url.includes('?') ? '&' : '?';
-      return `${game.embed_url}${separator}bet=${currentBet}&balance=${scBalance}&sc_balance=${scBalance}&gc_balance=${gcBalance}&currency=SC&username=${user?.username || 'Guest'}`;
+      const separator = gameUrl.includes('?') ? '&' : '?';
+      return `${gameUrl}${separator}bet=${currentBet}&balance=${scBalance}&sc_balance=${scBalance}&gc_balance=${gcBalance}&currency=SC&username=${user?.username || 'Guest'}`;
     }
-  }, [game.embed_url, currentBet, scBalance, gcBalance, user?.username]);
+  }, [game.launch_url, game.embed_url, currentBet, scBalance, gcBalance, user?.username]);
 
-  if (!isOpen || !game.embed_url) {
+  if (!isOpen || !(game.launch_url || game.embed_url)) {
     return null;
   }
 

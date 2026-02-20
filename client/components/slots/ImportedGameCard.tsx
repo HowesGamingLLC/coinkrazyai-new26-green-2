@@ -18,6 +18,7 @@ interface ImportedGame {
   image_url?: string;
   thumbnail?: string;
   embed_url?: string;
+  launch_url?: string;
   enabled?: boolean;
 }
 
@@ -69,7 +70,7 @@ export const ImportedGameCard = ({
           </div>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          {game.embed_url && (
+          {(game.launch_url || game.embed_url) && (
             <Button
               size="sm"
               variant="outline"
@@ -106,7 +107,7 @@ export const ImportedGameCard = ({
 
           {/* Overlay with Play Button */}
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-            {game.embed_url && (
+            {(game.launch_url || game.embed_url) && (
               <Button
                 size="lg"
                 onClick={handlePlayClick}
@@ -120,7 +121,7 @@ export const ImportedGameCard = ({
 
           {/* Status Badges */}
           <div className="absolute top-2 right-2 flex gap-2">
-            {!game.embed_url && (
+            {!(game.launch_url || game.embed_url) && (
               <Badge variant="destructive" className="gap-1">
                 <Info className="w-3 h-3" />
                 No Embed
@@ -171,7 +172,7 @@ export const ImportedGameCard = ({
 
         {/* Actions */}
         <div className="flex gap-2 pt-2">
-          {game.embed_url && (
+          {(game.launch_url || game.embed_url) && (
             <Button
               size="sm"
               className="flex-1 gap-1"
