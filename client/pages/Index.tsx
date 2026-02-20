@@ -30,6 +30,7 @@ const Index = () => {
   const [featuredGames, setFeaturedGames] = useState<Game[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+  const [isLoadingGames, setIsLoadingGames] = useState(false);
   const [platformStats, setPlatformStats] = useState({
     activePlayers: '4,521',
     jackpotTotal: '52,140 SC',
