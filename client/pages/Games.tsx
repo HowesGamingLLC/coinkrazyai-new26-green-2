@@ -96,12 +96,26 @@ const Games = () => {
     // Game type filter
     if (selectedGameType !== 'all') {
       const typeStr = selectedGameType.replace('-', ' ').toLowerCase();
+      const singularType = selectedGameType.endsWith('s') ? selectedGameType.slice(0, -1) : selectedGameType;
+      const singularTypeStr = typeStr.endsWith('s') ? typeStr.slice(0, -1) : typeStr;
+
       result = result.filter(
-        (game) =>
-          game.type?.toLowerCase() === selectedGameType ||
-          game.category?.toLowerCase() === selectedGameType ||
-          game.type?.toLowerCase() === typeStr ||
-          game.category?.toLowerCase() === typeStr
+        (game) => {
+          const gType = game.type?.toLowerCase() || '';
+          const gCat = game.category?.toLowerCase() || '';
+          return (
+            gType === selectedGameType ||
+            gCat === selectedGameType ||
+            gType === typeStr ||
+            gCat === typeStr ||
+            gType === singularType ||
+            gCat === singularType ||
+            gType === singularTypeStr ||
+            gCat === singularTypeStr ||
+            gType.includes(singularType) ||
+            gCat.includes(singularType)
+          );
+        }
       );
     }
 
@@ -141,12 +155,26 @@ const Games = () => {
   const getGameTypeCount = (type: GameType): number => {
     if (type === 'all') return allGames.length;
     const typeStr = type.replace('-', ' ').toLowerCase();
+    const singularType = type.endsWith('s') ? type.slice(0, -1) : type;
+    const singularTypeStr = typeStr.endsWith('s') ? typeStr.slice(0, -1) : typeStr;
+
     return allGames.filter(
-      (g) =>
-        g.type?.toLowerCase() === type ||
-        g.category?.toLowerCase() === type ||
-        g.type?.toLowerCase() === typeStr ||
-        g.category?.toLowerCase() === typeStr
+      (g) => {
+        const gType = g.type?.toLowerCase() || '';
+        const gCat = g.category?.toLowerCase() || '';
+        return (
+          gType === type ||
+          gCat === type ||
+          gType === typeStr ||
+          gCat === typeStr ||
+          gType === singularType ||
+          gCat === singularType ||
+          gType === singularTypeStr ||
+          gCat === singularTypeStr ||
+          gType.includes(singularType) ||
+          gCat.includes(singularType)
+        );
+      }
     ).length;
   };
 

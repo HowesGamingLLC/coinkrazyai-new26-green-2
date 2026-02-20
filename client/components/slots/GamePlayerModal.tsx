@@ -37,6 +37,7 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
   const [hasError, setHasError] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [currentBet, setCurrentBet] = useState(0.10);
   const [gameConfig, setGameConfig] = useState<GameConfig>({
     min_bet: 0.01,
     max_bet: 100
@@ -49,10 +50,12 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
         try {
           const response = await apiCall<any>(`/games/${game.id}/config`);
           if (response.data) {
-            setGameConfig({
+            const config = {
               min_bet: response.data.min_bet || 0.01,
               max_bet: response.data.max_bet || 100
-            });
+            };
+            setGameConfig(config);
+            setCurrentBet(config.min_bet);
           }
           setIsLoading(false);
           setHasError(false);
@@ -101,7 +104,11 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
     }
   };
 
-  const handleBetSelect = async (betAmount: number) => {
+  const handleBetChange = (amount: number) => {
+    setCurrentBet(amount);
+  };
+
+  const handlePlaySpin = async () => {
     if (!user) {
       toast.error('You must be logged in to play');
       return;
@@ -115,7 +122,7 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
         method: 'POST',
         body: JSON.stringify({
           game_id: game.id,
-          bet_amount: betAmount
+          bet_amount: currentBet
         })
       });
 
@@ -126,7 +133,8 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
         if (win_amount > 0) {
           toast.success(`🎉 You won ${win_amount.toFixed(2)} SC!`);
         } else {
-          toast.info(`You lost ${betAmount.toFixed(2)} SC`);
+          // Optional: smaller notification for losses to avoid spam
+          // toast.info(`Result: ${win_amount.toFixed(2)} SC`);
         }
       } else {
         toast.error(response.error || 'Spin failed');
@@ -146,143 +154,97 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
   const scBalance = wallet?.sweepsCoins || 0;
   const gcBalance = wallet?.goldCoins || 0;
 
+  // Enhance embed URL with bet and wallet data if possible
+  const enhancedEmbedUrl = React.useMemo(() => {
+    if (!game.embed_url) return '';
+    try {
+      const url = new URL(game.embed_url);
+      url.searchParams.set('bet', currentBet.toString());
+      url.searchParams.set('balance', scBalance.toString());
+      url.searchParams.set('sc_balance', scBalance.toString());
+      url.searchParams.set('gc_balance', gcBalance.toString());
+      url.searchParams.set('currency', 'SC');
+      url.searchParams.set('username', user?.username || 'Guest');
+      return url.toString();
+    } catch (e) {
+      // Fallback for relative or invalid URLs
+      const separator = game.embed_url.includes('?') ? '&' : '?';
+      return `${game.embed_url}${separator}bet=${currentBet}&balance=${scBalance}&sc_balance=${scBalance}&gc_balance=${gcBalance}&currency=SC&username=${user?.username || 'Guest'}`;
+    }
+  }, [game.embed_url, currentBet, scBalance, gcBalance, user?.username]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 bg-slate-900 border-slate-700">
+      <DialogContent className="max-w-7xl h-[95vh] flex flex-col p-0 bg-black border-slate-800 shadow-2xl">
         <DialogTitle className="sr-only">Playing {game.name}</DialogTitle>
-        {/* Header with CoinKrazy Branding */}
-        <div className="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
-                  💰 CoinKrazy
-                </span>
-              </div>
-              <div className="border-l border-slate-600 pl-4">
-                <h2 className="text-xl font-bold text-white">{game.name}</h2>
-                <p className="text-xs text-slate-400">{game.provider}</p>
-              </div>
-            </div>
 
-            {/* Wallet Balance Display */}
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge className="bg-yellow-500 text-black">Gold Coins</Badge>
-                  <span className="text-lg font-bold text-yellow-400">{gcBalance.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-cyan-500 text-black">Sweeps Coins</Badge>
-                  <span className="text-lg font-bold text-cyan-400">{scBalance.toFixed(2)}</span>
-                </div>
-              </div>
+        {/* Top Branding & Status Bar */}
+        <div className="bg-[#0f172a] border-b border-slate-800 px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary/20 p-1.5 rounded-lg border border-primary/30">
+              <span className="text-primary font-black text-xs italic">CK</span>
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white leading-tight">{game.name}</h2>
+              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{game.provider}</p>
+            </div>
+          </div>
+
+          {/* Real-time Wallet Display */}
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex flex-col items-end border-r border-slate-800 pr-3">
+              <span className="text-[10px] text-slate-500 font-bold uppercase">Gold Coins</span>
+              <span className="text-sm font-black text-yellow-500">{gcBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] text-slate-500 font-bold uppercase">Sweeps Coins</span>
+              <span className="text-sm font-black text-cyan-400">{scBalance.toLocaleString(undefined, {minimumFractionDigits: 2})} SC</span>
             </div>
           </div>
         </div>
 
-        {/* Control Bar */}
-        <div className="flex items-center gap-2 px-6 py-3 border-b border-slate-700 bg-slate-800/50">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleRefresh}
-            title="Refresh game"
-            className="gap-2"
-          >
-            <RotateCw className="w-4 h-4" />
-            Refresh
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsMuted(!isMuted)}
-            title={isMuted ? 'Unmute' : 'Mute'}
-            className="gap-2"
-          >
-            {isMuted ? (
-              <VolumeX className="w-4 h-4" />
-            ) : (
-              <Volume2 className="w-4 h-4" />
-            )}
-            {isMuted ? 'Muted' : 'Sound'}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleFullscreen}
-            title="Fullscreen"
-            className="gap-2"
-          >
-            {isFullscreen ? (
-              <Minimize2 className="w-4 h-4" />
-            ) : (
-              <Maximize2 className="w-4 h-4" />
-            )}
-          </Button>
-          <div className="flex-1" />
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onClose}
-            className="text-slate-400 hover:text-white"
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
+        {/* Main Game Interface */}
+        <div className="flex-1 flex flex-col relative overflow-hidden">
+          {/* Action Bar (Overlays on top of iframe when hovered or active) */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-full opacity-40 hover:opacity-100 transition-opacity duration-300">
+            <Button size="icon" variant="ghost" className="h-8 w-8 text-white hover:bg-white/10" onClick={handleRefresh}>
+              <RotateCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+            </Button>
+            <div className="w-px h-4 bg-white/20 mx-1" />
+            <Button size="icon" variant="ghost" className="h-8 w-8 text-white hover:bg-white/10" onClick={() => setIsMuted(!isMuted)}>
+              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </Button>
+            <div className="w-px h-4 bg-white/20 mx-1" />
+            <Button size="icon" variant="ghost" className="h-8 w-8 text-white hover:bg-white/10" onClick={handleFullscreen}>
+              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
+            <div className="w-px h-4 bg-white/20 mx-1" />
+            <Button size="icon" variant="ghost" className="h-8 w-8 text-white hover:bg-red-500/50" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden p-4 lg:p-6">
-          {/* Game Container */}
-          <div
-            id={`game-player-container-${game.id}`}
-            className="flex-1 flex flex-col bg-black rounded-lg overflow-hidden relative min-h-[300px] lg:min-h-0"
-          >
+          {/* The Game Iframe */}
+          <div className="flex-1 bg-black relative">
             {isLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10">
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 mb-4">
-                    <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center bg-[#020617] z-10">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="relative w-20 h-20">
+                    <div className="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-primary font-black italic">CK</span>
+                    </div>
                   </div>
-                  <p className="text-white text-sm">Loading game...</p>
-                </div>
-              </div>
-            )}
-
-            {hasError && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10 p-6">
-                <div className="text-center space-y-4">
-                  <div className="text-6xl">⚠️</div>
-                  <div>
-                    <h3 className="text-white font-semibold mb-2">Unable to Load Game</h3>
-                    <p className="text-gray-400 text-sm mb-4">
-                      The game provider is unavailable or the embed URL is not accessible.
-                    </p>
-                  </div>
-                  <div className="flex gap-2 justify-center pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={handleRefresh}
-                      className="gap-2"
-                    >
-                      <RotateCw className="w-4 h-4" />
-                      Try Again
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={onClose}
-                    >
-                      Close
-                    </Button>
-                  </div>
+                  <p className="text-slate-400 font-bold text-sm animate-pulse tracking-widest uppercase">Initializing Stream...</p>
                 </div>
               </div>
             )}
 
             <iframe
-              key={refreshKey}
+              key={`${refreshKey}-${enhancedEmbedUrl}`}
               id={`game-player-iframe-${game.id}`}
-              src={game.embed_url}
+              src={enhancedEmbedUrl}
               title={game.name}
               className="w-full h-full border-0"
               allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-read; clipboard-write; microphone; camera; midi; geolocation"
@@ -294,64 +256,82 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
             />
           </div>
 
-          {/* Betting Panel */}
-          <div className="w-full lg:w-80 flex flex-col gap-4 overflow-y-auto lg:overflow-visible pr-2 lg:pr-0">
-            {/* Bet Selector */}
-            <div className="flex-1">
-              <BetSelector
-                minBet={gameConfig.min_bet}
-                maxBet={gameConfig.max_bet}
-                currentBalance={scBalance}
-                onBetSelect={handleBetSelect}
-                isProcessing={isSpinning}
-              />
-            </div>
-
-            {/* Game Info */}
-            <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 space-y-3">
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-slate-400 uppercase">Game Information</p>
-                <div className="space-y-2 text-sm">
-                  {game.type && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Type:</span>
-                      <span className="text-white font-medium capitalize">{game.type}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Min Bet:</span>
-                    <span className="text-white font-medium">{gameConfig.min_bet.toFixed(2)} SC</span>
+          {/* Integrated Betting Overlay at the bottom */}
+          <div className="bg-[#0f172a] border-t border-slate-800 p-4">
+            <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+              {/* Bet Controls */}
+              <div className="flex items-center gap-4 w-full md:w-auto">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase mb-1">Total Bet</span>
+                  <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 p-1 rounded-lg">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-white"
+                      disabled={currentBet <= gameConfig.min_bet || isSpinning}
+                      onClick={() => setCurrentBet(prev => Math.max(gameConfig.min_bet, prev - 0.10))}
+                    >
+                      -
+                    </Button>
+                    <span className="text-lg font-black text-white min-w-[80px] text-center">
+                      {currentBet.toFixed(2)} <span className="text-[10px] text-primary">SC</span>
+                    </span>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-white"
+                      disabled={currentBet >= gameConfig.max_bet || isSpinning}
+                      onClick={() => setCurrentBet(prev => Math.min(gameConfig.max_bet, prev + 0.10))}
+                    >
+                      +
+                    </Button>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Max Bet:</span>
-                    <span className="text-white font-medium">{gameConfig.max_bet.toFixed(2)} SC</span>
+                </div>
+
+                <div className="hidden lg:flex flex-col">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase mb-1">Shortcut</span>
+                  <div className="flex gap-1">
+                    {[0.10, 0.50, 1.00, 5.00].map(val => (
+                      <Button
+                        key={val}
+                        size="sm"
+                        variant={currentBet === val ? "default" : "outline"}
+                        className="h-8 text-[10px] px-2 border-slate-700"
+                        onClick={() => setCurrentBet(val)}
+                        disabled={isSpinning}
+                      >
+                        {val.toFixed(2)}
+                      </Button>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              <div className="border-t border-slate-700 pt-3">
-                <p className="text-xs text-slate-500">
-                  ⚠️ Please play responsibly. Set betting limits and take regular breaks.
-                </p>
+              {/* Spin / Play Button */}
+              <div className="flex items-center gap-4 w-full md:w-auto">
+                <div className="hidden xl:flex flex-col items-end">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase">Estimated RTP</span>
+                  <span className="text-sm font-bold text-green-500">96.5%</span>
+                </div>
+
+                <Button
+                  size="lg"
+                  className={cn(
+                    "h-14 px-12 rounded-xl font-black text-xl tracking-tighter transition-all duration-300 shadow-lg shadow-primary/20",
+                    isSpinning ? "bg-slate-700" : "bg-gradient-to-r from-primary to-green-500 hover:scale-105 active:scale-95"
+                  )}
+                  onClick={handlePlaySpin}
+                  disabled={isSpinning || scBalance < currentBet}
+                >
+                  {isSpinning ? (
+                    <RotateCw className="h-6 w-6 animate-spin" />
+                  ) : (
+                    "SPIN"
+                  )}
+                </Button>
               </div>
             </div>
-
-            {/* Balance Warning */}
-            {scBalance < gameConfig.min_bet && (
-              <Alert className="bg-red-500/20 border-red-500/50">
-                <AlertDescription className="text-red-200 text-sm">
-                  Insufficient balance to play. You need at least {gameConfig.min_bet.toFixed(2)} SC.
-                </AlertDescription>
-              </Alert>
-            )}
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-slate-700 px-6 py-3 bg-slate-800/50 text-xs text-slate-400">
-          <p>
-            Playing: <span className="text-white font-semibold">{game.name}</span> by <span className="text-cyan-400">{game.provider}</span> • Powered by CoinKrazy
-          </p>
         </div>
       </DialogContent>
     </Dialog>

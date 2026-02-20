@@ -165,69 +165,69 @@ export const ExternalGamePlayer: React.FC<ExternalGamePlayerProps> = ({ gameId }
   }
 
   const scBalance = wallet?.sweepsCoins || 0;
+  const gcBalance = wallet?.goldCoins || 0;
+
+  // Enhance embed URL with bet and wallet data if possible
+  const enhancedEmbedUrl = React.useMemo(() => {
+    if (!gameConfig.embed_url) return '';
+    try {
+      const url = new URL(gameConfig.embed_url);
+      // We don't have a local 'currentBet' state in this component yet,
+      // but we can pass the min_bet or a default
+      url.searchParams.set('balance', scBalance.toString());
+      url.searchParams.set('sc_balance', scBalance.toString());
+      url.searchParams.set('gc_balance', gcBalance.toString());
+      url.searchParams.set('currency', 'SC');
+      url.searchParams.set('username', user?.username || 'Guest');
+      return url.toString();
+    } catch (e) {
+      const separator = gameConfig.embed_url.includes('?') ? '&' : '?';
+      return `${gameConfig.embed_url}${separator}balance=${scBalance}&sc_balance=${scBalance}&gc_balance=${gcBalance}&currency=SC&username=${user?.username || 'Guest'}`;
+    }
+  }, [gameConfig.embed_url, scBalance, gcBalance, user?.username]);
 
   return (
     <div className="space-y-6">
-      {/* Game Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{gameConfig.name}</CardTitle>
-          <CardDescription>{gameConfig.description}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {gameConfig.image_url && (
-            <img
-              src={gameConfig.image_url}
-              alt={gameConfig.name}
-              className="w-full rounded-lg object-cover aspect-video"
-            />
-          )}
-
-          {gameConfig.is_sweepstake && (
-            <Alert>
-              <AlertDescription>
-                ✨ This is a sweepstake game. Winnings are paid in Sweeps Coins (SC).
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Game Controls */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Bet Selector */}
-        <div className="lg:col-span-1">
-          <BetSelector
-            minBet={gameConfig.min_bet}
-            maxBet={gameConfig.max_bet}
-            currentBalance={scBalance}
-            onBetSelect={handleSpin}
-            isProcessing={isSpinning}
-          />
+      {/* Game Header & Info */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800">
+        <div>
+          <h1 className="text-3xl font-black text-white tracking-tighter">{gameConfig.name}</h1>
+          <p className="text-slate-400 text-sm mt-1">{gameConfig.description}</p>
         </div>
+        <div className="flex items-center gap-3 bg-black/40 p-3 rounded-xl border border-white/5">
+          <div className="text-right">
+            <p className="text-[10px] text-slate-500 font-bold uppercase">Your Balance</p>
+            <p className="text-xl font-black text-cyan-400">{scBalance.toFixed(2)} SC</p>
+          </div>
+        </div>
+      </div>
 
-        {/* Game Display */}
-        <div className="lg:col-span-2">
-          <Card className="h-full bg-black border-slate-800 flex flex-col min-h-[500px] overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800">
+      {/* Main Game Area */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        {/* Game View */}
+        <div className="xl:col-span-3">
+          <Card className="h-full bg-black border-slate-800 flex flex-col min-h-[600px] overflow-hidden shadow-2xl rounded-2xl relative">
+            <div className="flex items-center justify-between px-4 py-3 bg-[#0f172a] border-b border-white/5">
                <div className="flex items-center gap-2">
                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Game Stream</span>
+                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Premium Game Stream</span>
                </div>
-               <Button
-                 variant="ghost"
-                 size="icon"
-                 className="h-8 w-8 text-slate-400 hover:text-white"
-                 onClick={() => setRefreshKey(prev => prev + 1)}
-               >
-                 <Loader2 className={cn("w-4 h-4", isSpinning && "animate-spin")} />
-               </Button>
+               <div className="flex items-center gap-2">
+                 <Button
+                   variant="ghost"
+                   size="icon"
+                   className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/5"
+                   onClick={() => setRefreshKey(prev => prev + 1)}
+                 >
+                   <Loader2 className={cn("w-4 h-4", isSpinning && "animate-spin")} />
+                 </Button>
+               </div>
             </div>
-            <div className="flex-1 relative">
+            <div className="flex-1 relative bg-[#020617]">
               {gameConfig.embed_url ? (
                 <iframe
                   key={refreshKey}
-                  src={gameConfig.embed_url}
+                  src={enhancedEmbedUrl}
                   className="absolute inset-0 w-full h-full border-0"
                   allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-read; clipboard-write; microphone; camera; midi; geolocation"
                   allowFullScreen
@@ -236,11 +236,45 @@ export const ExternalGamePlayer: React.FC<ExternalGamePlayerProps> = ({ gameId }
                 />
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground p-6">
-                  <p className="text-lg font-semibold">{gameConfig.name}</p>
-                  <p className="text-sm">Game content would display here</p>
+                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                    <AlertCircle className="w-10 h-10 text-primary" />
+                  </div>
+                  <p className="text-lg font-bold text-white">{gameConfig.name}</p>
+                  <p className="text-sm text-slate-500">Iframe content not available</p>
                 </div>
               )}
             </div>
+          </Card>
+        </div>
+
+        {/* Sidebar Controls */}
+        <div className="xl:col-span-1 space-y-6">
+          <BetSelector
+            minBet={gameConfig.min_bet}
+            maxBet={gameConfig.max_bet}
+            currentBalance={scBalance}
+            onBetSelect={handleSpin}
+            isProcessing={isSpinning}
+          />
+
+          <Card className="bg-slate-900 border-slate-800">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-bold text-slate-400 uppercase tracking-wider">Quick Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center py-2 border-b border-white/5">
+                <span className="text-xs text-slate-500">Max Win Potential</span>
+                <span className="text-sm font-bold text-green-500">{gameConfig.max_win_amount.toFixed(2)} SC</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-white/5">
+                <span className="text-xs text-slate-500">Currency</span>
+                <span className="text-sm font-bold text-white">{gameConfig.currency}</span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-xs text-slate-500">Type</span>
+                <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">SWEEPSTAKES</Badge>
+              </div>
+            </CardContent>
           </Card>
         </div>
       </div>
