@@ -63,6 +63,9 @@ const GameAggregationManager = () => {
   const [editingGame, setEditingGame] = useState<{ index: number; data: GameData } | null>(null);
   const [previewingGame, setPreviewingGame] = useState<GameData | null>(null);
   const [isImportingSingle, setIsImportingSingle] = useState<number | null>(null);
+  const [isImportingAll, setIsImportingAll] = useState(false);
+  const [isMultiUrlMode, setIsMultiUrlMode] = useState(false);
+  const [multiUrlText, setMultiUrlText] = useState('');
 
   // Fetch import history on mount
   useEffect(() => {
@@ -95,7 +98,19 @@ const GameAggregationManager = () => {
 
     setIsLoading(true);
     try {
-      const result = await adminV2.games.crawlSlots(crawlerUrl, undefined, true);
+      const urls = isMultiUrlMode
+        ? multiUrlText.split('\n').map(u => u.trim()).filter(Boolean)
+        : [crawlerUrl];
+
+      if (urls.length === 0) {
+        toast.error('Please enter at least one URL');
+        return;
+      }
+
+      const result = isMultiUrlMode
+        ? await adminV2.games.crawlSlots(undefined, urls, true)
+        : await adminV2.games.crawlSlots(urls[0], undefined, true);
+
       if (result.success && result.data) {
         setCrawledGames(result.data);
         toast.success(`Found ${result.data.length} games`);
@@ -107,6 +122,37 @@ const GameAggregationManager = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleImportAllCrawled = async () => {
+    if (crawledGames.length === 0) return;
+
+    setIsImportingAll(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    toast.info(`Starting import of ${crawledGames.length} games...`);
+
+    for (const game of crawledGames) {
+      try {
+        const result = await adminV2.games.saveCrawledGame(game);
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        failCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`Successfully imported ${successCount} games`);
+    }
+    if (failCount > 0) {
+      toast.error(`Failed to import ${failCount} games`);
+    }
+    setIsImportingAll(false);
   };
 
   const handleImportSingleGame = async (game: GameData, index: number) => {
@@ -414,34 +460,66 @@ const GameAggregationManager = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="https://example-casino.com/provider/pragmatic-play"
-                    value={crawlerUrl}
-                    onChange={(e) => setCrawlerUrl(e.target.value)}
-                    className="pl-10 h-11"
-                  />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={isMultiUrlMode ? "ghost" : "secondary"}
+                      size="sm"
+                      onClick={() => setIsMultiUrlMode(false)}
+                    >
+                      Single URL
+                    </Button>
+                    <Button
+                      variant={isMultiUrlMode ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setIsMultiUrlMode(true)}
+                    >
+                      Multiple URLs
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  onClick={handleStartCrawl}
-                  disabled={isLoading}
-                  size="lg"
-                  className="gap-2 bg-primary hover:bg-primary/90 h-11 px-8"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Crawling...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-4 h-4" />
-                      Start Crawl
-                    </>
-                  )}
-                </Button>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    {isMultiUrlMode ? (
+                      <Textarea
+                        placeholder="Enter one URL per line..."
+                        value={multiUrlText}
+                        onChange={(e) => setMultiUrlText(e.target.value)}
+                        className="min-h-[100px] font-mono text-xs"
+                      />
+                    ) : (
+                      <>
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="https://example-casino.com/provider/pragmatic-play"
+                          value={crawlerUrl}
+                          onChange={(e) => setCrawlerUrl(e.target.value)}
+                          className="pl-10 h-11"
+                        />
+                      </>
+                    )}
+                  </div>
+                  <Button
+                    onClick={handleStartCrawl}
+                    disabled={isLoading}
+                    size="lg"
+                    className="gap-2 bg-primary hover:bg-primary/90 h-11 px-8 self-end"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Crawling...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4" />
+                        Start Crawl
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -455,6 +533,19 @@ const GameAggregationManager = () => {
                     {crawledGames.length} Games Found
                   </Badge>
                 </h3>
+                <Button
+                  onClick={handleImportAllCrawled}
+                  disabled={isImportingAll}
+                  variant="default"
+                  className="gap-2"
+                >
+                  {isImportingAll ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4" />
+                  )}
+                  Import All
+                </Button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

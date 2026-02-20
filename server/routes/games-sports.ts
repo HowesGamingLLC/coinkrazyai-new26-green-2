@@ -69,6 +69,24 @@ export const createGame: RequestHandler = async (req, res) => {
       [name, category, finalProvider, finalRtp, finalVolatility, finalDescription, finalImageUrl, finalEnabled, embed_url || null, launch_url || embed_url || null, finalSlug, series || null, family || null, type || null]
     );
 
+    if (result.rows.length > 0) {
+      const gameId = result.rows[0].id;
+      try {
+        await query(
+          `INSERT INTO game_compliance (game_id, is_external, is_sweepstake, is_social_casino, currency, max_win_amount, min_bet, max_bet)
+           VALUES ($1, true, true, true, 'SC', 20.00, 0.01, 5.00)
+           ON CONFLICT (game_id) DO UPDATE SET
+              is_external = true,
+              is_sweepstake = true,
+              is_social_casino = true,
+              currency = 'SC'`,
+          [gameId]
+        );
+      } catch (compErr) {
+        console.warn(`[Games] Failed to configure SC wallet for ${name}:`, (compErr as Error).message);
+      }
+    }
+
     await SlackService.notifyAdminAction(req.user?.email || 'admin', 'Created game', `${name} - ${category}`);
 
     res.json(result.rows[0]);
@@ -694,6 +712,24 @@ export const buildGameFromTemplate: RequestHandler = async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
       [gameData.name, gameData.category, gameData.provider, gameData.rtp, gameData.volatility, gameData.description, gameData.image_url, gameData.enabled, gameData.slug, gameData.type, gameData.embed_url || null, gameData.launch_url || gameData.embed_url || null]
     );
+
+    if (result.rows.length > 0) {
+      const gameId = result.rows[0].id;
+      try {
+        await query(
+          `INSERT INTO game_compliance (game_id, is_external, is_sweepstake, is_social_casino, currency, max_win_amount, min_bet, max_bet)
+           VALUES ($1, true, true, true, 'SC', 20.00, 0.01, 5.00)
+           ON CONFLICT (game_id) DO UPDATE SET
+              is_external = true,
+              is_sweepstake = true,
+              is_social_casino = true,
+              currency = 'SC'`,
+          [gameId]
+        );
+      } catch (compErr) {
+        console.warn(`[Games] Failed to configure SC wallet for ${gameData.name}:`, (compErr as Error).message);
+      }
+    }
 
     res.json(result.rows[0]);
   } catch (error) {
