@@ -1,8 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { ExternalLink, Info, Star, Play } from 'lucide-react';
+import { ExternalLink, Info, Star, Play, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const MicrogamingSlots = () => {
@@ -192,7 +191,5 @@ const MicrogamingSlots = () => {
     </div>
   );
 };
-
-import { Gamepad2 } from 'lucide-react';
 
 export default MicrogamingSlots;

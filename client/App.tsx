@@ -34,6 +34,7 @@ import Plinko from "./pages/Plinko";
 import Community from "./pages/Community";
 import PoolShark from "./pages/PoolShark";
 import Referrals from "./pages/Referrals";
+import VIP from "./pages/VIP";
 import MicrogamingSlots from "./pages/MicrogamingSlots";
 
 const queryClient = new QueryClient();
@@ -96,6 +97,14 @@ const AppRoutes = () => (
       element={
         <Layout>
           <Slots />
+        </Layout>
+      }
+    />
+    <Route
+      path="/microgaming-slots"
+      element={
+        <Layout>
+          <MicrogamingSlots />
         </Layout>
       }
     />
