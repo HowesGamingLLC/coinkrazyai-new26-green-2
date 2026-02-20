@@ -181,7 +181,7 @@ export class AuthService {
     try {
       // Get admin by email
       const result = await query(
-        'SELECT * FROM admin_users WHERE email = $1',
+        'SELECT * FROM admin_users WHERE LOWER(email) = LOWER($1)',
         [email]
       );
 

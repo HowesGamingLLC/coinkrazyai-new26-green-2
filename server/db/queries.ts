@@ -201,14 +201,14 @@ export const updateKYCStatus = async (playerId: number, level: string, verified:
 // ===== PLAYER AUTH =====
 export const getPlayerByUsername = async (username: string) => {
   return query(
-    `SELECT * FROM players WHERE username = $1`,
+    `SELECT * FROM players WHERE LOWER(username) = LOWER($1)`,
     [username]
   );
 };
 
 export const getPlayerByEmail = async (email: string) => {
   return query(
-    `SELECT * FROM players WHERE email = $1`,
+    `SELECT * FROM players WHERE LOWER(email) = LOWER($1)`,
     [email]
   );
 };
