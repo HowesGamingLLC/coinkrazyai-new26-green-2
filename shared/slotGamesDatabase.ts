@@ -172,6 +172,26 @@ const BETSOFT_GAMES: SlotGameData[] = [
     release_date: '2026-01-05',
     enabled: true,
     game_type: 'video'
+  },
+  {
+    id: 41,
+    name: 'Once Upon a Time',
+    title: 'Once Upon a Time',
+    provider: 'Betsoft',
+    category: 'Slots',
+    description: 'A classic fairy tale adventure with magic and treasure.',
+    image_url: 'https://clashofslots.com/wp-content/uploads/2010/01/once-upon-a-time-logo.jpg',
+    embed_url: 'https://democasino.betsoftgaming.com/cwguestlogin.do?bankId=675&CDN=AUTO&gameId=792',
+    rtp: 96.0,
+    volatility: 'Medium',
+    min_bet: 0.02,
+    max_bet: 150,
+    paylines: 30,
+    features: ['Free Spins', 'Bonus Game', 'Click Me'],
+    themes: ['Fairy Tale', 'Magic', 'Adventure'],
+    release_date: '2010-01-01',
+    enabled: true,
+    game_type: 'video'
   }
 ];
 

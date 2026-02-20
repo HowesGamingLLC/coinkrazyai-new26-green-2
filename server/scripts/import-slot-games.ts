@@ -84,6 +84,15 @@ const GAMES_TO_ADD = [
     enabled: true,
   },
   {
+    title: 'Once Upon a Time',
+    provider: 'Betsoft',
+    category: 'Slots',
+    image: 'https://clashofslots.com/wp-content/uploads/2010/01/once-upon-a-time-logo.jpg',
+    game_url: 'https://democasino.betsoftgaming.com/cwguestlogin.do?bankId=675&CDN=AUTO&gameId=792',
+    rtp: 96.0,
+    enabled: true,
+  },
+  {
     title: 'Shippy D Pop',
     provider: 'AvatarUX',
     category: 'Slots',

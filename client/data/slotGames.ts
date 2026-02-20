@@ -61,6 +61,15 @@ export const NEW_SLOT_GAMES: SlotGame[] = [
     slug: 'once-again-upon-a-time',
   },
   {
+    id: 'once-upon-a-time',
+    title: 'Once Upon a Time',
+    provider: 'Betsoft',
+    image: 'https://clashofslots.com/wp-content/uploads/2010/01/once-upon-a-time-logo.jpg',
+    gameUrl: 'https://democasino.betsoftgaming.com/cwguestlogin.do?bankId=675&CDN=AUTO&gameId=792',
+    badges: ['New', 'Classic'],
+    slug: 'once-upon-a-time',
+  },
+  {
     id: 'shippy-d-pop',
     title: 'Shippy D Pop',
     provider: 'AvatarUX',
