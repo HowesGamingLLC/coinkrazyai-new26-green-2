@@ -211,6 +211,53 @@ export const listSocialGroups: RequestHandler = async (req, res) => {
   }
 };
 
+export const handleCreateSocialGroup: RequestHandler = async (req, res) => {
+  try {
+    const { name, description, imageUrl, isPrivate } = req.body;
+    const playerId = (req as any).user?.playerId;
+
+    if (!name) return res.status(400).json({ error: 'Group name is required' });
+
+    const result = await query(
+      `INSERT INTO social_groups (name, description, image_url, is_private, created_by)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [name, description, imageUrl, isPrivate || false, playerId]
+    );
+
+    const group = result.rows[0];
+
+    // Automatically join the creator as admin
+    await query(
+      `INSERT INTO social_group_members (group_id, player_id, role)
+       VALUES ($1, $2, $3)`,
+      [group.id, playerId, 'admin']
+    );
+
+    res.status(201).json(group);
+  } catch (error: any) {
+    console.error('Create social group error:', error.message || error);
+    res.status(500).json({ error: 'Failed to create group', details: error.message });
+  }
+};
+
+export const handleJoinSocialGroup: RequestHandler = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const playerId = (req as any).user?.playerId;
+
+    await query(
+      `INSERT INTO social_group_members (group_id, player_id, role)
+       VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+      [groupId, playerId, 'member']
+    );
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Join social group error:', error.message || error);
+    res.status(500).json({ error: 'Failed to join group', details: error.message });
+  }
+};
+
 export const getSocialGroupMembers: RequestHandler = async (req, res) => {
   try {
     const { groupId } = req.params;

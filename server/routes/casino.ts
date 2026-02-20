@@ -4,18 +4,6 @@ import { query } from '../db/connection';
 import { emitWalletUpdate } from '../socket';
 
 export const handlePlayCasinoGame: RequestHandler = async (req, res) => {
-  const { game_id, bet_amount: raw_bet_amount } = req.body;
-  const playerId = (req as any).user?.playerId;
-  const bet_amount = parseFloat(raw_bet_amount);
-
-  if (!playerId) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-
-  if (!game_id || isNaN(bet_amount) || bet_amount <= 0) {
-    return res.status(400).json({ error: 'Invalid game_id or bet_amount' });
-  }
-
   try {
     const { game_id, bet_amount: raw_bet_amount, gameData } = req.body;
     const playerId = (req as any).user?.playerId;
@@ -80,6 +68,14 @@ export const handlePlayCasinoGame: RequestHandler = async (req, res) => {
       winnings = Math.round(bet_amount * multiplier * 100) / 100;
       wins = winnings > bet_amount;
       result_data = { finalIndex, multiplier };
+    } else if (game_id === 'pool-shark') {
+      // Pool Shark logic: Random outcome for now as it's "Coming Soon"
+      wins = Math.random() < 0.3; // 30% win rate for beta
+      if (wins) {
+        const multiplier = 2.0;
+        winnings = bet_amount * multiplier;
+      }
+      result_data = { message: "Alpha preview", shots: Math.floor(Math.random() * 5) + 1 };
     } else {
       // Default random 40% win rate for other games
       wins = Math.random() < 0.4;

@@ -1308,6 +1308,9 @@ export const referrals = {
   getStats: async () => {
     return apiCall<{ success: boolean; data: any }>('/referral/stats');
   },
+  getRecent: async (limit = 10) => {
+    return apiCall<{ success: boolean; data: any[] }>(`/referral/recent?limit=${limit}`);
+  },
   register: async (referralCode: string, registrationData: any) => {
     return apiCall<{ success: boolean; data: any }>('/referral/register', {
       method: 'POST',

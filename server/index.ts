@@ -234,6 +234,8 @@ import {
   updateCasinoSettings,
   listSocialGroups,
   getSocialGroupMembers,
+  handleCreateSocialGroup,
+  handleJoinSocialGroup,
   listRetentionCampaigns,
   createRetentionCampaign,
   updateRetentionCampaign
@@ -333,7 +335,8 @@ import {
   handleGetOrCreateReferralLink,
   handleRegisterWithReferral,
   handleCompleteReferralClaim,
-  handleGetReferralStats
+  handleGetReferralStats,
+  handleGetRecentReferrals
 } from "./routes/referral-system";
 import {
   handleCreatePaymentMethod,
@@ -748,6 +751,8 @@ export function createServer() {
 
   // Social
   app.get("/api/admin/v2/social/groups", verifyAdmin, listSocialGroups);
+  app.post("/api/social/groups", verifyPlayer, handleCreateSocialGroup);
+  app.post("/api/social/groups/:groupId/join", verifyPlayer, handleJoinSocialGroup);
   app.get("/api/admin/v2/social/groups/:groupId/members", verifyAdmin, getSocialGroupMembers);
 
   // Player Retention
@@ -829,6 +834,7 @@ export function createServer() {
 
   // Referral System
   app.get("/api/referral/link", verifyPlayer, handleGetOrCreateReferralLink);
+  app.get("/api/referral/recent", verifyPlayer, handleGetRecentReferrals);
   app.post("/api/referral/register", handleRegisterWithReferral);
   app.post("/api/referral/claim/complete", handleCompleteReferralClaim);
   app.get("/api/referral/stats", verifyPlayer, handleGetReferralStats);

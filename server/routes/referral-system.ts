@@ -136,3 +136,16 @@ export const handleGetReferralStats: RequestHandler = asyncHandler(async (req, r
     totalGcEarned: stats.total_gc_earned || 0
   });
 });
+
+export const handleGetRecentReferrals: RequestHandler = asyncHandler(async (req, res) => {
+  const playerId = req.user?.playerId;
+  const limit = parseInt(req.query.limit as string) || 10;
+
+  if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
+
+  const result = await dbQueries.getRecentReferrals(playerId, limit);
+  res.json({
+    success: true,
+    data: result.rows
+  });
+});

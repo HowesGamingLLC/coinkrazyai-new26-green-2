@@ -15,6 +15,7 @@ const Referrals = () => {
     totalEarnedSC: 0,
     totalEarnedGC: 0
   });
+  const [recentReferrals, setRecentReferrals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCopying, setIsCopying] = useState(false);
 
@@ -25,16 +26,20 @@ const Referrals = () => {
   const fetchReferralData = async () => {
     try {
       setIsLoading(true);
-      const [linkRes, statsRes] = await Promise.all([
+      const [linkRes, statsRes, recentRes] = await Promise.all([
         referralsApi.getLink(),
-        referralsApi.getStats()
+        referralsApi.getStats(),
+        referralsApi.getRecent()
       ]);
 
       if (linkRes.success) {
-        setReferralLink(linkRes.data.link);
+        setReferralLink(linkRes.data.link || linkRes.data.referralUrl);
       }
       if (statsRes.success) {
-        setStats(statsRes.data);
+        setStats(statsRes.data || statsRes);
+      }
+      if (recentRes.success) {
+        setRecentReferrals(recentRes.data);
       }
     } catch (error) {
       console.error('Failed to fetch referral data:', error);
@@ -177,10 +182,25 @@ const Referrals = () => {
           <Card className="border-border/50">
             <CardContent className="p-0">
                <div className="divide-y divide-border/50">
-                  {stats.totalReferrals > 0 ? (
-                    <div className="p-8 text-center text-muted-foreground font-bold italic">
-                      Coming soon: List of your referred friends and their status.
-                    </div>
+                  {recentReferrals.length > 0 ? (
+                    recentReferrals.map((ref) => (
+                      <div key={ref.id} className="flex items-center justify-between p-4 hover:bg-muted/20 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-black text-primary text-xs">
+                            {ref.username.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-black italic text-sm">{ref.username}</p>
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase">
+                              Joined {new Date(ref.joined_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant={ref.status === 'completed' ? 'default' : 'secondary'} className="font-black italic uppercase text-[10px]">
+                          {ref.status}
+                        </Badge>
+                      </div>
+                    ))
                   ) : (
                     <div className="p-12 text-center space-y-4">
                        <Users className="w-12 h-12 text-muted/30 mx-auto" />

@@ -778,43 +778,39 @@ export const getPullTabResults = async (limit = 100, offset = 0) => {
   );
 };
 
-// ===== SOCIAL SHARES =====
-export const recordSocialShare = async (playerId: number, gameId: number | null, winAmount: number, gameName: string, platform: string, message: string, shareLink: string | null) => {
+export const listSocialGroups = async () => {
   return query(
-    `INSERT INTO social_shares (player_id, game_id, win_amount, game_name, platform, message, share_link, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'completed')
+    'SELECT * FROM social_groups ORDER BY created_at DESC'
+  );
+};
+
+export const createSocialGroup = async (name: string, description: string, imageUrl: string | null, isPrivate: boolean, createdBy: number) => {
+  return query(
+    `INSERT INTO social_groups (name, description, image_url, is_private, created_by)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING *`,
-    [playerId, gameId, winAmount, gameName, platform, message, shareLink]
+    [name, description, imageUrl, isPrivate, createdBy]
   );
 };
 
-export const getSocialShareHistory = async (playerId: number, limit = 50) => {
+export const joinSocialGroup = async (groupId: number, playerId: number, role = 'member') => {
   return query(
-    `SELECT * FROM social_shares WHERE player_id = $1 ORDER BY created_at DESC LIMIT $2`,
-    [playerId, limit]
-  );
-};
-
-export const recordSocialShareResponse = async (socialShareId: number, responseType: string, responseData: any, respondentId: string | null) => {
-  return query(
-    `INSERT INTO social_share_responses (social_share_id, response_type, response_data, respondent_id)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO social_group_members (group_id, player_id, role)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (group_id, player_id) DO NOTHING
      RETURNING *`,
-    [socialShareId, responseType, JSON.stringify(responseData), respondentId]
+    [groupId, playerId, role]
   );
 };
 
-export const getSocialShareStats = async () => {
-  return query(`
-    SELECT
-      COUNT(*) as total_shares,
-      COUNT(DISTINCT player_id) as players_shared,
-      SUM(win_amount) as total_shared_wins,
-      platform,
-      COUNT(*) as platform_count
-    FROM social_shares
-    GROUP BY platform
-  `);
+export const getSocialGroupMembers = async (groupId: number) => {
+  return query(
+    `SELECT p.id, p.username, p.email, sgm.joined_at, sgm.role FROM social_group_members sgm
+     JOIN players p ON sgm.player_id = p.id
+     WHERE sgm.group_id = $1
+     ORDER BY sgm.joined_at DESC`,
+    [groupId]
+  );
 };
 
 // ===== DAILY LOGIN BONUS =====
@@ -897,6 +893,23 @@ export const getReferralStats = async (referrerId: number) => {
      WHERE rl.referrer_id = $1
      GROUP BY rl.unique_code`,
     [referrerId]
+  );
+};
+
+export const getRecentReferrals = async (referrerId: number, limit = 10) => {
+  return query(
+    `SELECT
+      rc.id,
+      p.username,
+      rc.status,
+      rc.created_at as joined_at,
+      rc.claimed_at
+     FROM referral_claims rc
+     JOIN players p ON rc.referred_player_id = p.id
+     WHERE rc.referrer_id = $1
+     ORDER BY rc.created_at DESC
+     LIMIT $2`,
+    [referrerId, limit]
   );
 };
 
