@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Coins, User } from 'lucide-react';
+import { Trophy, Coins, User, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Winner {
@@ -13,23 +13,50 @@ interface Winner {
   avatar: string;
 }
 
-const RECENT_WINNERS: Winner[] = [
-  { id: 1, username: 'SlotMaster99', amount: '1,250.00 SC', game: 'Knights vs Barbarians', time: '2m ago', avatar: '1' },
-  { id: 2, username: 'LuckyLady', amount: '5,000.00 GC', game: 'Emerald King', time: '5m ago', avatar: '2' },
-  { id: 3, username: 'CoinKing', amount: '850.50 SC', game: 'Arcanum', time: '8m ago', avatar: '3' },
-  { id: 4, username: 'DiceRoller', amount: '12,500.00 GC', game: 'Power Plinko', time: '12m ago', avatar: '4' },
-];
-
 export const RecentWinners = () => {
+  const [winners, setWinners] = useState<Winner[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchWinners = async () => {
+      try {
+        const response = await fetch('/api/platform/winners');
+        const result = await response.json();
+        if (result.success && result.data) {
+          setWinners(result.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch recent winners:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchWinners();
+    // Refresh every minute
+    const interval = setInterval(fetchWinners, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (winners.length === 0) return null;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Trophy className="w-6 h-6 text-yellow-500" />
         <h2 className="text-2xl font-black italic uppercase tracking-tight">Recent Big Winners</h2>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {RECENT_WINNERS.map((winner) => (
+        {winners.map((winner) => (
           <Card key={winner.id} className="bg-slate-900/50 border-white/5 overflow-hidden group hover:border-yellow-500/30 transition-all">
             <CardContent className="p-4 flex items-center gap-4">
               <div className="w-12 h-12 rounded-full border-2 border-yellow-500/30 overflow-hidden bg-slate-800 flex-shrink-0">

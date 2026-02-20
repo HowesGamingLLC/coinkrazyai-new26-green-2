@@ -18,7 +18,6 @@ import Slots from "./pages/Slots";
 import Poker from "./pages/Poker";
 import Bingo from "./pages/Bingo";
 import Sportsbook from "./pages/Sportsbook";
-import PlaceholderPage from "./pages/PlaceholderPage";
 import Profile from "./pages/Profile";
 import Account from "./pages/Account";
 import Wallet from "./pages/Wallet";

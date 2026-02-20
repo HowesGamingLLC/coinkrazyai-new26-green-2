@@ -393,7 +393,7 @@ import {
 } from "./routes/user-messaging";
 
 import { getChallenges, claimChallengeReward } from "./routes/challenges";
-import { getPlatformStats } from "./routes/platform";
+import { getPlatformStats, getRecentWinners } from "./routes/platform";
 import { handleAIChat } from "./routes/ai";
 
 export function createServer() {
@@ -902,6 +902,7 @@ export function createServer() {
 
   // Platform Stats (Public)
   app.get("/api/platform/stats", getPlatformStats);
+  app.get("/api/platform/winners", getRecentWinners);
 
   // AI Chat
   app.post("/api/ai/chat", verifyPlayer, handleAIChat);
