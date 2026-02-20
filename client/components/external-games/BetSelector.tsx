@@ -19,10 +19,10 @@ export const BetSelector: React.FC<BetSelectorProps> = ({
   onBetSelect,
   isProcessing = false
 }) => {
-  // Guard against null values
-  const safeMinBet = minBet ?? 0.01;
-  const safeMaxBet = maxBet ?? 100;
-  const safeBalance = currentBalance ?? 0;
+  // Guard against null values and ensure they are numbers
+  const safeMinBet = Number(minBet ?? 0.01);
+  const safeMaxBet = Number(maxBet ?? 100);
+  const safeBalance = Number(currentBalance ?? 0);
 
   const [betAmount, setBetAmount] = useState<string>(safeMinBet.toFixed(2));
   
