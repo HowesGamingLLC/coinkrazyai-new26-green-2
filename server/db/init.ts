@@ -105,14 +105,10 @@ export const initializeDatabase = async () => {
 
     // Add description column to games table if it doesn't exist
     try {
-      await query(`ALTER TABLE games ADD COLUMN description TEXT`);
-      console.log('[DB] Added description column to games table');
+      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS description TEXT`);
+      console.log('[DB] Verified description column in games');
     } catch (err: any) {
-      if (err.code === '42701') {
-        console.log('[DB] Description column already exists in games');
-      } else {
-        console.log('[DB] Schema check for games.description:', err.message?.substring(0, 100));
-      }
+      console.log('[DB] Schema check for games.description:', err.message?.substring(0, 100));
     }
 
     // Add image_url column to games table if it doesn't exist
@@ -141,26 +137,18 @@ export const initializeDatabase = async () => {
 
     // Add updated_at column to games table if it doesn't exist
     try {
-      await query(`ALTER TABLE games ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
-      console.log('[DB] Added updated_at column to games table');
+      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+      console.log('[DB] Verified updated_at column in games');
     } catch (err: any) {
-      if (err.code === '42701') {
-        console.log('[DB] updated_at column already exists in games');
-      } else {
-        console.log('[DB] Schema check for games.updated_at:', err.message?.substring(0, 100));
-      }
+      console.log('[DB] Schema check for games.updated_at:', err.message?.substring(0, 100));
     }
 
     // Add bonus_sc column to store_packs table if it doesn't exist
     try {
-      await query(`ALTER TABLE store_packs ADD COLUMN bonus_sc DECIMAL(15, 2) DEFAULT 0`);
-      console.log('[DB] Added bonus_sc column to store_packs table');
+      await query(`ALTER TABLE store_packs ADD COLUMN IF NOT EXISTS bonus_sc DECIMAL(15, 2) DEFAULT 0`);
+      console.log('[DB] Verified bonus_sc column in store_packs');
     } catch (err: any) {
-      if (err.code === '42701') {
-        console.log('[DB] bonus_sc column already exists in store_packs');
-      } else {
-        console.log('[DB] Schema check for store_packs.bonus_sc:', err.message?.substring(0, 100));
-      }
+      console.log('[DB] Schema check for store_packs.bonus_sc:', err.message?.substring(0, 100));
     }
 
     // Note: store_packs table uses 'display_order' column for sorting
@@ -192,28 +180,18 @@ const seedDatabase = async () => {
     // Add password_hash column to players table if it doesn't exist
     console.log('[DB] Checking players table schema...');
     try {
-      await query(`ALTER TABLE players ADD COLUMN password_hash VARCHAR(255) NOT NULL DEFAULT ''`);
-      console.log('[DB] Added password_hash column to players table');
+      await query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255) NOT NULL DEFAULT ''`);
+      console.log('[DB] Verified password_hash column in players');
     } catch (err: any) {
-      if (err.code === '42701') {
-        // Column already exists
-        console.log('[DB] Password hash column already exists');
-      } else {
-        console.log('[DB] Schema check for password_hash:', err.message?.substring(0, 100));
-      }
+      console.log('[DB] Schema check for password_hash:', err.message?.substring(0, 100));
     }
 
     // Add username column to players table if it doesn't exist
     try {
-      await query(`ALTER TABLE players ADD COLUMN username VARCHAR(255) UNIQUE`);
-      console.log('[DB] Added username column to players table');
+      await query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS username VARCHAR(255) UNIQUE`);
+      console.log('[DB] Verified username column in players');
     } catch (err: any) {
-      if (err.code === '42701') {
-        // Column already exists
-        console.log('[DB] Username column already exists');
-      } else {
-        console.log('[DB] Schema check:', err.message?.substring(0, 100));
-      }
+      console.log('[DB] Schema check for username:', err.message?.substring(0, 100));
     }
 
     // Update existing players to have usernames if they don't

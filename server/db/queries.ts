@@ -1177,3 +1177,40 @@ export const getUnreadMessages = async (userId: number) => {
     [userId]
   );
 };
+
+// ===== SOCIAL SHARING =====
+export const recordSocialShare = async (playerId: number, gameId: number | null, winAmount: number, gameName: string, platform: string, message: string, shareLink: string | null) => {
+  return query(
+    `INSERT INTO social_shares (player_id, game_id, win_amount, game_name, platform, message, share_link)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING *`,
+    [playerId, gameId, winAmount, gameName, platform, message, shareLink]
+  );
+};
+
+export const getSocialShareHistory = async (playerId: number, limit = 50) => {
+  return query(
+    `SELECT * FROM social_shares
+     WHERE player_id = $1
+     ORDER BY created_at DESC
+     LIMIT $2`,
+    [playerId, limit]
+  );
+};
+
+export const recordSocialShareResponse = async (socialShareId: number, responseType: string, responseData: any, respondentId: string | null) => {
+  return query(
+    `INSERT INTO social_share_responses (social_share_id, response_type, response_data, respondent_id)
+     VALUES ($1, $2, $3, $4)
+     RETURNING *`,
+    [socialShareId, responseType, JSON.stringify(responseData), respondentId]
+  );
+};
+
+export const getSocialShareStats = async () => {
+  return query(
+    `SELECT platform, COUNT(*) as share_count, SUM(win_amount) as total_win_amount
+     FROM social_shares
+     GROUP BY platform`
+  );
+};
