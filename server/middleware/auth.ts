@@ -7,6 +7,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: {
+        id: number;
         playerId: number;
         username: string;
         email: string;
@@ -50,6 +51,7 @@ export const verifyPlayer = async (req: Request, res: Response, next: NextFuncti
 
     // Attach user to request
     req.user = {
+      id: decoded.playerId,
       playerId: decoded.playerId,
       username: decoded.username,
       email: decoded.email,
@@ -99,6 +101,7 @@ export const verifyAdmin = async (req: Request, res: Response, next: NextFunctio
 
     // Attach user to request
     req.user = {
+      id: decoded.playerId,
       playerId: decoded.playerId,
       username: decoded.username,
       email: decoded.email,
@@ -127,6 +130,7 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
         const decoded = AuthService.verifyJWT(token);
         if (decoded) {
           req.user = {
+            id: decoded.playerId,
             playerId: decoded.playerId,
             username: decoded.username,
             email: decoded.email,
