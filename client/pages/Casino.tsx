@@ -35,6 +35,14 @@ const CASINO_CATEGORIES = [
     count: 'Live Now'
   },
   {
+    title: 'Game Shows',
+    desc: 'Interactive live-style entertainment',
+    icon: Star,
+    path: '/games/game-shows',
+    color: 'from-purple-600 to-fuchsia-700',
+    count: 'Top Rated'
+  },
+  {
     title: 'Mini Games',
     desc: 'Instant win dice and plinko action',
     icon: Dice5,

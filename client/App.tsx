@@ -60,6 +60,14 @@ const AppRoutes = () => (
       }
     />
     <Route
+      path="/games/:category"
+      element={
+        <Layout>
+          <Games />
+        </Layout>
+      }
+    />
+    <Route
       path="/casino"
       element={
         <Layout>

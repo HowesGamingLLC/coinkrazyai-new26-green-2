@@ -378,6 +378,50 @@ const PROGRESSIVE_GAMES: SlotGameData[] = [
 ];
 
 /**
+ * Game Show Games
+ */
+const GAME_SHOW_GAMES: SlotGameData[] = [
+  {
+    id: 200,
+    name: 'Crazy Time',
+    title: 'Crazy Time',
+    provider: 'Evolution',
+    category: 'Game Shows',
+    description: 'The most popular live game show in the world with four exciting bonus games.',
+    image_url: 'https://via.placeholder.com/300x300?text=Crazy+Time',
+    embed_url: 'https://evolution-embed.example.com/crazy-time',
+    rtp: 96.08,
+    volatility: 'High',
+    min_bet: 0.10,
+    max_bet: 5000,
+    features: ['Coin Flip', 'Cash Hunt', 'Pachinko', 'Crazy Time Bonus'],
+    themes: ['Wheel of Fortune', 'Live Show'],
+    release_date: '2020-07-01',
+    enabled: true,
+    game_type: 'video'
+  },
+  {
+    id: 201,
+    name: 'Monopoly Live',
+    title: 'Monopoly Live',
+    provider: 'Evolution',
+    category: 'Game Shows',
+    description: 'A unique live online variant of the hugely popular MONOPOLY board game.',
+    image_url: 'https://via.placeholder.com/300x300?text=Monopoly+Live',
+    embed_url: 'https://evolution-embed.example.com/monopoly-live',
+    rtp: 96.23,
+    volatility: 'High',
+    min_bet: 0.10,
+    max_bet: 2500,
+    features: ['3D Bonus Game', 'Chance Multiplier', '2 Rolls', '4 Rolls'],
+    themes: ['Board Game', 'Live Show'],
+    release_date: '2019-04-01',
+    enabled: true,
+    game_type: 'video'
+  }
+];
+
+/**
  * Combine all games into a single database
  */
 export const ALL_SLOT_GAMES: SlotGameData[] = [
@@ -392,7 +436,8 @@ export const ALL_SLOT_GAMES: SlotGameData[] = [
   ...PETER_SONS_GAMES,
   ...GAMEBEAT_GAMES,
   ...CLASSIC_SLOTS,
-  ...PROGRESSIVE_GAMES
+  ...PROGRESSIVE_GAMES,
+  ...GAME_SHOW_GAMES
 ];
 
 /**

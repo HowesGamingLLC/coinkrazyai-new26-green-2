@@ -46,6 +46,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { label: 'Slots', path: '/slots', icon: Zap },
     { label: 'Poker', path: '/poker', icon: Coins },
     { label: 'Bingo', path: '/bingo', icon: Gamepad2 },
+    { label: 'Game Shows', path: '/games/game-shows', icon: Star },
     { label: 'Sports', path: '/sportsbook', icon: BarChart3 },
     { label: 'Scratch Tickets', path: '/scratch-tickets', icon: Ticket },
     { label: 'Pull Tabs', path: '/pull-tabs', icon: Ticket },

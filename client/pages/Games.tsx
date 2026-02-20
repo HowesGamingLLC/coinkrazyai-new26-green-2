@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -25,20 +26,10 @@ interface Game {
   themes?: string[];
 }
 
-type GameType = 'all' | 'slots' | 'poker' | 'bingo' | 'sportsbook';
+type GameType = 'all' | 'slots' | 'poker' | 'bingo' | 'sportsbook' | 'game-shows';
 
 const Games = () => {
-  const [allGames, setAllGames] = useState<Game[]>([]);
-  const [filteredGames, setFilteredGames] = useState<Game[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGameType, setSelectedGameType] = useState<GameType>('all');
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
-  const [selectedVolatility, setSelectedVolatility] = useState<string | null>(null);
-  const [minRTP, setMinRTP] = useState<number | null>(null);
-  const [maxRTP, setMaxRTP] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const { category: urlCategory } = useParams<{ category?: string }>();
 
   // Game type definitions
   const gameTypes: { value: GameType; label: string; count?: number }[] = [
@@ -46,8 +37,26 @@ const Games = () => {
     { value: 'slots', label: 'Slots' },
     { value: 'poker', label: 'Poker' },
     { value: 'bingo', label: 'Bingo' },
+    { value: 'game-shows', label: 'Game Shows' },
     { value: 'sportsbook', label: 'Sportsbook' },
   ];
+
+  const [allGames, setAllGames] = useState<Game[]>([]);
+  const [filteredGames, setFilteredGames] = useState<Game[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedGameType, setSelectedGameType] = useState<GameType>('all');
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+
+  // Set initial game type from URL param
+  useEffect(() => {
+    if (urlCategory) {
+      const type = urlCategory.toLowerCase() as GameType;
+      if (gameTypes.some(t => t.value === type)) {
+        setSelectedGameType(type);
+      }
+    }
+  }, [urlCategory]);
 
   // Fetch games on mount
   useEffect(() => {
@@ -81,10 +90,13 @@ const Games = () => {
 
     // Game type filter
     if (selectedGameType !== 'all') {
+      const typeStr = selectedGameType.replace('-', ' ').toLowerCase();
       result = result.filter(
         (game) =>
           game.type?.toLowerCase() === selectedGameType ||
-          game.category?.toLowerCase() === selectedGameType
+          game.category?.toLowerCase() === selectedGameType ||
+          game.type?.toLowerCase() === typeStr ||
+          game.category?.toLowerCase() === typeStr
       );
     }
 
@@ -123,8 +135,13 @@ const Games = () => {
   // Calculate dynamic counts for game types
   const getGameTypeCount = (type: GameType): number => {
     if (type === 'all') return allGames.length;
+    const typeStr = type.replace('-', ' ').toLowerCase();
     return allGames.filter(
-      (g) => g.type?.toLowerCase() === type || g.category?.toLowerCase() === type
+      (g) =>
+        g.type?.toLowerCase() === type ||
+        g.category?.toLowerCase() === type ||
+        g.type?.toLowerCase() === typeStr ||
+        g.category?.toLowerCase() === typeStr
     ).length;
   };
 
