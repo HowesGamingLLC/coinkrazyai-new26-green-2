@@ -70,20 +70,22 @@ class GameCrawler {
       const description = this.extractDescription(html, $);
 
       // Extract image URL
-      const image_url = this.extractImageUrl(html, $);
+      const image_url = this.extractImageUrl(html, $, url);
 
       // Extract additional data
       const max_paylines = this.extractPaylines(html, $);
       const release_date = this.extractReleaseDate(html, $);
 
-      if (!title) {
+      if (!title || title.length < 2) {
         console.warn(`[Crawler] Could not extract title from ${url}`);
         return null;
       }
 
+      const provider = this.guessProvider(title, html);
+
       return {
         title: title.substring(0, 250),
-        provider: this.guessProvider(title),
+        provider: provider,
         rtp,
         volatility,
         description: description.substring(0, 500),
@@ -102,14 +104,14 @@ class GameCrawler {
     // Try various title extraction methods
     let title = $('title').text().trim();
 
-    if (!title) {
-      const ogTitle = $('meta[property="og:title"]').attr('content');
-      if (ogTitle) title = ogTitle.trim();
+    if (!title || title.toLowerCase().includes('just a moment')) {
+      const h1Title = $('h1').first().text().trim();
+      if (h1Title) title = h1Title;
     }
 
     if (!title) {
-      const h1Title = $('h1').first().text();
-      if (h1Title) title = h1Title.trim();
+      const ogTitle = $('meta[property="og:title"]').attr('content');
+      if (ogTitle) title = ogTitle.trim();
     }
 
     if (!title) {
@@ -118,8 +120,19 @@ class GameCrawler {
       if (metaTitle) title = metaTitle.trim();
     }
 
-    // Clean up common suffixes
-    title = title.split('|')[0].split('-')[0].split(':')[0].trim();
+    // Clean up common suffixes and prefixes
+    title = title
+      .replace(/Slot Review/i, '')
+      .replace(/Demo Slot/i, '')
+      .replace(/Play for Free/i, '')
+      .replace(/Online Slot/i, '')
+      .split('|')[0]
+      .split('-')[0]
+      .split(':')[0]
+      .trim();
+
+    // Remove provider names if they are in parentheses like "Sweet Bonanza (Pragmatic Play)"
+    title = title.replace(/\s*\([^)]+\)$/, '').trim();
 
     return title;
   }
@@ -207,7 +220,7 @@ class GameCrawler {
     return description || 'Game details not available';
   }
 
-  private extractImageUrl(html: string, $: cheerio.CheerioAPI): string | undefined {
+  private extractImageUrl(html: string, $: cheerio.CheerioAPI, baseUrl: string): string | undefined {
     // Try OG image first
     let imageUrl = $('meta[property="og:image"]').attr('content');
 
@@ -218,15 +231,19 @@ class GameCrawler {
     if (!imageUrl) {
       // Try to find game image in common locations
       imageUrl = $('img.game-image').first().attr('src') ||
+                $('img[alt*="logo"]').first().attr('src') ||
                 $('img[alt*="game"]').first().attr('src') ||
                 $('img[alt*="slot"]').first().attr('src') ||
                 $('picture img').first().attr('src');
     }
 
     if (imageUrl && !imageUrl.startsWith('http')) {
-      // Convert relative URLs to absolute if possible
-      const urlObj = new URL(html.match(/<[^>]*>/)?.[0] || 'http://example.com');
-      imageUrl = new URL(imageUrl, urlObj.origin).toString();
+      try {
+        const urlObj = new URL(baseUrl);
+        imageUrl = new URL(imageUrl, urlObj.origin).toString();
+      } catch (e) {
+        // Fallback
+      }
     }
 
     return imageUrl;
@@ -269,11 +286,14 @@ class GameCrawler {
     return undefined;
   }
 
-  private guessProvider(title: string): string {
+  private guessProvider(title: string, html: string): string {
     const commonProviders: Record<string, RegExp> = {
       'Pragmatic Play': /pragmatic|pp/i,
       'Microgaming': /microgaming|mg/i,
-      'NetEnt': /netent|nolimit/i,
+      'NetEnt': /netent/i,
+      'Nolimit City': /nolimit|no limit/i,
+      'Hacksaw Gaming': /hacksaw/i,
+      'Relax Gaming': /relax gaming/i,
       'IGT': /igt|wagerworks/i,
       'WMS': /wms|williams/i,
       'Playtech': /playtech|pt/i,
@@ -285,15 +305,29 @@ class GameCrawler {
       'Yggdrasil': /yggdrasil|yg/i,
       'ELK Studios': /elk studios|elk/i,
       'Push Gaming': /push gaming/i,
+      'Evolution': /evolution/i,
+      'Blueprint': /blueprint/i,
+      'Big Time Gaming': /btg|big time/i,
+      'PG Soft': /pg soft|pgsoft/i,
+      'CT Interactive': /ct interactive|ctinteractive/i,
+      'EGT': /egt|amusnet/i,
     };
 
+    // Check title first
     for (const [provider, regex] of Object.entries(commonProviders)) {
       if (regex.test(title)) {
         return provider;
       }
     }
 
-    return 'Unknown Provider';
+    // Check HTML content if not found in title
+    for (const [provider, regex] of Object.entries(commonProviders)) {
+      if (regex.test(html.substring(0, 10000))) { // Search first 10KB
+        return provider;
+      }
+    }
+
+    return 'Other';
   }
 
   /**
@@ -405,20 +439,16 @@ class GameCrawler {
   validateGameData(game: CrawledGame): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
-    if (!game.title || game.title.length < 3) {
+    if (!game.title || game.title.length < 2) {
       errors.push('Title is too short or missing');
     }
 
-    if (isNaN(game.rtp) || game.rtp < 70 || game.rtp > 100) {
+    if (isNaN(game.rtp) || game.rtp < 50 || game.rtp > 100) {
       errors.push(`Invalid RTP: ${game.rtp}`);
     }
 
     if (!['Low', 'Medium', 'High'].includes(game.volatility)) {
       errors.push(`Invalid volatility: ${game.volatility}`);
-    }
-
-    if (!game.provider || game.provider === 'Unknown Provider') {
-      errors.push('Provider could not be determined');
     }
 
     return {
@@ -451,11 +481,13 @@ class GameCrawler {
       }
 
       // Insert new game
+      const slug = gameData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
       const result = await query(
-        `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url, enabled)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+        `INSERT INTO games (name, slug, category, provider, rtp, volatility, description, image_url, enabled)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
          RETURNING *`,
-        [gameData.title, 'Slots', gameData.provider, gameData.rtp, gameData.volatility, gameData.description, gameData.image_url]
+        [gameData.title, slug, 'Slots', gameData.provider, gameData.rtp, gameData.volatility, gameData.description, gameData.image_url]
       );
 
       const savedGame = result.rows[0];
