@@ -1,16 +1,17 @@
 import { query, createSecurityAlert } from '../db/queries';
+import { emailService } from './email-service';
 
 export class NotificationService {
   /**
-   * Send an email notification to a player (Mock)
-   * In a real app, this would use nodemailer, SendGrid, etc.
+   * Send an email notification to a player
    */
   static async sendEmail(to: string, subject: string, content: string) {
-    console.log(`[EMAIL] Sending email to ${to}`);
-    console.log(`[EMAIL] Subject: ${subject}`);
-    console.log(`[EMAIL] Content: ${content}`);
-    // Simulate email sending
-    return true;
+    return await emailService.sendEmail({
+      to,
+      subject,
+      html: `<div style="font-family: sans-serif; padding: 20px;">${content.replace(/\n/g, '<br>')}</div>`,
+      text: content
+    });
   }
 
   /**
