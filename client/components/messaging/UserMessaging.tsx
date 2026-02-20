@@ -75,7 +75,7 @@ export const UserMessaging: React.FC<UserMessagingProps> = ({ currentUserId, onC
   const fetchMessages = async (userId: number) => {
     try {
       const response = await apiCall<{ success: boolean; data?: Message[] }>(
-        `/messages/conversation?userId=${userId}`
+        `/messages/conversation?otherUserId=${userId}`
       );
       if (response.success && response.data) {
         setMessages(response.data);

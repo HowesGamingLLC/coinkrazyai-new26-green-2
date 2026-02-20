@@ -1356,10 +1356,10 @@ export const messaging = {
     const params = threadId ? `?threadId=${threadId}` : '';
     return apiCall<{ success: boolean; data: any }>(`/messages${params}`);
   },
-  sendMessage: async (recipientId: number, content: string) => {
+  sendMessage: async (recipientId: number, message: string) => {
     return apiCall<{ success: boolean; data: any }>('/messages/send', {
       method: 'POST',
-      body: JSON.stringify({ recipientId, content }),
+      body: JSON.stringify({ recipientId, message }),
     });
   },
   markRead: async (messageIds: number[]) => {
