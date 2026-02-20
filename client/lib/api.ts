@@ -630,10 +630,16 @@ export const adminV2 = {
         body: JSON.stringify({ gameId, data }),
       });
     },
-    crawlSlots: async (url: string) => {
+    crawlSlots: async (url?: string, urls?: string[], dryRun: boolean = false) => {
       return adminApiCall<any>('/admin/v2/games/crawl', {
         method: 'POST',
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, urls, dryRun }),
+      });
+    },
+    saveCrawledGame: async (gameData: any) => {
+      return adminApiCall<any>('/admin/v2/games/save-crawled', {
+        method: 'POST',
+        body: JSON.stringify(gameData),
       });
     },
     clearAll: async () => {

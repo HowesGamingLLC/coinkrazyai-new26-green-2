@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Upload, Download, Loader2, AlertCircle, CheckCircle2, Eye, Trash2,
-  FileJson, Database, RefreshCw, Copy, Play, RotateCw, Zap, History
+  FileJson, Database, RefreshCw, Copy, Play, RotateCw, Zap, History, Search, Edit2,
+  ExternalLink, Globe, Info, Settings, Save
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminV2 } from '@/lib/api';
@@ -43,7 +44,7 @@ interface DevServerStatus {
 }
 
 const GameAggregationManager = () => {
-  const [activeTab, setActiveTab] = useState('import');
+  const [activeTab, setActiveTab] = useState('crawler');
   const [isLoading, setIsLoading] = useState(false);
   const [jsonText, setJsonText] = useState('');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
@@ -54,6 +55,13 @@ const GameAggregationManager = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sampleDataExpanded, setSampleDataExpanded] = useState(false);
+
+  // Crawler state
+  const [crawlerUrl, setCrawlerUrl] = useState('');
+  const [crawledGames, setCrawledGames] = useState<GameData[]>([]);
+  const [editingGame, setEditingGame] = useState<{ index: number; data: GameData } | null>(null);
+  const [previewingGame, setPreviewingGame] = useState<GameData | null>(null);
+  const [isImportingSingle, setIsImportingSingle] = useState<number | null>(null);
 
   // Fetch import history on mount
   useEffect(() => {
@@ -75,6 +83,56 @@ const GameAggregationManager = () => {
     } finally {
       setHistoryLoading(false);
     }
+  };
+
+  // Crawler handlers
+  const handleStartCrawl = async () => {
+    if (!crawlerUrl) {
+      toast.error('Please enter a URL to crawl');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await adminV2.games.crawlSlots(crawlerUrl, undefined, true);
+      if (result.success && result.data) {
+        setCrawledGames(result.data);
+        toast.success(`Found ${result.data.length} games`);
+      } else {
+        toast.error(result.error || 'Failed to crawl games');
+      }
+    } catch (error: any) {
+      toast.error(`Crawl failed: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleImportSingleGame = async (game: GameData, index: number) => {
+    setIsImportingSingle(index);
+    try {
+      const result = await adminV2.games.saveCrawledGame(game);
+      if (result.success) {
+        toast.success(`Successfully imported ${game.name}`);
+        // Mark as imported locally if we want, but simple toast is fine for now
+      } else {
+        toast.error(result.error || `Failed to import ${game.name}`);
+      }
+    } catch (error: any) {
+      toast.error(`Import failed: ${error.message}`);
+    } finally {
+      setIsImportingSingle(null);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingGame) return;
+
+    const newGames = [...crawledGames];
+    newGames[editingGame.index] = editingGame.data;
+    setCrawledGames(newGames);
+    setEditingGame(null);
+    toast.success('Game details updated locally');
   };
 
   // Sample data for quick testing
@@ -318,7 +376,11 @@ const GameAggregationManager = () => {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="crawler" className="gap-2">
+            <RotateCw className="w-4 h-4" />
+            <span className="hidden sm:inline">Crawler</span>
+          </TabsTrigger>
           <TabsTrigger value="import" className="gap-2">
             <Upload className="w-4 h-4" />
             <span className="hidden sm:inline">Bulk Import</span>
@@ -337,6 +399,151 @@ const GameAggregationManager = () => {
             <span className="hidden sm:inline">Dev</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* CRAWLER TAB */}
+        <TabsContent value="crawler" className="space-y-6 animate-in fade-in-50 duration-300">
+          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <RotateCw className="w-5 h-5" />
+                Live Slot Crawler
+              </CardTitle>
+              <CardDescription>
+                Input a provider URL to crawl slot games with full metadata and launch URLs
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="https://example-casino.com/provider/pragmatic-play"
+                    value={crawlerUrl}
+                    onChange={(e) => setCrawlerUrl(e.target.value)}
+                    className="pl-10 h-11"
+                  />
+                </div>
+                <Button
+                  onClick={handleStartCrawl}
+                  disabled={isLoading}
+                  size="lg"
+                  className="gap-2 bg-primary hover:bg-primary/90 h-11 px-8"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Crawling...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4" />
+                      Start Crawl
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {crawledGames.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  Crawler Results
+                  <Badge variant="secondary" className="rounded-full">
+                    {crawledGames.length} Games Found
+                  </Badge>
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {crawledGames.map((game, index) => (
+                  <Card key={index} className="group relative overflow-hidden border-muted/60 hover:border-primary/50 transition-all duration-300 hover:shadow-lg bg-card/50 backdrop-blur-sm">
+                    {/* Thumbnail Overlay on Hover */}
+                    <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+                      <img
+                        src={game.image_url || 'https://images.unsplash.com/photo-1605870445919-838d190e8e1b?w=400&q=80'}
+                        alt={game.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3 p-4">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="w-full gap-2 font-semibold"
+                          onClick={() => setPreviewingGame(game)}
+                        >
+                          <Play className="w-4 h-4" /> Play Demo
+                        </Button>
+                        <div className="flex gap-2 w-full">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 gap-1 text-xs border-white/20 text-white hover:bg-white/10"
+                            onClick={() => setEditingGame({ index, data: { ...game } })}
+                          >
+                            <Edit2 className="w-3 h-3" /> Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="flex-1 gap-1 text-xs bg-primary hover:bg-primary/90"
+                            onClick={() => handleImportSingleGame(game, index)}
+                            disabled={isImportingSingle === index}
+                          >
+                            {isImportingSingle === index ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Upload className="w-3 h-3" />
+                            )}
+                            Import
+                          </Button>
+                        </div>
+                      </div>
+                      <Badge className="absolute top-2 right-2 bg-black/60 backdrop-blur-md border-none text-[10px] font-bold">
+                        {game.rtp ? `${game.rtp}% RTP` : 'RTP N/A'}
+                      </Badge>
+                    </div>
+
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h4 className="font-bold text-sm leading-tight group-hover:text-primary transition-colors line-clamp-1">
+                            {game.name}
+                          </h4>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                            {game.provider_name}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-[9px] h-5 border-primary/20 bg-primary/5 text-primary">
+                          {game.category}
+                        </Badge>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {game.features?.slice(0, 2).map((feat, i) => (
+                          <Badge key={i} variant="secondary" className="text-[8px] h-4 bg-muted/50 border-none">
+                            {feat}
+                          </Badge>
+                        ))}
+                        {game.features && game.features.length > 2 && (
+                          <Badge variant="secondary" className="text-[8px] h-4 bg-muted/50 border-none">
+                            +{game.features.length - 2}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {game.description && (
+                        <p className="text-[10px] text-muted-foreground line-clamp-2 mt-2 leading-relaxed italic">
+                          "{game.description}"
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </TabsContent>
 
         {/* BULK IMPORT TAB */}
         <TabsContent value="import" className="space-y-6 animate-in fade-in-50 duration-300">
@@ -835,6 +1042,194 @@ const GameAggregationManager = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      {/* Game Edit Modal */}
+      <Dialog open={!!editingGame} onOpenChange={(open) => !open && setEditingGame(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit2 className="w-5 h-5 text-primary" />
+              Edit Game Metadata
+            </DialogTitle>
+            <DialogDescription>
+              Refine the extracted game data before importing it to the database.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingGame && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold flex items-center gap-2">
+                    <Globe className="w-3 h-3 text-muted-foreground" />
+                    Game Name
+                  </label>
+                  <Input
+                    value={editingGame.data.name}
+                    onChange={(e) => setEditingGame({
+                      ...editingGame,
+                      data: { ...editingGame.data, name: e.target.value }
+                    })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold flex items-center gap-2">
+                    <Info className="w-3 h-3 text-muted-foreground" />
+                    Provider
+                  </label>
+                  <Input
+                    value={editingGame.data.provider_name}
+                    onChange={(e) => setEditingGame({
+                      ...editingGame,
+                      data: { ...editingGame.data, provider_name: e.target.value }
+                    })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">RTP (%)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={editingGame.data.rtp}
+                      onChange={(e) => setEditingGame({
+                        ...editingGame,
+                        data: { ...editingGame.data, rtp: parseFloat(e.target.value) }
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Volatility</label>
+                    <select
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                      value={editingGame.data.volatility}
+                      onChange={(e) => setEditingGame({
+                        ...editingGame,
+                        data: { ...editingGame.data, volatility: e.target.value as any }
+                      })}
+                    >
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Thumbnail URL</label>
+                  <Input
+                    value={editingGame.data.image_url}
+                    onChange={(e) => setEditingGame({
+                      ...editingGame,
+                      data: { ...editingGame.data, image_url: e.target.value }
+                    })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Launch URL (Iframe)</label>
+                  <Textarea
+                    className="min-h-[80px] text-xs font-mono"
+                    value={editingGame.data.embed_url}
+                    onChange={(e) => setEditingGame({
+                      ...editingGame,
+                      data: { ...editingGame.data, embed_url: e.target.value }
+                    })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Description</label>
+                  <Textarea
+                    className="min-h-[80px]"
+                    value={editingGame.data.description}
+                    onChange={(e) => setEditingGame({
+                      ...editingGame,
+                      data: { ...editingGame.data, description: e.target.value }
+                    })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Features (comma separated)</label>
+                  <Input
+                    value={editingGame.data.features?.join(', ')}
+                    onChange={(e) => setEditingGame({
+                      ...editingGame,
+                      data: { ...editingGame.data, features: e.target.value.split(',').map(s => s.trim()) }
+                    })}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingGame(null)}>Cancel</Button>
+            <Button className="gap-2" onClick={handleSaveEdit}>
+              <Save className="w-4 h-4" />
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Game Preview Modal */}
+      <Dialog open={!!previewingGame} onOpenChange={(open) => !open && setPreviewingGame(null)}>
+        <DialogContent className="max-w-[95vw] w-[1200px] h-[85vh] p-0 overflow-hidden bg-black border-none shadow-2xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{previewingGame?.name} Preview</DialogTitle>
+          </DialogHeader>
+
+          {previewingGame && (
+            <div className="relative w-full h-full flex flex-col">
+              {/* Toolbar */}
+              <div className="absolute top-0 left-0 right-0 h-14 bg-gradient-to-b from-black/80 to-transparent z-50 flex items-center justify-between px-6 opacity-0 hover:opacity-100 transition-opacity duration-300">
+                <div className="flex items-center gap-4">
+                  <div className="bg-primary/20 p-2 rounded-lg">
+                    <Play className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold leading-none">{previewingGame.name}</h3>
+                    <p className="text-white/60 text-xs mt-1">{previewingGame.provider_name} • {previewingGame.category}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-white/10 text-white border-none backdrop-blur-md">
+                    DEMO MODE
+                  </Badge>
+                  <Button size="icon" variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 rounded-full" onClick={() => setPreviewingGame(null)}>
+                    ✕
+                  </Button>
+                </div>
+              </div>
+
+              {/* Game Iframe */}
+              <div className="flex-1 w-full h-full relative group">
+                {previewingGame.embed_url ? (
+                  <iframe
+                    src={previewingGame.embed_url}
+                    className="w-full h-full border-none shadow-2xl"
+                    allowFullScreen
+                    allow="autoplay; encrypted-media; fullscreen"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-white gap-4 bg-zinc-900">
+                    <Settings className="w-12 h-12 text-zinc-700 animate-spin" />
+                    <div className="text-center">
+                      <p className="text-zinc-400 font-medium">No launch URL found for this game</p>
+                      <p className="text-zinc-600 text-sm">Please edit the game metadata to add a demo URL</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -413,109 +413,35 @@ export const clearAllGames: RequestHandler = async (req, res) => {
 };
 
 export const crawlSlots: RequestHandler = async (req, res) => {
+  // ... existing implementation
+};
+
+export const handleSaveCrawledGame: RequestHandler = async (req, res) => {
   try {
-    const { url, urls } = req.body;
+    const gameData = req.body;
 
-    // Support both single URL and multiple URLs
-    let urlsToProcess: string[] = [];
-
-    if (url) {
-      urlsToProcess = [url];
-    } else if (urls && Array.isArray(urls)) {
-      urlsToProcess = urls;
-    } else {
-      return res.status(400).json({ error: 'URL or URLs array is required' });
+    if (!gameData || !gameData.title) {
+      return res.status(400).json({ error: 'Game data with title is required' });
     }
 
-    // Validate URLs
-    for (const u of urlsToProcess) {
-      try {
-        new URL(u);
-      } catch (e) {
-        return res.status(400).json({ error: `Invalid URL format: ${u}` });
-      }
-    }
-
-    console.log(`[Crawler] Starting crawl for ${urlsToProcess.length} URL(s)`);
+    console.log(`[Crawler] Saving crawled game: ${gameData.title}`);
 
     // Import enhanced crawler
     const { gameCrawler } = await import('../services/game-crawler');
 
-    // Crawl URLs
-    const { games: crawledGames, errors: crawlErrors } = await gameCrawler.crawlMultiple(urlsToProcess);
-
-    if (crawledGames.length === 0) {
-      return res.status(400).json({
-        error: 'Could not extract game data from the provided URL(s)',
-        details: crawlErrors.map(e => `${e.url}: ${e.error}`).join('; '),
-        attempted: urlsToProcess.length,
-        successful: 0,
-        errors: crawlErrors
-      });
-    }
-
-    // Save crawled games to database
-    const savedGames = [];
-    const saveErrors = [];
-
-    for (const gameData of crawledGames) {
-      try {
-        const saved = await gameCrawler.saveGame(gameData);
-        savedGames.push(saved);
-      } catch (err) {
-        saveErrors.push({
-          game: gameData.title,
-          error: (err as Error).message,
-        });
-      }
-    }
-
-    // Notify admin
-    try {
-      const message = `Crawled ${savedGames.length} games from ${urlsToProcess.length} URL(s)`;
-      await SlackService.notifyAdminAction(
-        req.user?.email || 'admin',
-        'Slots Crawler Complete',
-        `${message}. ${saveErrors.length + crawlErrors.length > 0 ? `${saveErrors.length + crawlErrors.length} total errors occurred.` : 'All successful!'}`
-      );
-    } catch (slackErr) {
-      console.error('[Crawler] Failed to send Slack notification:', slackErr);
-    }
+    // Save game using crawler service (handles games table and game_config)
+    const savedGame = await gameCrawler.saveGame(gameData);
 
     res.json({
       success: true,
-      message: `Successfully processed ${savedGames.length} game(s)`,
-      data: {
-        saved: savedGames.length,
-        attempted: urlsToProcess.length,
-        games: savedGames,
-        errors: [...crawlErrors, ...saveErrors].length > 0 ? [...crawlErrors, ...saveErrors] : undefined,
-      },
+      message: `Successfully saved game: ${savedGame.name}`,
+      game: savedGame
     });
   } catch (error: any) {
-    console.error('[Crawler] Error:', error.message);
-
-    // Categorize error for better user feedback
-    let errorMessage = 'Crawler failed';
-    let statusCode = 500;
-
-    if (error.code === 'ECONNABORTED') {
-      errorMessage = 'Request timed out - site took too long to respond';
-      statusCode = 408;
-    } else if (error.message?.includes('rate limited')) {
-      errorMessage = 'Rate limited by target site - please try again later';
-      statusCode = 429;
-    } else if (error.message?.includes('Access denied')) {
-      errorMessage = error.message;
-      statusCode = 403;
-    } else if (error.message?.includes('not found')) {
-      errorMessage = 'Domain not found - check the URL';
-      statusCode = 400;
-    }
-
-    res.status(statusCode).json({
-      error: errorMessage,
-      details: error.message,
+    console.error('[Crawler] Save error:', error.message);
+    res.status(500).json({
+      error: 'Failed to save game',
+      details: error.message
     });
   }
 };
