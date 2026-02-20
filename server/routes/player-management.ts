@@ -214,11 +214,23 @@ export const getPlayerTransactions: RequestHandler = async (req, res) => {
     const offset = (page - 1) * limit;
 
     const result = await query(
-      'SELECT * FROM wallet_transactions WHERE player_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+      `SELECT
+        id,
+        transaction_type as type,
+        gc_amount,
+        sc_amount,
+        gc_balance_after,
+        sc_balance_after,
+        description,
+        created_at
+      FROM wallet_ledger
+      WHERE player_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3`,
       [playerId, limit, offset]
     );
 
-    const countResult = await query('SELECT COUNT(*) as total FROM wallet_transactions WHERE player_id = $1', [
+    const countResult = await query('SELECT COUNT(*) as total FROM wallet_ledger WHERE player_id = $1', [
       playerId,
     ]);
 
@@ -315,11 +327,23 @@ export const getPlayerTransactionsByUsername: RequestHandler = async (req, res) 
     }
 
     const result = await query(
-      'SELECT * FROM wallet_transactions WHERE player_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+      `SELECT
+        id,
+        transaction_type as type,
+        gc_amount,
+        sc_amount,
+        gc_balance_after,
+        sc_balance_after,
+        description,
+        created_at
+      FROM wallet_ledger
+      WHERE player_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3`,
       [playerId, limit, offset]
     );
 
-    const countResult = await query('SELECT COUNT(*) as total FROM wallet_transactions WHERE player_id = $1', [
+    const countResult = await query('SELECT COUNT(*) as total FROM wallet_ledger WHERE player_id = $1', [
       playerId,
     ]);
 

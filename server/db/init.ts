@@ -59,6 +59,27 @@ export const initializeDatabase = async () => {
 
     console.log('[DB] Migrations applied successfully');
 
+    // Read and execute missing tables migration
+    const missingTablesPath = path.join(__dirname, 'missing_tables.sql');
+    if (fs.existsSync(missingTablesPath)) {
+      const missingTables = fs.readFileSync(missingTablesPath, 'utf-8');
+      const missingTablesStatements = missingTables.split(';').filter(stmt => stmt.trim());
+      for (const statement of missingTablesStatements) {
+        if (statement.trim()) {
+          try {
+            await query(statement);
+          } catch (err: any) {
+            if (err.code === '42703' || err.code === '42701' || err.code === '42P07' || err.code === '42710' || err.code === '23503' || err.code === '42P01') {
+              console.log('[DB] Skipping missing table statement (conflict):', err.message?.substring(0, 80));
+            } else {
+              console.log('[DB] Error in missing table statement:', err.message);
+            }
+          }
+        }
+      }
+      console.log('[DB] Missing tables migration applied');
+    }
+
     // Read and execute challenges schema
     try {
       const challengesPath = path.join(__dirname, 'challenges_schema.sql');

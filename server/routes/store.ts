@@ -335,7 +335,7 @@ export const handleDeletePack: RequestHandler = async (req, res) => {
 };
 
 // Stripe webhook handler
-export const handleSquareWebhook: RequestHandler = async (req, res) => {
+export const handleStripeWebhook: RequestHandler = async (req, res) => {
   try {
     // Get the Stripe signature from headers
     const signature = req.headers['stripe-signature'] as string;

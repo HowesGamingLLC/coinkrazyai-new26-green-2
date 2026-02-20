@@ -39,7 +39,8 @@ import {
   handleGetPurchaseHistory,
   handleUpdatePack,
   handleAddPack,
-  handleDeletePack
+  handleDeletePack,
+  handleStripeWebhook as handleStoreWebhook
 } from "./routes/store";
 import {
   handleGetAdminStats,
@@ -419,7 +420,7 @@ export function createServer() {
   app.get("/api/store/packs", handleGetPacks);
   app.get("/api/store/payment-methods", getPaymentMethods);
   app.post("/api/store/purchase", verifyPlayer, handlePurchase);
-  app.post("/api/store/webhook", handleSquareWebhook);
+  app.post("/api/store/webhook", handleStoreWebhook);
   app.get("/api/store/history", verifyPlayer, handleGetPurchaseHistory);
   app.post("/api/store/pack/update", verifyAdmin, handleUpdatePack);
   app.post("/api/store/pack/add", verifyAdmin, handleAddPack);
