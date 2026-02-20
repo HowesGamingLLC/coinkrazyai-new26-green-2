@@ -1,5 +1,6 @@
 import { RequestHandler } from 'express';
 import * as dbQueries from '../db/queries';
+import { asyncHandler } from '../middleware/error-handler';
 
 const generateReferralCode = (playerId: number): string => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -10,148 +11,128 @@ const generateReferralCode = (playerId: number): string => {
   return code;
 };
 
-export const handleGetOrCreateReferralLink: RequestHandler = async (req, res) => {
-  try {
-    const playerId = req.user?.id;
+export const handleGetOrCreateReferralLink: RequestHandler = asyncHandler(async (req, res) => {
+  const playerId = req.user?.playerId;
 
-    if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
+  if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
 
-    // Check if referral link exists
-    let linkResult = await dbQueries.getReferralLink(playerId);
-    
-    if (linkResult.rows.length === 0) {
-      // Create new referral link
-      const uniqueCode = generateReferralCode(playerId);
-      linkResult = await dbQueries.createReferralLink(playerId, uniqueCode);
-    }
+  // Check if referral link exists
+  let linkResult = await dbQueries.getReferralLink(playerId);
 
-    const link = linkResult.rows[0];
-    res.json({
-      ...link,
-      referralUrl: `${process.env.FRONTEND_URL || 'https://coinkrazy.io'}/register?ref=${link.unique_code}`
-    });
-  } catch (error) {
-    console.error('Error getting referral link:', error);
-    res.status(500).json({ error: 'Failed to get referral link' });
+  if (linkResult.rows.length === 0) {
+    // Create new referral link
+    const uniqueCode = generateReferralCode(playerId);
+    linkResult = await dbQueries.createReferralLink(playerId, uniqueCode);
   }
-};
 
-export const handleRegisterWithReferral: RequestHandler = async (req, res) => {
-  try {
-    const { referralCode, playerId } = req.body;
+  const link = linkResult.rows[0];
+  res.json({
+    ...link,
+    referralUrl: `${process.env.FRONTEND_URL || 'https://coinkrazy.io'}/register?ref=${link.unique_code}`
+  });
+});
 
-    if (!referralCode || !playerId) {
-      return res.status(400).json({ error: 'Referral code and player ID required' });
-    }
+export const handleRegisterWithReferral: RequestHandler = asyncHandler(async (req, res) => {
+  const { referralCode, playerId } = req.body;
 
-    // Find referrer
-    const linkResult = await dbQueries.getReferralLinkByCode(referralCode);
-    
-    if (linkResult.rows.length === 0) {
-      return res.status(400).json({ error: 'Invalid referral code' });
-    }
+  if (!referralCode || !playerId) {
+    return res.status(400).json({ error: 'Referral code and player ID required' });
+  }
 
-    const referralLink = linkResult.rows[0];
-    const referrerId = referralLink.referrer_id;
+  // Find referrer
+  const linkResult = await dbQueries.getReferralLinkByCode(referralCode);
 
-    // Create referral claim
-    const bonusSc = 2.5; // Reward for referrer
-    const bonusGc = 500;
-    
-    const claimResult = await dbQueries.createReferralClaim(
-      referrerId,
-      playerId,
-      referralCode,
-      bonusSc,
-      bonusGc
+  if (linkResult.rows.length === 0) {
+    return res.status(400).json({ error: 'Invalid referral code' });
+  }
+
+  const referralLink = linkResult.rows[0];
+  const referrerId = referralLink.referrer_id;
+
+  // Create referral claim
+  const bonusSc = 2.5; // Reward for referrer
+  const bonusGc = 500;
+
+  const claimResult = await dbQueries.createReferralClaim(
+    referrerId,
+    playerId,
+    referralCode,
+    bonusSc,
+    bonusGc
+  );
+
+  res.json({
+    success: true,
+    claim: claimResult.rows[0],
+    referrerReward: { sc: bonusSc, gc: bonusGc }
+  });
+});
+
+export const handleCompleteReferralClaim: RequestHandler = asyncHandler(async (req, res) => {
+  const { claimId } = req.body;
+
+  if (!claimId) return res.status(400).json({ error: 'Claim ID required' });
+
+  // Get claim details
+  const claimResult = await dbQueries.query(
+    `SELECT * FROM referral_claims WHERE id = $1`,
+    [claimId]
+  );
+
+  if (claimResult.rows.length === 0) {
+    return res.status(404).json({ error: 'Claim not found' });
+  }
+
+  const claim = claimResult.rows[0];
+
+  // Complete the claim
+  const completedResult = await dbQueries.completeReferralClaim(claimId);
+  const completedClaim = completedResult.rows[0];
+
+  // Award bonus to referrer
+  if (completedClaim.status === 'completed') {
+    await dbQueries.recordWalletTransaction(
+      claim.referrer_id,
+      'ReferralBonus',
+      claim.referral_bonus_gc,
+      claim.referral_bonus_sc,
+      `Referral bonus for inviting ${claim.referred_player_id}`
     );
-
-    res.json({
-      success: true,
-      claim: claimResult.rows[0],
-      referrerReward: { sc: bonusSc, gc: bonusGc }
-    });
-  } catch (error) {
-    console.error('Error registering with referral:', error);
-    res.status(500).json({ error: 'Failed to process referral' });
   }
-};
 
-export const handleCompleteReferralClaim: RequestHandler = async (req, res) => {
-  try {
-    const { claimId } = req.body;
-
-    if (!claimId) return res.status(400).json({ error: 'Claim ID required' });
-
-    // Get claim details
-    const claimResult = await dbQueries.query(
-      `SELECT * FROM referral_claims WHERE id = $1`,
-      [claimId]
-    );
-
-    if (claimResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Claim not found' });
+  res.json({
+    success: true,
+    claim: completedClaim,
+    bonusAwarded: {
+      sc: claim.referral_bonus_sc,
+      gc: claim.referral_bonus_gc
     }
+  });
+});
 
-    const claim = claimResult.rows[0];
+export const handleGetReferralStats: RequestHandler = asyncHandler(async (req, res) => {
+  const playerId = req.user?.playerId;
 
-    // Complete the claim
-    const completedResult = await dbQueries.completeReferralClaim(claimId);
-    const completedClaim = completedResult.rows[0];
+  if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
 
-    // Award bonus to referrer
-    if (completedClaim.status === 'completed') {
-      await dbQueries.recordWalletTransaction(
-        claim.referrer_id,
-        'ReferralBonus',
-        claim.referral_bonus_gc,
-        claim.referral_bonus_sc,
-        `Referral bonus for inviting ${claim.referred_player_id}`
-      );
-    }
+  const result = await dbQueries.getReferralStats(playerId);
 
-    res.json({
-      success: true,
-      claim: completedClaim,
-      bonusAwarded: {
-        sc: claim.referral_bonus_sc,
-        gc: claim.referral_bonus_gc
-      }
+  if (result.rows.length === 0) {
+    return res.json({
+      uniqueCode: '',
+      totalReferrals: 0,
+      completedReferrals: 0,
+      totalScEarned: 0,
+      totalGcEarned: 0
     });
-  } catch (error) {
-    console.error('Error completing referral claim:', error);
-    res.status(500).json({ error: 'Failed to complete claim' });
   }
-};
 
-export const handleGetReferralStats: RequestHandler = async (req, res) => {
-  try {
-    const playerId = req.user?.id;
-
-    if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
-
-    const result = await dbQueries.getReferralStats(playerId);
-    
-    if (result.rows.length === 0) {
-      return res.json({
-        uniqueCode: '',
-        totalReferrals: 0,
-        completedReferrals: 0,
-        totalScEarned: 0,
-        totalGcEarned: 0
-      });
-    }
-
-    const stats = result.rows[0];
-    res.json({
-      uniqueCode: stats.unique_code,
-      totalReferrals: stats.total_referrals || 0,
-      completedReferrals: stats.completed_referrals || 0,
-      totalScEarned: stats.total_sc_earned || 0,
-      totalGcEarned: stats.total_gc_earned || 0
-    });
-  } catch (error) {
-    console.error('Error getting referral stats:', error);
-    res.status(500).json({ error: 'Failed to get referral stats' });
-  }
-};
+  const stats = result.rows[0];
+  res.json({
+    uniqueCode: stats.unique_code,
+    totalReferrals: stats.total_referrals || 0,
+    completedReferrals: stats.completed_referrals || 0,
+    totalScEarned: stats.total_sc_earned || 0,
+    totalGcEarned: stats.total_gc_earned || 0
+  });
+});
