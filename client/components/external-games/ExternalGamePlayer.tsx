@@ -34,6 +34,7 @@ export const ExternalGamePlayer: React.FC<ExternalGamePlayerProps> = ({ gameId }
   const [error, setError] = useState<string | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [showWinModal, setShowWinModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [lastWin, setLastWin] = useState<{
     game_name: string;
     win_amount: number;
@@ -205,23 +206,39 @@ export const ExternalGamePlayer: React.FC<ExternalGamePlayerProps> = ({ gameId }
 
         {/* Game Display */}
         <div className="lg:col-span-2">
-          <Card className="h-full bg-muted flex items-center justify-center min-h-[400px]">
-            <CardContent className="text-center space-y-4">
+          <Card className="h-full bg-black border-slate-800 flex flex-col min-h-[500px] overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800">
+               <div className="flex items-center gap-2">
+                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Game Stream</span>
+               </div>
+               <Button
+                 variant="ghost"
+                 size="icon"
+                 className="h-8 w-8 text-slate-400 hover:text-white"
+                 onClick={() => setRefreshKey(prev => prev + 1)}
+               >
+                 <Loader2 className={cn("w-4 h-4", isSpinning && "animate-spin")} />
+               </Button>
+            </div>
+            <div className="flex-1 relative">
               {gameConfig.embed_url ? (
                 <iframe
+                  key={refreshKey}
                   src={gameConfig.embed_url}
-                  className="w-full aspect-video rounded-lg border-0"
-                  allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write"
+                  className="absolute inset-0 w-full h-full border-0"
+                  allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-read; clipboard-write; microphone; camera; midi; geolocation"
                   allowFullScreen
                   sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-storage-access-by-user-activation"
+                  referrerPolicy="no-referrer-when-downgrade"
                 />
               ) : (
-                <div className="text-muted-foreground">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground p-6">
                   <p className="text-lg font-semibold">{gameConfig.name}</p>
                   <p className="text-sm">Game content would display here</p>
                 </div>
               )}
-            </CardContent>
+            </div>
           </Card>
         </div>
       </div>

@@ -27,6 +27,7 @@ export const GameEmbedModal = ({ isOpen, onClose, game }: GameEmbedModalProps) =
   const [isMuted, setIsMuted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleIframeLoad = () => {
     setIsLoading(false);
@@ -42,11 +43,7 @@ export const GameEmbedModal = ({ isOpen, onClose, game }: GameEmbedModalProps) =
   const handleRefresh = () => {
     setIsLoading(true);
     setHasError(false);
-    // Force reload iframe by remounting
-    const iframe = document.getElementById(`game-iframe-${game.id}`) as HTMLIFrameElement;
-    if (iframe) {
-      iframe.src = game.embed_url || '';
-    }
+    setRefreshKey(prev => prev + 1);
   };
 
   const handleFullscreen = async () => {
@@ -187,15 +184,17 @@ export const GameEmbedModal = ({ isOpen, onClose, game }: GameEmbedModalProps) =
             )}
 
             <iframe
+              key={refreshKey}
               id={`game-iframe-${game.id}`}
               src={game.embed_url}
               title={game.name}
               className="w-full h-full border-0"
-              allow="autoplay; fullscreen; picture-in-picture"
+              allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-read; clipboard-write; microphone; camera; midi; geolocation"
               allowFullScreen
               onLoad={handleIframeLoad}
               onError={handleIframeError}
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox"
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-storage-access-by-user-activation"
+              referrerPolicy="no-referrer-when-downgrade"
             />
           </div>
         </div>

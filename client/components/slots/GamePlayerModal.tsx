@@ -36,6 +36,7 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [gameConfig, setGameConfig] = useState<GameConfig>({
     min_bet: 0.01,
     max_bet: 100
@@ -80,10 +81,7 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
   const handleRefresh = () => {
     setIsLoading(true);
     setHasError(false);
-    const iframe = document.getElementById(`game-player-iframe-${game.id}`) as HTMLIFrameElement;
-    if (iframe && game.embed_url) {
-      iframe.src = game.embed_url;
-    }
+    setRefreshKey(prev => prev + 1);
   };
 
   const handleFullscreen = async () => {
@@ -234,11 +232,11 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex gap-6 overflow-hidden p-6">
+        <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden p-4 lg:p-6">
           {/* Game Container */}
           <div
             id={`game-player-container-${game.id}`}
-            className="flex-1 flex flex-col bg-black rounded-lg overflow-hidden relative"
+            className="flex-1 flex flex-col bg-black rounded-lg overflow-hidden relative min-h-[300px] lg:min-h-0"
           >
             {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10">
@@ -282,20 +280,22 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
             )}
 
             <iframe
+              key={refreshKey}
               id={`game-player-iframe-${game.id}`}
               src={game.embed_url}
               title={game.name}
               className="w-full h-full border-0"
-              allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write"
+              allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-read; clipboard-write; microphone; camera; midi; geolocation"
               allowFullScreen
               onLoad={handleIframeLoad}
               onError={handleIframeError}
               sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-storage-access-by-user-activation"
+              referrerPolicy="no-referrer-when-downgrade"
             />
           </div>
 
           {/* Betting Panel */}
-          <div className="w-80 flex flex-col gap-4">
+          <div className="w-full lg:w-80 flex flex-col gap-4 overflow-y-auto lg:overflow-visible pr-2 lg:pr-0">
             {/* Bet Selector */}
             <div className="flex-1">
               <BetSelector
