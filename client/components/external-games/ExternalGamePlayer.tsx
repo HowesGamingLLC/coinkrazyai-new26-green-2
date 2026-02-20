@@ -264,7 +264,7 @@ export const ExternalGamePlayer: React.FC<ExternalGamePlayerProps> = ({ gameId }
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center py-2 border-b border-white/5">
                 <span className="text-xs text-slate-500">Max Win Potential</span>
-                <span className="text-sm font-bold text-green-500">{gameConfig.max_win_amount.toFixed(2)} SC</span>
+                <span className="text-sm font-bold text-green-500">{Number(gameConfig.max_win_amount || 0).toFixed(2)} SC</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-white/5">
                 <span className="text-xs text-slate-500">Currency</span>
