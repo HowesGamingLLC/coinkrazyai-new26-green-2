@@ -47,6 +47,11 @@ const Games = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGameType, setSelectedGameType] = useState<GameType>('all');
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [selectedVolatility, setSelectedVolatility] = useState<string | null>(null);
+  const [minRTP, setMinRTP] = useState<number | null>(null);
+  const [maxRTP, setMaxRTP] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Set initial game type from URL param
   useEffect(() => {
