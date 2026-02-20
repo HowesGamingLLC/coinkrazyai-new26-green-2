@@ -1,28 +1,13 @@
 -- Initial migrations to ensure all columns exist
 -- These are also handled in init.ts code, but good to have here for idempotency
 
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='games' AND column_name='description') THEN
-        ALTER TABLE games ADD COLUMN description TEXT;
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='games' AND column_name='image_url') THEN
-        ALTER TABLE games ADD COLUMN image_url VARCHAR(500);
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='store_packs' AND column_name='bonus_sc') THEN
-        ALTER TABLE store_packs ADD COLUMN bonus_sc DECIMAL(15, 2) DEFAULT 0;
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='username') THEN
-        ALTER TABLE players ADD COLUMN username VARCHAR(255) UNIQUE;
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='password_hash') THEN
-        ALTER TABLE players ADD COLUMN password_hash VARCHAR(255) NOT NULL DEFAULT '';
-    END IF;
-END $$;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS image_url VARCHAR(500);
+ALTER TABLE games ADD COLUMN IF NOT EXISTS thumbnail VARCHAR(500);
+ALTER TABLE games ADD COLUMN IF NOT EXISTS embed_url VARCHAR(500);
+ALTER TABLE store_packs ADD COLUMN IF NOT EXISTS bonus_sc DECIMAL(15, 2) DEFAULT 0;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS username VARCHAR(255) UNIQUE;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255) NOT NULL DEFAULT '';
 
 -- Add any new tables or adjustments below
 CREATE TABLE IF NOT EXISTS challenge_categories (

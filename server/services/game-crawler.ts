@@ -42,13 +42,18 @@ const DEFAULT_CRAWLER_CONFIG: CrawlerConfig = {
   timeout: 15000,
   maxRetries: 2,
   headers: {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.9',
     'Accept-Encoding': 'gzip, deflate, br',
     'DNT': '1',
     'Connection': 'keep-alive',
     'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-User': '?1',
+    'Cache-Control': 'max-age=0',
   },
 };
 
@@ -64,26 +69,35 @@ class GameCrawler {
    */
   private extractGameData(html: string, url: string): CrawledGame | null {
     try {
+      console.log(`[Crawler] Starting extraction for ${url}`);
       const $ = cheerio.load(html);
 
       // Extract title from multiple possible locations
       let title = this.extractTitle(html, $);
+      console.log(`[Crawler] Extracted title: "${title}"`);
 
       // Extract RTP from various patterns
       const rtp = this.extractRTP(html, $);
+      console.log(`[Crawler] Extracted RTP: ${rtp}`);
 
       // Extract volatility
       const volatility = this.extractVolatility(html, $);
+      console.log(`[Crawler] Extracted Volatility: ${volatility}`);
 
       // Extract description
       const description = this.extractDescription(html, $);
+      console.log(`[Crawler] Extracted Description length: ${description.length}`);
 
       // Extract image URL
       const image_url = this.extractImageUrl(html, $, url);
+      console.log(`[Crawler] Extracted Image URL: ${image_url || 'None'}`);
+
       const thumbnail_url = this.extractThumbnailUrl(html, $, url);
+      console.log(`[Crawler] Extracted Thumbnail URL: ${thumbnail_url || 'None'}`);
 
       // Extract embed URL (iframe or demo link)
       const embed_url = this.extractEmbedUrl(html, $, url);
+      console.log(`[Crawler] Extracted Embed URL: ${embed_url || 'None'}`);
 
       // Extract additional data
       const max_paylines = this.extractPaylines(html, $);
@@ -97,7 +111,7 @@ class GameCrawler {
       const theme = this.extractTheme(html, $);
 
       if (!title || title.length < 2) {
-        console.warn(`[Crawler] Could not extract title from ${url}`);
+        console.warn(`[Crawler] Could not extract valid title from ${url}. HTML might be empty or obfuscated.`);
         return null;
       }
 
@@ -634,23 +648,26 @@ class GameCrawler {
   /**
    * Crawl multiple URLs and aggregate results
    */
-  async crawlMultiple(urls: string[]): Promise<CrawledGame[]> {
-    const results: CrawledGame[] = [];
+  async crawlMultiple(urls: string[]): Promise<{ games: CrawledGame[]; errors: { url: string; error: string }[] }> {
+    const games: CrawledGame[] = [];
+    const errors: { url: string; error: string }[] = [];
 
     for (const url of urls) {
       try {
         const gameData = await this.crawlUrl(url);
         if (gameData) {
-          results.push(gameData);
+          games.push(gameData);
+        } else {
+          errors.push({ url, error: 'Failed to extract valid game data from the HTML structure' });
         }
       } catch (error) {
         console.error(`[Crawler] Failed to process ${url}:`, (error as Error).message);
-        continue;
+        errors.push({ url, error: (error as Error).message });
       }
     }
 
-    console.log(`[Crawler] Successfully crawled ${results.length} out of ${urls.length} URLs`);
-    return results;
+    console.log(`[Crawler] Successfully crawled ${games.length} out of ${urls.length} URLs`);
+    return { games, errors };
   }
 
   /**

@@ -343,44 +343,14 @@ CREATE TABLE IF NOT EXISTS provider_games (
 );
 
 -- 10. Missing columns in existing tables
-DO $$
-BEGIN
-    -- Players table
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='vip_status') THEN
-        ALTER TABLE players ADD COLUMN vip_status VARCHAR(50);
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='country') THEN
-        ALTER TABLE players ADD COLUMN country VARCHAR(100);
-    END IF;
-
-    -- Referral links table
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='referral_links' AND column_name='clicks') THEN
-        ALTER TABLE referral_links ADD COLUMN clicks INTEGER DEFAULT 0;
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='referral_links' AND column_name='conversions') THEN
-        ALTER TABLE referral_links ADD COLUMN conversions INTEGER DEFAULT 0;
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='referral_links' AND column_name='total_referral_bonus') THEN
-        ALTER TABLE referral_links ADD COLUMN total_referral_bonus DECIMAL(15, 2) DEFAULT 0;
-    END IF;
-
-    -- Bonuses table
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bonuses' AND column_name='wagering_multiplier') THEN
-        ALTER TABLE bonuses ADD COLUMN wagering_multiplier DECIMAL(5, 2) DEFAULT 35.0;
-    END IF;
-
-    -- Casino settings table
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='casino_settings' AND column_name='updated_by') THEN
-        ALTER TABLE casino_settings ADD COLUMN updated_by INTEGER REFERENCES admin_users(id);
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='admin_users' AND column_name='last_login') THEN
-        ALTER TABLE admin_users ADD COLUMN last_login TIMESTAMP;
-    END IF;
-END $$;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS vip_status VARCHAR(50);
+ALTER TABLE players ADD COLUMN IF NOT EXISTS country VARCHAR(100);
+ALTER TABLE referral_links ADD COLUMN IF NOT EXISTS clicks INTEGER DEFAULT 0;
+ALTER TABLE referral_links ADD COLUMN IF NOT EXISTS conversions INTEGER DEFAULT 0;
+ALTER TABLE referral_links ADD COLUMN IF NOT EXISTS total_referral_bonus DECIMAL(15, 2) DEFAULT 0;
+ALTER TABLE bonuses ADD COLUMN IF NOT EXISTS wagering_multiplier DECIMAL(5, 2) DEFAULT 35.0;
+ALTER TABLE casino_settings ADD COLUMN IF NOT EXISTS updated_by INTEGER REFERENCES admin_users(id);
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
 
 -- 11. Missing Game-Specific Tables
 CREATE TABLE IF NOT EXISTS poker_sessions (

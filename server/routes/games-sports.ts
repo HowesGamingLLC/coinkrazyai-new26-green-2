@@ -442,26 +442,28 @@ export const crawlSlots: RequestHandler = async (req, res) => {
     const { gameCrawler } = await import('../services/game-crawler');
 
     // Crawl URLs
-    const crawledGames = await gameCrawler.crawlMultiple(urlsToProcess);
+    const { games: crawledGames, errors: crawlErrors } = await gameCrawler.crawlMultiple(urlsToProcess);
 
     if (crawledGames.length === 0) {
       return res.status(400).json({
         error: 'Could not extract game data from the provided URL(s)',
+        details: crawlErrors.map(e => `${e.url}: ${e.error}`).join('; '),
         attempted: urlsToProcess.length,
         successful: 0,
+        errors: crawlErrors
       });
     }
 
     // Save crawled games to database
     const savedGames = [];
-    const errors = [];
+    const saveErrors = [];
 
     for (const gameData of crawledGames) {
       try {
         const saved = await gameCrawler.saveGame(gameData);
         savedGames.push(saved);
       } catch (err) {
-        errors.push({
+        saveErrors.push({
           game: gameData.title,
           error: (err as Error).message,
         });
@@ -474,7 +476,7 @@ export const crawlSlots: RequestHandler = async (req, res) => {
       await SlackService.notifyAdminAction(
         req.user?.email || 'admin',
         'Slots Crawler Complete',
-        `${message}. ${errors.length > 0 ? `${errors.length} errors occurred.` : 'All successful!'}`
+        `${message}. ${saveErrors.length + crawlErrors.length > 0 ? `${saveErrors.length + crawlErrors.length} total errors occurred.` : 'All successful!'}`
       );
     } catch (slackErr) {
       console.error('[Crawler] Failed to send Slack notification:', slackErr);
@@ -482,12 +484,12 @@ export const crawlSlots: RequestHandler = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Successfully crawled ${savedGames.length} game(s)`,
+      message: `Successfully processed ${savedGames.length} game(s)`,
       data: {
         saved: savedGames.length,
         attempted: urlsToProcess.length,
         games: savedGames,
-        errors: errors.length > 0 ? errors : undefined,
+        errors: [...crawlErrors, ...saveErrors].length > 0 ? [...crawlErrors, ...saveErrors] : undefined,
       },
     });
   } catch (error: any) {

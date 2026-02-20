@@ -117,14 +117,26 @@ export const initializeDatabase = async () => {
 
     // Add image_url column to games table if it doesn't exist
     try {
-      await query(`ALTER TABLE games ADD COLUMN image_url VARCHAR(500)`);
-      console.log('[DB] Added image_url column to games table');
+      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS image_url VARCHAR(500)`);
+      console.log('[DB] Verified image_url column in games');
     } catch (err: any) {
-      if (err.code === '42701') {
-        console.log('[DB] image_url column already exists in games');
-      } else {
-        console.log('[DB] Schema check for games.image_url:', err.message?.substring(0, 100));
-      }
+      console.log('[DB] Schema check for games.image_url:', err.message?.substring(0, 100));
+    }
+
+    // Add thumbnail column to games table if it doesn't exist
+    try {
+      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS thumbnail VARCHAR(500)`);
+      console.log('[DB] Verified thumbnail column in games');
+    } catch (err: any) {
+      console.log('[DB] Schema check for games.thumbnail:', err.message?.substring(0, 100));
+    }
+
+    // Add embed_url column to games table if it doesn't exist
+    try {
+      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS embed_url VARCHAR(500)`);
+      console.log('[DB] Verified embed_url column in games');
+    } catch (err: any) {
+      console.log('[DB] Schema check for games.embed_url:', err.message?.substring(0, 100));
     }
 
     // Add updated_at column to games table if it doesn't exist
