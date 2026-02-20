@@ -145,6 +145,28 @@ export const ExternalGamePlayer: React.FC<ExternalGamePlayerProps> = ({ gameId }
     }
   };
 
+  const scBalance = wallet?.sweepsCoins || 0;
+  const gcBalance = wallet?.goldCoins || 0;
+
+  // Enhance embed URL with bet and wallet data if possible
+  const enhancedEmbedUrl = React.useMemo(() => {
+    if (!gameConfig?.embed_url) return '';
+    try {
+      const url = new URL(gameConfig.embed_url);
+      // We don't have a local 'currentBet' state in this component yet,
+      // but we can pass the min_bet or a default
+      url.searchParams.set('balance', scBalance.toString());
+      url.searchParams.set('sc_balance', scBalance.toString());
+      url.searchParams.set('gc_balance', gcBalance.toString());
+      url.searchParams.set('currency', 'SC');
+      url.searchParams.set('username', user?.username || 'Guest');
+      return url.toString();
+    } catch (e) {
+      const separator = gameConfig.embed_url.includes('?') ? '&' : '?';
+      return `${gameConfig.embed_url}${separator}balance=${scBalance}&sc_balance=${scBalance}&gc_balance=${gcBalance}&currency=SC&username=${user?.username || 'Guest'}`;
+    }
+  }, [gameConfig?.embed_url, scBalance, gcBalance, user?.username]);
+
   if (loading) {
     return (
       <Card>
@@ -163,28 +185,6 @@ export const ExternalGamePlayer: React.FC<ExternalGamePlayerProps> = ({ gameId }
       </Alert>
     );
   }
-
-  const scBalance = wallet?.sweepsCoins || 0;
-  const gcBalance = wallet?.goldCoins || 0;
-
-  // Enhance embed URL with bet and wallet data if possible
-  const enhancedEmbedUrl = React.useMemo(() => {
-    if (!gameConfig.embed_url) return '';
-    try {
-      const url = new URL(gameConfig.embed_url);
-      // We don't have a local 'currentBet' state in this component yet,
-      // but we can pass the min_bet or a default
-      url.searchParams.set('balance', scBalance.toString());
-      url.searchParams.set('sc_balance', scBalance.toString());
-      url.searchParams.set('gc_balance', gcBalance.toString());
-      url.searchParams.set('currency', 'SC');
-      url.searchParams.set('username', user?.username || 'Guest');
-      return url.toString();
-    } catch (e) {
-      const separator = gameConfig.embed_url.includes('?') ? '&' : '?';
-      return `${gameConfig.embed_url}${separator}balance=${scBalance}&sc_balance=${scBalance}&gc_balance=${gcBalance}&currency=SC&username=${user?.username || 'Guest'}`;
-    }
-  }, [gameConfig.embed_url, scBalance, gcBalance, user?.username]);
 
   return (
     <div className="space-y-6">
