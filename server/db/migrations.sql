@@ -1,363 +1,61 @@
--- ===== SOCIAL SHARING TABLE =====
-CREATE TABLE IF NOT EXISTS social_shares (
-  id SERIAL PRIMARY KEY,
-  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-  game_id INTEGER REFERENCES games(id),
-  win_amount DECIMAL(15, 2) NOT NULL,
-  game_name VARCHAR(255),
-  platform VARCHAR(50) NOT NULL, -- 'facebook', 'twitter', 'instagram', etc
-  message TEXT,
-  shared_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  status VARCHAR(50) DEFAULT 'completed', -- 'pending', 'completed', 'failed'
-  share_link VARCHAR(500),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- Initial migrations to ensure all columns exist
+-- These are also handled in init.ts code, but good to have here for idempotency
 
-CREATE INDEX IF NOT EXISTS idx_social_shares_player_id ON social_shares(player_id);
-CREATE INDEX IF NOT EXISTS idx_social_shares_platform ON social_shares(platform);
-CREATE INDEX IF NOT EXISTS idx_social_shares_created_at ON social_shares(created_at);
-
--- ===== SOCIAL SHARE RESPONSES TABLE =====
-CREATE TABLE IF NOT EXISTS social_share_responses (
-  id SERIAL PRIMARY KEY,
-  social_share_id INTEGER NOT NULL REFERENCES social_shares(id) ON DELETE CASCADE,
-  response_type VARCHAR(50) NOT NULL, -- 'like', 'comment', 'share', 'click'
-  response_data JSONB,
-  respondent_id VARCHAR(255),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_social_share_responses_share_id ON social_share_responses(social_share_id);
-
--- ===== DAILY LOGIN BONUS TABLE =====
-CREATE TABLE IF NOT EXISTS daily_login_bonuses (
-  id SERIAL PRIMARY KEY,
-  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-  bonus_day INTEGER DEFAULT 1, -- Day 1, 2, 3, etc
-  amount_sc DECIMAL(15, 2) NOT NULL,
-  amount_gc INTEGER DEFAULT 0,
-  claimed_at TIMESTAMP,
-  next_available_at TIMESTAMP,
-  streak_count INTEGER DEFAULT 1,
-  status VARCHAR(50) DEFAULT 'available', -- 'available', 'claimed', 'expired'
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_daily_login_bonuses_player_id ON daily_login_bonuses(player_id);
-CREATE INDEX IF NOT EXISTS idx_daily_login_bonuses_next_available ON daily_login_bonuses(next_available_at);
-
--- ===== REFERRAL LINKS TABLE =====
-CREATE TABLE IF NOT EXISTS referral_links (
-  id SERIAL PRIMARY KEY,
-  referrer_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-  unique_code VARCHAR(255) UNIQUE NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  clicks INTEGER DEFAULT 0,
-  conversions INTEGER DEFAULT 0,
-  total_referral_bonus DECIMAL(15, 2) DEFAULT 0
-);
-
-CREATE INDEX IF NOT EXISTS idx_referral_links_referrer_id ON referral_links(referrer_id);
-CREATE INDEX IF NOT EXISTS idx_referral_links_code ON referral_links(unique_code);
-
--- ===== REFERRAL CLAIMS TABLE =====
-CREATE TABLE IF NOT EXISTS referral_claims (
-  id SERIAL PRIMARY KEY,
-  referrer_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-  referred_player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-  referral_code VARCHAR(255),
-  status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'completed', 'cancelled'
-  referral_bonus_sc DECIMAL(15, 2) DEFAULT 0,
-  referral_bonus_gc INTEGER DEFAULT 0,
-  claimed_at TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(referrer_id, referred_player_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_referral_claims_referrer_id ON referral_claims(referrer_id);
-CREATE INDEX IF NOT EXISTS idx_referral_claims_referred_player_id ON referral_claims(referred_player_id);
-
--- ===== PAYMENT METHODS TABLE =====
-CREATE TABLE IF NOT EXISTS player_payment_methods (
-  id SERIAL PRIMARY KEY,
-  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-  method_type VARCHAR(50) NOT NULL, -- 'bank', 'paypal', 'cashapp'
-  is_primary BOOLEAN DEFAULT FALSE,
-  -- Bank details (encrypted)
-  bank_account_holder VARCHAR(255),
-  bank_name VARCHAR(255),
-  account_number VARCHAR(255), -- encrypted
-  routing_number VARCHAR(255), -- encrypted
-  account_type VARCHAR(50), -- 'checking', 'savings'
-  -- PayPal
-  paypal_email VARCHAR(255),
-  -- Cash App
-  cashapp_handle VARCHAR(255),
-  -- General
-  is_verified BOOLEAN DEFAULT FALSE,
-  verification_method VARCHAR(100), -- 'microdeposit', 'email', 'phone'
-  verified_at TIMESTAMP,
-  last_used_at TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_player_payment_methods_player_id ON player_payment_methods(player_id);
-CREATE INDEX IF NOT EXISTS idx_player_payment_methods_primary ON player_payment_methods(player_id, is_primary);
-
--- ===== SALES TRANSACTIONS TABLE =====
-CREATE TABLE IF NOT EXISTS sales_transactions (
-  id SERIAL PRIMARY KEY,
-  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-  game_type VARCHAR(50) NOT NULL, -- 'scratch_ticket', 'pull_tab'
-  design_id INTEGER,
-  purchase_cost_sc DECIMAL(15, 2) NOT NULL,
-  win_amount_sc DECIMAL(15, 2) DEFAULT 0,
-  net_amount_sc DECIMAL(15, 2), -- purchase_cost - win_amount
-  transaction_status VARCHAR(50) DEFAULT 'completed', -- 'completed', 'cancelled', 'refunded'
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_sales_transactions_player_id ON sales_transactions(player_id);
-CREATE INDEX IF NOT EXISTS idx_sales_transactions_game_type ON sales_transactions(game_type);
-CREATE INDEX IF NOT EXISTS idx_sales_transactions_created_at ON sales_transactions(created_at);
-
--- ===== SALES SUMMARY VIEW =====
-CREATE OR REPLACE VIEW sales_summary AS
-SELECT 
-  DATE(created_at) as sale_date,
-  game_type,
-  COUNT(*) as total_sales,
-  SUM(purchase_cost_sc) as total_revenue_sc,
-  SUM(win_amount_sc) as total_payouts_sc,
-  SUM(net_amount_sc) as net_profit_sc,
-  AVG(purchase_cost_sc) as avg_purchase_cost,
-  AVG(win_amount_sc) as avg_win_amount
-FROM sales_transactions
-GROUP BY DATE(created_at), game_type;
-
--- ===== ADMIN NOTIFICATIONS TABLE =====
-CREATE TABLE IF NOT EXISTS admin_notifications (
-  id SERIAL PRIMARY KEY,
-  admin_id INTEGER REFERENCES admin_users(id) ON DELETE SET NULL,
-  ai_employee_id VARCHAR(255), -- 'LuckyAI', 'SlotsAI', etc
-  message_type VARCHAR(50) NOT NULL, -- 'alert', 'request', 'report', 'task'
-  subject VARCHAR(255),
-  message TEXT NOT NULL,
-  related_player_id INTEGER REFERENCES players(id),
-  related_game_id INTEGER REFERENCES games(id),
-  priority VARCHAR(50) DEFAULT 'medium', -- 'low', 'medium', 'high', 'critical'
-  status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'approved', 'denied', 'in_progress', 'completed'
-  read_at TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_admin_notifications_admin_id ON admin_notifications(admin_id);
-CREATE INDEX IF NOT EXISTS idx_admin_notifications_status ON admin_notifications(status);
-CREATE INDEX IF NOT EXISTS idx_admin_notifications_created_at ON admin_notifications(created_at);
-
--- ===== NOTIFICATION ACTIONS TABLE =====
-CREATE TABLE IF NOT EXISTS notification_actions (
-  id SERIAL PRIMARY KEY,
-  notification_id INTEGER NOT NULL REFERENCES admin_notifications(id) ON DELETE CASCADE,
-  action_type VARCHAR(50) NOT NULL, -- 'approve', 'deny', 'assign', 'answer', 'resolve'
-  action_data JSONB, -- stores which AI employee assigned, answer text, etc
-  taken_by_admin_id INTEGER REFERENCES admin_users(id),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_notification_actions_notification_id ON notification_actions(notification_id);
-
--- ===== USER MESSAGES TABLE =====
-CREATE TABLE IF NOT EXISTS user_messages (
-  id SERIAL PRIMARY KEY,
-  sender_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-  recipient_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
-  admin_id INTEGER REFERENCES admin_users(id) ON DELETE SET NULL,
-  subject VARCHAR(255),
-  message TEXT NOT NULL,
-  message_type VARCHAR(50) DEFAULT 'general', -- 'general', 'support', 'notification', 'system'
-  is_read BOOLEAN DEFAULT FALSE,
-  read_at TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_user_messages_sender_id ON user_messages(sender_id);
-CREATE INDEX IF NOT EXISTS idx_user_messages_recipient_id ON user_messages(recipient_id);
-CREATE INDEX IF NOT EXISTS idx_user_messages_is_read ON user_messages(is_read);
-
--- ===== BETTING LIMITS CONFIG TABLE =====
-CREATE TABLE IF NOT EXISTS betting_limits_config (
-  id SERIAL PRIMARY KEY,
-  game_type VARCHAR(50) NOT NULL, -- 'slots', 'casino', 'scratch', 'pull_tabs', 'sportsbook'
-  min_bet_sc DECIMAL(8, 2) NOT NULL,
-  max_bet_sc DECIMAL(8, 2) NOT NULL,
-  max_win_per_spin_sc DECIMAL(8, 2) NOT NULL,
-  min_redemption_sc DECIMAL(15, 2) NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Insert default limits
-INSERT INTO betting_limits_config (game_type, min_bet_sc, max_bet_sc, max_win_per_spin_sc, min_redemption_sc)
-VALUES 
-  ('slots', 0.01, 5.00, 20.00, 100.00),
-  ('casino', 0.01, 5.00, 20.00, 100.00),
-  ('scratch', 0.01, 5.00, 20.00, 100.00),
-  ('pull_tabs', 0.01, 5.00, 20.00, 100.00),
-  ('sportsbook', 0.01, 5.00, 20.00, 100.00)
-ON CONFLICT DO NOTHING;
-
--- ===== KYC ONBOARDING STATUS TABLE =====
-CREATE TABLE IF NOT EXISTS kyc_onboarding_progress (
-  id SERIAL PRIMARY KEY,
-  player_id INTEGER NOT NULL UNIQUE REFERENCES players(id) ON DELETE CASCADE,
-  current_step INTEGER DEFAULT 1, -- 1, 2, 3, etc
-  identity_verified BOOLEAN DEFAULT FALSE,
-  address_verified BOOLEAN DEFAULT FALSE,
-  payment_verified BOOLEAN DEFAULT FALSE,
-  email_verified BOOLEAN DEFAULT FALSE,
-  phone_verified BOOLEAN DEFAULT FALSE,
-  last_prompted_at TIMESTAMP,
-  completed_at TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_kyc_onboarding_player_id ON kyc_onboarding_progress(player_id);
-
--- ===== GAME PROVIDER MANAGEMENT =====
-CREATE TABLE IF NOT EXISTS game_providers (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL UNIQUE,
-  slug VARCHAR(255) UNIQUE NOT NULL,
-  type VARCHAR(50) NOT NULL, -- 'slots', 'table', 'live', 'sportsbook'
-  description TEXT,
-  logo_url VARCHAR(500),
-  website_url VARCHAR(500),
-  api_endpoint VARCHAR(500),
-  api_key VARCHAR(500),
-  api_secret VARCHAR(500),
-  is_enabled BOOLEAN DEFAULT TRUE,
-  status VARCHAR(50) DEFAULT 'inactive', -- 'inactive', 'connected', 'syncing', 'error'
-  last_sync_at TIMESTAMP,
-  total_games INTEGER DEFAULT 0,
-  supports_live_sync BOOLEAN DEFAULT FALSE,
-  sync_interval_minutes INTEGER DEFAULT 1440, -- Daily by default
-  rate_limit INTEGER DEFAULT 100, -- API calls per minute
-  request_timeout_seconds INTEGER DEFAULT 30,
-  authentication_type VARCHAR(50) DEFAULT 'api_key', -- 'api_key', 'oauth', 'username_password'
-  custom_config JSONB,
-  error_log TEXT,
-  created_by INTEGER REFERENCES admin_users(id),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  last_error TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_game_providers_enabled ON game_providers(is_enabled);
-CREATE INDEX IF NOT EXISTS idx_game_providers_status ON game_providers(status);
-CREATE INDEX IF NOT EXISTS idx_game_providers_slug ON game_providers(slug);
-
--- ===== PROVIDER GAMES MAPPING =====
-CREATE TABLE IF NOT EXISTS provider_games (
-  id SERIAL PRIMARY KEY,
-  provider_id INTEGER NOT NULL REFERENCES game_providers(id) ON DELETE CASCADE,
-  game_id INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
-  provider_game_id VARCHAR(500) NOT NULL, -- External provider's game ID
-  provider_game_name VARCHAR(500),
-  is_active BOOLEAN DEFAULT TRUE,
-  last_synced_at TIMESTAMP,
-  external_metadata JSONB, -- Store provider-specific data
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(provider_id, provider_game_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_provider_games_provider_id ON provider_games(provider_id);
-CREATE INDEX IF NOT EXISTS idx_provider_games_game_id ON provider_games(game_id);
-CREATE INDEX IF NOT EXISTS idx_provider_games_provider_game_id ON provider_games(provider_game_id);
-
--- ===== GAME IMPORT HISTORY =====
-CREATE TABLE IF NOT EXISTS game_import_history (
-  id SERIAL PRIMARY KEY,
-  provider_id INTEGER NOT NULL REFERENCES game_providers(id) ON DELETE CASCADE,
-  import_type VARCHAR(50) NOT NULL, -- 'manual', 'scheduled', 'api_sync'
-  total_games_attempted INTEGER DEFAULT 0,
-  total_games_imported INTEGER DEFAULT 0,
-  total_games_updated INTEGER DEFAULT 0,
-  total_games_skipped INTEGER DEFAULT 0,
-  status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'in_progress', 'completed', 'failed'
-  started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  completed_at TIMESTAMP,
-  error_message TEXT,
-  import_duration_seconds INTEGER,
-  imported_by INTEGER REFERENCES admin_users(id),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_game_import_history_provider_id ON game_import_history(provider_id);
-CREATE INDEX IF NOT EXISTS idx_game_import_history_status ON game_import_history(status);
-CREATE INDEX IF NOT EXISTS idx_game_import_history_created_at ON game_import_history(created_at);
-
--- ===== PROVIDER API LOGS =====
-CREATE TABLE IF NOT EXISTS provider_api_logs (
-  id SERIAL PRIMARY KEY,
-  provider_id INTEGER NOT NULL REFERENCES game_providers(id) ON DELETE CASCADE,
-  endpoint VARCHAR(500),
-  method VARCHAR(10), -- GET, POST, PUT, DELETE
-  request_body JSONB,
-  response_code INTEGER,
-  response_body JSONB,
-  error_message TEXT,
-  duration_ms INTEGER,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_provider_api_logs_provider_id ON provider_api_logs(provider_id);
-CREATE INDEX IF NOT EXISTS idx_provider_api_logs_created_at ON provider_api_logs(created_at);
-
--- ===== AI EMPLOYEES TABLE =====
-CREATE TABLE IF NOT EXISTS ai_employees (
-  id VARCHAR(255) PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  role VARCHAR(255) NOT NULL,
-  status VARCHAR(50) DEFAULT 'active',
-  duties TEXT[] DEFAULT ARRAY[]::TEXT[],
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_ai_employees_status ON ai_employees(status);
-
--- ===== MIGRATION: Add new game columns =====
--- This migration adds support for the new game import format
-ALTER TABLE IF EXISTS games
-ADD COLUMN IF NOT EXISTS slug VARCHAR(255),
-ADD COLUMN IF NOT EXISTS series VARCHAR(255),
-ADD COLUMN IF NOT EXISTS family VARCHAR(255),
-ADD COLUMN IF NOT EXISTS type VARCHAR(100),
-ADD COLUMN IF NOT EXISTS embed_url VARCHAR(500);
-
--- Add indexes for new columns
-CREATE INDEX IF NOT EXISTS idx_games_slug ON games(slug);
-CREATE INDEX IF NOT EXISTS idx_games_provider ON games(provider);
-
--- ===== CLEAR ALL GAMES =====
--- Delete all existing games to prepare for new import
-DELETE FROM games;
-TRUNCATE TABLE game_config CASCADE;
-TRUNCATE TABLE game_features CASCADE;
-TRUNCATE TABLE game_themes CASCADE;
-TRUNCATE TABLE game_feature_mappings CASCADE;
-TRUNCATE TABLE game_theme_mappings CASCADE;
-
--- Add result_data column to casino_game_spins if it doesn't exist
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'casino_game_spins' AND column_name = 'result_data') THEN
-        ALTER TABLE casino_game_spins ADD COLUMN result_data JSONB DEFAULT '{}';
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='games' AND column_name='description') THEN
+        ALTER TABLE games ADD COLUMN description TEXT;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='games' AND column_name='image_url') THEN
+        ALTER TABLE games ADD COLUMN image_url VARCHAR(500);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='store_packs' AND column_name='bonus_sc') THEN
+        ALTER TABLE store_packs ADD COLUMN bonus_sc DECIMAL(15, 2) DEFAULT 0;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='username') THEN
+        ALTER TABLE players ADD COLUMN username VARCHAR(255) UNIQUE;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='password_hash') THEN
+        ALTER TABLE players ADD COLUMN password_hash VARCHAR(255) NOT NULL DEFAULT '';
     END IF;
 END $$;
+
+-- Add any new tables or adjustments below
+CREATE TABLE IF NOT EXISTS challenge_categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    icon VARCHAR(100),
+    display_order INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS challenges (
+    id SERIAL PRIMARY KEY,
+    category_id INTEGER REFERENCES challenge_categories(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    requirement_type VARCHAR(100) NOT NULL,
+    requirement_value DECIMAL(15, 2) NOT NULL,
+    reward_sc DECIMAL(15, 2) DEFAULT 0,
+    reward_gc DECIMAL(15, 2) DEFAULT 0,
+    reward_xp INTEGER DEFAULT 0,
+    is_daily BOOLEAN DEFAULT FALSE,
+    enabled BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS player_challenges (
+    player_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
+    challenge_id INTEGER REFERENCES challenges(id) ON DELETE CASCADE,
+    current_progress DECIMAL(15, 2) DEFAULT 0,
+    completed BOOLEAN DEFAULT FALSE,
+    claimed BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMP,
+    claimed_at TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (player_id, challenge_id)
+);

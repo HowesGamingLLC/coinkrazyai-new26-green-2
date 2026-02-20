@@ -1,61 +1,52 @@
--- ===== CHALLENGES CONFIGURATION TABLE =====
-CREATE TABLE IF NOT EXISTS challenge_definitions (
-  id SERIAL PRIMARY KEY,
-  type VARCHAR(50) NOT NULL, -- 'daily_login', 'purchase', 'spins', 'streak'
-  name VARCHAR(255) NOT NULL,
-  description TEXT,
-  requirement_count INTEGER NOT NULL, -- Number of purchases, spins, or days required
-  reward_sc DECIMAL(15, 2) DEFAULT 0,
-  reward_gc INTEGER DEFAULT 0,
-  reward_badge VARCHAR(100), -- Badge name to award
-  reward_vip_status VARCHAR(50), -- VIP status to award
-  period VARCHAR(50) DEFAULT 'daily', -- 'daily', 'weekly', 'monthly', 'all_time'
-  target_game_id INTEGER REFERENCES games(id), -- For spin challenges on specific games
-  enabled BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- Challenges System Schema
+CREATE TABLE IF NOT EXISTS challenge_categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    icon VARCHAR(100),
+    display_order INTEGER DEFAULT 0
 );
 
--- ===== PLAYER CHALLENGE PROGRESS TABLE =====
+CREATE TABLE IF NOT EXISTS challenges (
+    id SERIAL PRIMARY KEY,
+    category_id INTEGER REFERENCES challenge_categories(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    requirement_type VARCHAR(100) NOT NULL,
+    requirement_value DECIMAL(15, 2) NOT NULL,
+    reward_sc DECIMAL(15, 2) DEFAULT 0,
+    reward_gc DECIMAL(15, 2) DEFAULT 0,
+    reward_xp INTEGER DEFAULT 0,
+    is_daily BOOLEAN DEFAULT FALSE,
+    enabled BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS player_challenges (
-  id SERIAL PRIMARY KEY,
-  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-  challenge_id INTEGER NOT NULL REFERENCES challenge_definitions(id) ON DELETE CASCADE,
-  current_count INTEGER DEFAULT 0,
-  is_completed BOOLEAN DEFAULT FALSE,
-  completed_at TIMESTAMP,
-  last_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(player_id, challenge_id)
+    player_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
+    challenge_id INTEGER REFERENCES challenges(id) ON DELETE CASCADE,
+    current_progress DECIMAL(15, 2) DEFAULT 0,
+    completed BOOLEAN DEFAULT FALSE,
+    claimed BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMP,
+    claimed_at TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (player_id, challenge_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_player_challenges_player_id ON player_challenges(player_id);
-CREATE INDEX IF NOT EXISTS idx_player_challenges_completed ON player_challenges(player_id, is_completed);
-
--- ===== INSERT DEFAULT CHALLENGES =====
-
--- 1. Free Daily GC/SC (Handled by existing daily_login_bonuses but listed here for UI)
-INSERT INTO challenge_definitions (type, name, description, requirement_count, reward_sc, reward_gc, period)
-VALUES ('daily_login', 'Daily Gift', 'Claim your free daily sweeps coins and gold coins just for logging in!', 1, 1.00, 1000, 'daily')
+-- Seed Categories
+INSERT INTO challenge_categories (name, description, icon, display_order)
+VALUES 
+('Daily Grinders', 'Complete these every day for quick rewards', 'Zap', 1),
+('Slots Master', 'Master the reels and win big', 'Gamepad2', 2),
+('Social Butterfly', 'Interact with the community', 'Users', 3)
 ON CONFLICT DO NOTHING;
 
--- 2. VIP Status by Purchases
-INSERT INTO challenge_definitions (type, name, description, requirement_count, reward_vip_status, reward_badge, period)
-VALUES 
-  ('purchase', 'Daily VIP Bronze', 'Purchase 1 GC/SC pack today to earn Bronze status!', 1, 'Bronze', 'Bronze Badge', 'daily'),
-  ('purchase', 'Weekly VIP Silver', 'Purchase 5 GC/SC packs this week to earn Silver status!', 5, 'Silver', 'Silver Badge', 'weekly'),
-  ('purchase', 'Monthly VIP Gold', 'Purchase 20 GC/SC packs this month to earn Gold status!', 20, 'Gold', 'Gold Badge', 'monthly')
-ON CONFLICT DO NOTHING;
-
--- 3. Spin Challenges
-INSERT INTO challenge_definitions (type, name, description, requirement_count, reward_sc, reward_gc, period)
-VALUES 
-  ('spins', 'Slot Starter', 'Spin any slot game 50 times to earn a bonus!', 50, 2.00, 2000, 'daily'),
-  ('spins', 'Mega Spinner', 'Spin any slot game 500 times this week!', 500, 10.00, 10000, 'weekly')
-ON CONFLICT DO NOTHING;
-
--- 4. Activity Streaks
-INSERT INTO challenge_definitions (type, name, description, requirement_count, reward_sc, reward_badge, period)
-VALUES 
-  ('streak', 'Week Warrior', 'Log in every day for 7 days straight!', 7, 5.00, 'Week Warrior Badge', 'all_time'),
-  ('streak', 'Fortnight Fighter', 'Log in every day for 14 days straight!', 14, 15.00, 'Fortnight Fighter Badge', 'all_time'),
-  ('streak', 'Monthly Master', 'Log in every day for 30 days straight!', 30, 50.00, 'Monthly Master Badge', 'all_time')
+-- Seed some challenges
+INSERT INTO challenges (category_id, title, description, requirement_type, requirement_value, reward_sc, reward_gc, is_daily)
+VALUES
+(1, 'Daily Spin', 'Spin any slot 50 times', 'spins', 50, 0.50, 1000, TRUE),
+(1, 'Big Win Hunt', 'Win over 10.00 SC in a single spin', 'win_amount', 10, 1.00, 2000, TRUE),
+(2, 'Slot Legend', 'Spin any slot 5000 times', 'spins', 5000, 10.00, 50000, FALSE),
+(3, 'Friend Maker', 'Refer 3 friends who complete KYC', 'referrals', 3, 15.00, 30000, FALSE)
 ON CONFLICT DO NOTHING;
