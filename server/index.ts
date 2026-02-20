@@ -140,7 +140,8 @@ import {
   updatePlayerStatusByUsername,
   submitKYC,
   approveKYC,
-  rejectKYC
+  rejectKYC,
+  searchPlayersPublic
 } from "./routes/player-management";
 import {
   listBonuses,
@@ -603,6 +604,9 @@ export function createServer() {
   app.put("/api/admin/v2/players/username/:username/status", verifyAdmin, updatePlayerStatusByUsername);
   app.put("/api/admin/v2/players/username/:username/balance", verifyAdmin, updatePlayerBalanceByUsername);
   app.get("/api/admin/v2/players/username/:username/transactions", verifyAdmin, getPlayerTransactionsByUsername);
+
+  // Player Management (Public)
+  app.get("/api/players/search", verifyPlayer, searchPlayersPublic);
 
   app.post("/api/admin/v2/kyc/submit", verifyAdmin, submitKYC);
   app.post("/api/admin/v2/kyc/:documentId/approve", verifyAdmin, approveKYC);

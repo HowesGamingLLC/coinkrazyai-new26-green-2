@@ -25,6 +25,32 @@ export const resolvePlayerIdentifier = async (identifier: string): Promise<numbe
   }
 };
 
+export const searchPlayersPublic: RequestHandler = async (req, res) => {
+  try {
+    const search = (req.query.search as string) || '';
+    if (!search || search.length < 2) {
+      return res.json({ players: [] });
+    }
+
+    const result = await query(
+      `SELECT
+        id, username, name, kyc_level, created_at
+      FROM players
+      WHERE (username ILIKE $1 OR name ILIKE $1) AND status = 'Active'
+      ORDER BY created_at DESC
+      LIMIT 10`,
+      [`%${search}%`]
+    );
+
+    res.json({
+      players: result.rows
+    });
+  } catch (error) {
+    console.error('Public search players error:', error);
+    res.status(500).json({ error: 'Failed to search players' });
+  }
+};
+
 export const listPlayers: RequestHandler = async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;

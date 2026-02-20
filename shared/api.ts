@@ -39,6 +39,11 @@ export interface PlayerProfile {
   join_date: string;
   last_login?: string;
   password?: string;
+  // Stats & VIP
+  total_wagered?: number;
+  total_won?: number;
+  games_played?: number;
+  vip_tier?: string;
 }
 
 export interface Wallet {

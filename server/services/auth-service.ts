@@ -238,25 +238,47 @@ export class AuthService {
   // Get player profile
   static async getPlayerProfile(playerId: number) {
     try {
-      const result = await dbQueries.getPlayerById(playerId);
-      
+      const result = await query(
+        `SELECT p.*,
+                COALESCE(ps.total_wagered, 0) as total_wagered,
+                COALESCE(ps.total_won, 0) as total_won,
+                COALESCE(ps.games_played, 0) as games_played
+         FROM players p
+         LEFT JOIN player_stats ps ON p.id = ps.player_id
+         WHERE p.id = $1`,
+        [playerId]
+      );
+
       if (result.rows.length === 0) {
         return null;
       }
 
       const player = result.rows[0];
+
+      // Calculate VIP tier based on total_wagered (SC)
+      // Bronze: 0, Silver: 5000, Gold: 25000, Platinum: 100000
+      let vipTier = 'Bronze';
+      const wagered = parseFloat(player.total_wagered || 0);
+      if (wagered >= 100000) vipTier = 'Platinum';
+      else if (wagered >= 25000) vipTier = 'Gold';
+      else if (wagered >= 5000) vipTier = 'Silver';
+
       return {
         id: player.id,
         username: player.username,
         name: player.name,
         email: player.email,
-        gc_balance: player.gc_balance,
-        sc_balance: player.sc_balance,
+        gc_balance: parseFloat(player.gc_balance),
+        sc_balance: parseFloat(player.sc_balance),
         status: player.status,
         kyc_level: player.kyc_level,
         kyc_verified: player.kyc_verified,
         join_date: player.join_date,
-        last_login: player.last_login
+        last_login: player.last_login,
+        total_wagered: wagered,
+        total_won: parseFloat(player.total_won || 0),
+        games_played: parseInt(player.games_played || 0),
+        vip_tier: vipTier
       };
     } catch (error) {
       throw error;

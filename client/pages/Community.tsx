@@ -70,12 +70,11 @@ const Community = () => {
   };
 
   const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+    if (!searchQuery.trim() || searchQuery.length < 2) return;
     try {
       setIsLoading(true);
-      // Mock search or add endpoint
-      const response = await apiCall<any>(`/admin/v2/players?search=${searchQuery}`);
-      setSearchResults(response.data?.players || []);
+      const response = await apiCall<any>(`/players/search?search=${searchQuery}`);
+      setSearchResults(response.players || []);
     } catch (error) {
       toast.error('Search failed');
     } finally {

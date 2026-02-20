@@ -47,12 +47,27 @@ const VIP_TIERS = [
 
 const VIP = () => {
   const { user } = useAuth();
-  
-  // Mock VIP progress
-  const currentTier = 'Bronze';
-  const progressToNext = 35; // %
-  const currentSCPlaythrough = 1750;
-  const nextTierRequirement = 5000;
+
+  // Dynamic VIP progress from user data
+  const currentTier = user?.vip_tier || 'Bronze';
+  const currentSCPlaythrough = user?.total_wagered || 0;
+
+  // Calculate next tier info
+  let nextTier = 'Silver';
+  let nextTierRequirement = 5000;
+
+  if (currentTier === 'Silver') {
+    nextTier = 'Gold';
+    nextTierRequirement = 25000;
+  } else if (currentTier === 'Gold') {
+    nextTier = 'Platinum';
+    nextTierRequirement = 100000;
+  } else if (currentTier === 'Platinum') {
+    nextTier = 'Elite'; // Max tier reached or hypothetical next
+    nextTierRequirement = currentSCPlaythrough;
+  }
+
+  const progressToNext = Math.min(100, Math.floor((currentSCPlaythrough / nextTierRequirement) * 100));
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20">
@@ -83,7 +98,7 @@ const VIP = () => {
                     <div className="flex items-center gap-3">
                        <p className="text-3xl font-black italic">{currentTier}</p>
                        <ChevronRight className="w-6 h-6 text-slate-700" />
-                       <p className="text-xl font-black italic text-slate-500">Silver</p>
+                       <p className="text-xl font-black italic text-slate-500">{nextTier}</p>
                     </div>
                   </div>
                   <div className="text-right">

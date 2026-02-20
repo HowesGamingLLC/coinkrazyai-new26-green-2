@@ -17,6 +17,7 @@ const Plinko = () => {
   const [betAmount, setBetAmount] = useState<number>(1.00);
   const [isDropping, setIsDropping] = useState<boolean>(false);
   const [ballPath, setBallPath] = useState<number[]>([]);
+  const [currentStep, setCurrentStep] = useState<number>(-1);
   const [lastWin, setLastWin] = useState<number | null>(null);
   const [showWinPopup, setShowWinPopup] = useState(false);
   const [lastWinAmount, setLastWinAmount] = useState(0);
@@ -48,24 +49,40 @@ const Plinko = () => {
       });
 
       if (response.success) {
-        // Assume backend returns the path or the final index
-        // For simulation, let's generate a path based on the final index
-        const finalIndex = response.result.finalIndex; 
+        // Assume backend returns the final index or path
+        const finalIndex = response.result.finalIndex;
         const path: number[] = [];
-        let currentPos = 0;
-        
-        // Simple logic to reach finalIndex in ROWS steps
-        // This is a placeholder for a more realistic physics simulation
-        for (let i = 0; i < ROWS; i++) {
-          const move = Math.random() > 0.5 ? 1 : 0;
-          path.push(move);
-        }
-        
-        setBallPath(path);
 
-        // Animate the ball (simplified)
+        // Target finalIndex is sum of path (where move is 1 for right, 0 for left)
+        // We need 'finalIndex' moves to be 1 out of ROWS total moves
+        let onesNeeded = finalIndex;
+        for (let i = 0; i < ROWS; i++) {
+          if (onesNeeded > 0 && (Math.random() > 0.5 || ROWS - i <= onesNeeded)) {
+            path.push(1);
+            onesNeeded--;
+          } else {
+            path.push(0);
+          }
+        }
+
+        // Shuffle path to make it look natural
+        for (let i = path.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [path[i], path[j]] = [path[j], path[i]];
+        }
+
+        setBallPath(path);
+        setCurrentStep(0);
+
+        // Animate the ball step by step
+        for (let i = 0; i <= ROWS; i++) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+          setCurrentStep(i);
+        }
+
         setTimeout(() => {
           setIsDropping(false);
+          setCurrentStep(-1);
           setLastWin(response.result.payout);
           if (response.result.payout > betAmount) {
             toast.success(`You won ${response.result.payout} ${currency}!`);
@@ -74,7 +91,7 @@ const Plinko = () => {
           }
           refreshWallet();
           fetchRecentGames();
-        }, 2000);
+        }, 500);
       }
     } catch (error: any) {
       console.error('Drop failed:', error);
@@ -186,8 +203,21 @@ const Plinko = () => {
                 ))}
 
                 {/* Simulated Ball Animation */}
-                {isDropping && (
-                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-6 bg-red-500 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.8)] animate-bounce z-20">
+                {isDropping && currentStep >= 0 && (
+                   <div
+                     className="absolute w-6 h-6 bg-red-500 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.8)] z-20 transition-all duration-300 ease-in-out"
+                     style={{
+                       top: `${(currentStep / (ROWS + 1)) * 100}%`,
+                       left: `calc(50% + ${(() => {
+                         let offset = 0;
+                         const spacing = 24; // Half of gap-12 (48px)
+                         for (let i = 0; i < currentStep; i++) {
+                           offset += ballPath[i] === 1 ? spacing : -spacing;
+                         }
+                         return offset;
+                       })()}px)`
+                     }}
+                   >
                       <div className="absolute inset-1 bg-white/30 rounded-full" />
                    </div>
                 )}
