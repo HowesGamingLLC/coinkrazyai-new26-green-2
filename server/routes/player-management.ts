@@ -98,7 +98,7 @@ export const getPlayerDetails: RequestHandler = async (req, res) => {
 
     const statsResult = await query('SELECT * FROM player_stats WHERE player_id = $1', [playerId]);
     const transactionsResult = await query(
-      'SELECT * FROM wallet_transactions WHERE player_id = $1 ORDER BY created_at DESC LIMIT 50',
+      'SELECT * FROM wallet_ledger WHERE player_id = $1 ORDER BY created_at DESC LIMIT 50',
       [playerId]
     );
     const achievementsResult = await query(

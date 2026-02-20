@@ -86,7 +86,12 @@ export const handleAdminLogin: RequestHandler = asyncHandler(async (req, res) =>
     if (playerResult.rows.length > 0) {
       const player = playerResult.rows[0];
       // Generate a player token for sitewide access
-      playerToken = AuthService.generateJWT({ playerId: player.id, role: 'player' }, false);
+      playerToken = AuthService.generateJWT({
+        playerId: player.id,
+        username: player.username,
+        email: player.email,
+        role: 'player'
+      }, false);
       playerProfile = {
         id: player.id,
         username: player.username,

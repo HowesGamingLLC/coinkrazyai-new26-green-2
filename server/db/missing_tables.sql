@@ -376,4 +376,43 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='casino_settings' AND column_name='updated_by') THEN
         ALTER TABLE casino_settings ADD COLUMN updated_by INTEGER REFERENCES admin_users(id);
     END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='admin_users' AND column_name='last_login') THEN
+        ALTER TABLE admin_users ADD COLUMN last_login TIMESTAMP;
+    END IF;
 END $$;
+
+-- 11. Missing Game-Specific Tables
+CREATE TABLE IF NOT EXISTS poker_sessions (
+    id SERIAL PRIMARY KEY,
+    player_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
+    table_id INTEGER REFERENCES poker_tables(id) ON DELETE CASCADE,
+    buy_in DECIMAL(15, 2) NOT NULL,
+    current_chips DECIMAL(15, 2),
+    status VARCHAR(50) DEFAULT 'Active',
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    left_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS bingo_tickets (
+    id SERIAL PRIMARY KEY,
+    player_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
+    game_id INTEGER REFERENCES bingo_games(id) ON DELETE CASCADE,
+    ticket_data JSONB,
+    ticket_price DECIMAL(10, 2) NOT NULL,
+    purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sports_bets (
+    id SERIAL PRIMARY KEY,
+    player_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
+    event_id INTEGER REFERENCES sports_events(id) ON DELETE CASCADE,
+    bet_type VARCHAR(100) NOT NULL,
+    amount DECIMAL(15, 2) NOT NULL,
+    odds DECIMAL(10, 2) NOT NULL,
+    potential_winnings DECIMAL(15, 2),
+    actual_winnings DECIMAL(15, 2) DEFAULT 0,
+    status VARCHAR(50) DEFAULT 'Pending',
+    settled_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
