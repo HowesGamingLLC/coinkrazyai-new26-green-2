@@ -35,7 +35,7 @@ import Community from "./pages/Community";
 import PoolShark from "./pages/PoolShark";
 import Referrals from "./pages/Referrals";
 import VIP from "./pages/VIP";
-import MicrogamingSlots from "./pages/MicrogamingSlots";
+import FeaturedGame from "./pages/FeaturedGame";
 
 const queryClient = new QueryClient();
 
@@ -101,10 +101,10 @@ const AppRoutes = () => (
       }
     />
     <Route
-      path="/microgaming-slots"
+      path="/featured-game"
       element={
         <Layout>
-          <MicrogamingSlots />
+          <FeaturedGame />
         </Layout>
       }
     />
