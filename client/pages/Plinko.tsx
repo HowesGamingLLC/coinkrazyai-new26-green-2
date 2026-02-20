@@ -7,6 +7,7 @@ import { Zap, Trophy, History, Coins, Loader2, Sparkles, TrendingUp, AlertCircle
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { apiCall } from '@/lib/api';
+import { SocialSharePopup } from '@/components/popups/SocialSharePopup';
 
 const ROWS = 8;
 const MULTIPLIERS = [5.6, 2.1, 1.1, 0.5, 0.2, 0.5, 1.1, 2.1, 5.6];
@@ -17,6 +18,8 @@ const Plinko = () => {
   const [isDropping, setIsDropping] = useState<boolean>(false);
   const [ballPath, setBallPath] = useState<number[]>([]);
   const [lastWin, setLastWin] = useState<number | null>(null);
+  const [showWinPopup, setShowWinPopup] = useState(false);
+  const [lastWinAmount, setLastWinAmount] = useState(0);
   const [recentGames, setRecentGames] = useState<any[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -66,6 +69,8 @@ const Plinko = () => {
           setLastWin(response.result.payout);
           if (response.result.payout > betAmount) {
             toast.success(`You won ${response.result.payout} ${currency}!`);
+            setLastWinAmount(response.result.payout);
+            setShowWinPopup(true);
           }
           refreshWallet();
           fetchRecentGames();
@@ -208,6 +213,30 @@ const Plinko = () => {
            </CardContent>
         </Card>
       </div>
+
+      {showWinPopup && (
+        <SocialSharePopup
+          winAmount={lastWinAmount}
+          gameName="Power Plinko"
+          onClose={() => setShowWinPopup(false)}
+          onShare={async (platform, message) => {
+            try {
+              await apiCall('/social-sharing/share', {
+                method: 'POST',
+                body: JSON.stringify({
+                  platform,
+                  message,
+                  winAmount: lastWinAmount,
+                  gameName: 'Power Plinko'
+                })
+              });
+              toast.success('Share recorded!');
+            } catch (error) {
+              console.error('Failed to record share:', error);
+            }
+          }}
+        />
+      )}
 
       {/* Stats & History */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

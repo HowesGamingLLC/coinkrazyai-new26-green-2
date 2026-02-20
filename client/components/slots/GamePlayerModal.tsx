@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useWallet } from '@/hooks/use-wallet';
 import { apiCall } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { SocialSharePopup } from '@/components/popups/SocialSharePopup';
 
 interface GamePlayerModalProps {
   isOpen: boolean;
@@ -44,6 +45,8 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
     min_bet: 0.01,
     max_bet: 100
   });
+  const [showWinPopup, setShowWinPopup] = useState(false);
+  const [lastWinAmount, setLastWinAmount] = useState(0);
 
   // Load game config on mount
   useEffect(() => {
@@ -135,6 +138,8 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
 
         if (win_amount > 0) {
           toast.success(`🎉 You won ${win_amount.toFixed(2)} SC!`);
+          setLastWinAmount(win_amount);
+          setShowWinPopup(true);
         } else {
           // Optional: smaller notification for losses to avoid spam
           // toast.info(`Result: ${win_amount.toFixed(2)} SC`);
@@ -337,6 +342,32 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
             </div>
           </div>
         </div>
+
+        {showWinPopup && (
+          <SocialSharePopup
+            winAmount={lastWinAmount}
+            gameName={game.name}
+            gameId={game.id}
+            onClose={() => setShowWinPopup(false)}
+            onShare={async (platform, message) => {
+              try {
+                await apiCall('/social-sharing/share', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    platform,
+                    message,
+                    winAmount: lastWinAmount,
+                    gameId: game.id,
+                    gameName: game.name
+                  })
+                });
+                toast.success('Share recorded! Check your rewards soon.');
+              } catch (error) {
+                console.error('Failed to record share:', error);
+              }
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

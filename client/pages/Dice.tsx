@@ -8,6 +8,7 @@ import { Dice5, Trophy, AlertCircle, TrendingUp, History, Coins } from 'lucide-r
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { apiCall } from '@/lib/api';
+import { SocialSharePopup } from '@/components/popups/SocialSharePopup';
 
 const Dice = () => {
   const { wallet, currency, refreshWallet } = useWallet();
@@ -17,6 +18,8 @@ const Dice = () => {
   const [isRolling, setIsRolling] = useState<boolean>(false);
   const [lastResult, setLastResult] = useState<number | null>(null);
   const [winStatus, setWinStatus] = useState<'win' | 'loss' | null>(null);
+  const [showWinPopup, setShowWinPopup] = useState(false);
+  const [lastWinAmount, setLastWinAmount] = useState(0);
   const [recentGames, setRecentGames] = useState<any[]>([]);
 
   // Calculate Win Chance and Multiplier
@@ -62,6 +65,8 @@ const Dice = () => {
         
         if (isWin) {
           toast.success(`You won ${response.result.payout} ${currency}!`);
+          setLastWinAmount(response.result.payout);
+          setShowWinPopup(true);
         } else {
           toast.error('Better luck next time!');
         }
@@ -273,6 +278,30 @@ const Dice = () => {
            </CardContent>
         </Card>
       </div>
+
+      {showWinPopup && (
+        <SocialSharePopup
+          winAmount={lastWinAmount}
+          gameName="Krazy Dice"
+          onClose={() => setShowWinPopup(false)}
+          onShare={async (platform, message) => {
+            try {
+              await apiCall('/social-sharing/share', {
+                method: 'POST',
+                body: JSON.stringify({
+                  platform,
+                  message,
+                  winAmount: lastWinAmount,
+                  gameName: 'Krazy Dice'
+                })
+              });
+              toast.success('Share recorded!');
+            } catch (error) {
+              console.error('Failed to record share:', error);
+            }
+          }}
+        />
+      )}
 
       {/* Stats & History */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
