@@ -107,12 +107,18 @@ class GameCrawler {
       console.log(`[Crawler] Extracted Thumbnail URL: ${thumbnail_url || 'None'}`);
 
       // Extract embed URL (iframe or demo link)
-      const embed_url = this.extractEmbedUrl(html, $, url);
+      let embed_url = this.extractEmbedUrl(html, $, url);
       console.log(`[Crawler] Extracted Embed URL: ${embed_url || 'None'}`);
+
+      // Force include embed/iframe URL if not found
+      if (!embed_url) {
+        console.log(`[Crawler] No embed found, forcing source URL as embed/launch URL: ${url}`);
+        embed_url = url;
+      }
 
       // Extract launch URL (force launch_url for all)
       const launch_url = embed_url;
-      console.log(`[Crawler] Set Launch URL: ${launch_url || 'None'}`);
+      console.log(`[Crawler] Set Launch URL (forced): ${launch_url}`);
 
       // Extract additional data
       const max_paylines = this.extractPaylines(html, $);
@@ -432,16 +438,46 @@ class GameCrawler {
   }
 
   private extractEmbedUrl(html: string, $: cheerio.CheerioAPI, baseUrl: string): string | undefined {
-    // Look for iframes with various sources or data attributes
-    const iframeSrc = $('iframe[src*="demo"]').first().attr('src') ||
+    // 1. Look for iframes with various sources or data attributes
+    let iframeSrc = $('iframe[src*="demo"]').first().attr('src') ||
                     $('iframe[src*="game"]').first().attr('src') ||
                     $('iframe[src*="play"]').first().attr('src') ||
+                    $('iframe[src*="launcher"]').first().attr('src') ||
                     $('iframe#game-iframe').attr('src') ||
+                    $('iframe#game_frame').attr('src') ||
+                    $('iframe.game-iframe').attr('src') ||
                     $('iframe[data-src*="demo"]').first().attr('data-src') ||
                     $('iframe[data-url*="demo"]').first().attr('data-url');
 
+    // 2. If no matching iframe found, and there is exactly one iframe on the page, take it (excluding ads/social)
+    if (!iframeSrc) {
+      const allIframes = $('iframe').filter((_, el) => {
+        const src = $(el).attr('src') || '';
+        const id = $(el).attr('id') || '';
+        const className = $(el).attr('class') || '';
+        const combined = (src + id + className).toLowerCase();
+
+        // Exclude common third-party non-game iframes
+        return !combined.includes('google') &&
+               !combined.includes('facebook') &&
+               !combined.includes('twitter') &&
+               !combined.includes('ads') &&
+               !combined.includes('analytics') &&
+               !combined.includes('disqus') &&
+               !combined.includes('recaptcha') &&
+               src.length > 5;
+      });
+
+      if (allIframes.length === 1) {
+        iframeSrc = allIframes.first().attr('src');
+      }
+    }
+
     if (iframeSrc) {
-      if (!iframeSrc.startsWith('http') && !iframeSrc.startsWith('//')) {
+      if (iframeSrc.startsWith('//')) {
+        return `https:${iframeSrc}`;
+      }
+      if (!iframeSrc.startsWith('http')) {
         try {
           const urlObj = new URL(baseUrl);
           return new URL(iframeSrc, urlObj.origin).toString();
@@ -450,24 +486,61 @@ class GameCrawler {
       return iframeSrc;
     }
 
-    // Look for "Play Demo" or "Play for Free" buttons/links with various text and attributes
-    const demoLink = $('a:contains("Play Demo")').attr('href') ||
-                    $('a:contains("Demo")').attr('href') ||
-                    $('a:contains("Play for Free")').attr('href') ||
-                    $('a:contains("Free Play")').attr('href') ||
-                    $('button[data-demo-url]').attr('data-demo-url') ||
-                    $('div[data-game-url]').attr('data-game-url');
+    // 3. Look for "Play Demo" or "Play for Free" buttons/links with various text and attributes
+    const demoSelectors = [
+      'a:contains("Play Demo")',
+      'a:contains("Demo")',
+      'a:contains("Play for Free")',
+      'a:contains("Free Play")',
+      'a:contains("Play Now")',
+      'a:contains("Launch")',
+      'button[data-demo-url]',
+      'button[data-game-url]',
+      'div[data-game-url]',
+      'div[data-demo-url]',
+      'a.play-demo',
+      'a.demo-button',
+      'a.btn-play'
+    ];
 
-    if (demoLink && !demoLink.startsWith('http') && !demoLink.startsWith('//')) {
-      try {
-        const urlObj = new URL(baseUrl);
-        return new URL(demoLink, urlObj.origin).toString();
-      } catch (e) {
-        // Fallback
+    let demoLink: string | undefined;
+    for (const selector of demoSelectors) {
+      const el = $(selector);
+      demoLink = el.attr('href') || el.attr('data-demo-url') || el.attr('data-game-url');
+      if (demoLink && demoLink.length > 5 && !demoLink.startsWith('#') && !demoLink.startsWith('javascript:')) {
+        break;
       }
+      demoLink = undefined;
     }
 
-    return demoLink;
+    if (demoLink) {
+      if (demoLink.startsWith('//')) {
+        return `https:${demoLink}`;
+      }
+      if (!demoLink.startsWith('http')) {
+        try {
+          const urlObj = new URL(baseUrl);
+          return new URL(demoLink, urlObj.origin).toString();
+        } catch (e) {}
+      }
+      return demoLink;
+    }
+
+    // 4. Final attempt: search for direct game provider URLs in the entire HTML
+    const providerPatterns = [
+      /https?:\/\/demogamesfree\.pragmaticplay\.net\/[^"']+/i,
+      /https?:\/\/released\.playngonetwork\.com\/[^"']+/i,
+      /https?:\/\/static-stage\.contentmedia\.eu\/[^"']+/i,
+      /https?:\/\/democasino\.betsoftgaming\.com\/[^"']+/i,
+      /https?:\/\/playin\.com\/embed\/[^"']+/i
+    ];
+
+    for (const pattern of providerPatterns) {
+      const match = html.match(pattern);
+      if (match) return match[0];
+    }
+
+    return undefined;
   }
 
   private extractPaylines(html: string, $: cheerio.CheerioAPI): number | undefined {
