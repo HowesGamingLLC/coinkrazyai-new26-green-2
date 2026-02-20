@@ -35,7 +35,6 @@ import Community from "./pages/Community";
 import PoolShark from "./pages/PoolShark";
 import Referrals from "./pages/Referrals";
 import VIP from "./pages/VIP";
-import FeaturedGame from "./pages/FeaturedGame";
 
 const queryClient = new QueryClient();
 
@@ -97,14 +96,6 @@ const AppRoutes = () => (
       element={
         <Layout>
           <Slots />
-        </Layout>
-      }
-    />
-    <Route
-      path="/featured-game"
-      element={
-        <Layout>
-          <FeaturedGame />
         </Layout>
       }
     />
