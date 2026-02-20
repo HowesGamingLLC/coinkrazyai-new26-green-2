@@ -127,6 +127,18 @@ export const initializeDatabase = async () => {
       }
     }
 
+    // Add updated_at column to games table if it doesn't exist
+    try {
+      await query(`ALTER TABLE games ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+      console.log('[DB] Added updated_at column to games table');
+    } catch (err: any) {
+      if (err.code === '42701') {
+        console.log('[DB] updated_at column already exists in games');
+      } else {
+        console.log('[DB] Schema check for games.updated_at:', err.message?.substring(0, 100));
+      }
+    }
+
     // Add bonus_sc column to store_packs table if it doesn't exist
     try {
       await query(`ALTER TABLE store_packs ADD COLUMN bonus_sc DECIMAL(15, 2) DEFAULT 0`);
@@ -311,6 +323,12 @@ const seedDatabase = async () => {
         ['Ruby Table 2', '$5/$10', 8, 5, 100, 1000],
         ['Gold Table 1', '$10/$20', 6, 0, 200, 2000],
         ['Platinum VIP', '$50/$100', 6, 4, 1000, 10000],
+        ['Silver Stake 1', '$0.50/$1', 9, 3, 10, 100],
+        ['Bronze Beginner', '$0.10/$0.20', 9, 8, 2, 20],
+        ['High Roller Suite', '$100/$200', 6, 2, 2000, 20000],
+        ['Fast Fold 1', '$1/$2', 6, 45, 20, 200],
+        ['Omaha High 1', '$2/$4', 8, 5, 40, 400],
+        ['Deep Stack Pro', '$5/$10', 9, 7, 500, 2000],
       ];
 
       for (const table of pokerTables) {
@@ -327,6 +345,12 @@ const seedDatabase = async () => {
         ['Afternoon Special', 'Full Card', 28, 2, 1200],
         ['Evening Rush', '5-line', 0, 1.5, 750],
         ['Night Party', 'Corner', 0, 3, 2000],
+        ['Penny Bingo', 'Any line', 156, 0.01, 100],
+        ['Speed Bingo', 'Center square', 34, 0.50, 300],
+        ['High Stakes Bingo', 'Full Card', 12, 10, 5000],
+        ['Community Pot', '4 Corners', 89, 0.25, 400],
+        ['Jackpot Jubilee', 'Coverall', 210, 5, 10000],
+        ['Lunchtime Quickie', 'Single Line', 45, 0.10, 50],
       ];
 
       for (const game of bingoGames) {
@@ -343,6 +367,12 @@ const seedDatabase = async () => {
         ['NBA', 'Lakers vs Celtics', 'Live', 89200, '-1.5'],
         ['Soccer', 'Manchester United vs Liverpool', 'Upcoming', 234100, '+0.5'],
         ['Tennis', 'Australian Open Final', 'Upcoming', 56800, null],
+        ['MLB', 'Yankees vs Red Sox', 'Upcoming', 45000, '-110'],
+        ['NHL', 'Leafs vs Canadiens', 'Live', 32000, 'O 6.5'],
+        ['Boxing', 'Fury vs Usyk', 'Upcoming', 1500000, 'Pickem'],
+        ['UFC', 'McGregor vs Chandler', 'Upcoming', 2000000, '-150'],
+        ['Golf', 'The Masters - Round 1', 'Upcoming', 75000, 'Scheffler +300'],
+        ['Cricket', 'India vs Pakistan', 'Live', 5000000, 'India -140'],
       ];
 
       for (const event of sportsEvents) {

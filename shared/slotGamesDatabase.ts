@@ -467,6 +467,113 @@ const CT_INTERACTIVE_GAMES: SlotGameData[] = [
 ];
 
 /**
+ * Live Casino Games
+ */
+const LIVE_CASINO_GAMES: SlotGameData[] = [
+  {
+    id: 400,
+    name: 'Lightning Roulette',
+    title: 'Lightning Roulette',
+    provider: 'Evolution',
+    category: 'Live Casino',
+    description: 'Electrifying live roulette with lucky number multipliers.',
+    image_url: 'https://via.placeholder.com/300x300?text=Lightning+Roulette',
+    embed_url: 'https://evolution-embed.example.com/lightning-roulette',
+    rtp: 97.3,
+    volatility: 'High',
+    min_bet: 0.20,
+    max_bet: 10000,
+    features: ['Multipliers', 'Live Dealer'],
+    themes: ['Roulette', 'Live'],
+    release_date: '2018-03-01',
+    enabled: true,
+    game_type: 'video'
+  },
+  {
+    id: 401,
+    name: 'Infinite Blackjack',
+    title: 'Infinite Blackjack',
+    provider: 'Evolution',
+    category: 'Live Casino',
+    description: 'Live blackjack with unlimited seats and low stakes.',
+    image_url: 'https://via.placeholder.com/300x300?text=Infinite+Blackjack',
+    embed_url: 'https://evolution-embed.example.com/infinite-blackjack',
+    rtp: 99.47,
+    volatility: 'Low',
+    min_bet: 1.0,
+    max_bet: 5000,
+    features: ['Side Bets', 'Live Dealer'],
+    themes: ['Blackjack', 'Live'],
+    release_date: '2018-10-01',
+    enabled: true,
+    game_type: 'video'
+  },
+  {
+    id: 402,
+    name: 'Speed Baccarat',
+    title: 'Speed Baccarat',
+    provider: 'Evolution',
+    category: 'Live Casino',
+    description: 'Fast-paced live baccarat action.',
+    image_url: 'https://via.placeholder.com/300x300?text=Speed+Baccarat',
+    embed_url: 'https://evolution-embed.example.com/speed-baccarat',
+    rtp: 98.94,
+    volatility: 'Medium',
+    min_bet: 1.0,
+    max_bet: 15000,
+    features: ['Live Dealer'],
+    themes: ['Baccarat', 'Live'],
+    release_date: '2017-01-01',
+    enabled: true,
+    game_type: 'video'
+  }
+];
+
+/**
+ * Table Games (RNG)
+ */
+const RNG_TABLE_GAMES: SlotGameData[] = [
+  {
+    id: 500,
+    name: 'European Roulette',
+    title: 'European Roulette',
+    provider: 'Pragmatic Play',
+    category: 'Table Games',
+    description: 'Classic European roulette with a single zero.',
+    image_url: 'https://via.placeholder.com/300x300?text=European+Roulette',
+    embed_url: 'https://demogamesfree.pragmaticplay.net/gs2c/openGame.do?stylename=demo_clienthub&lang=en&cur=USD&websiteUrl=https%3A%2F%2Fclienthub.pragmaticplay.com%2F&gcpif=2273&gameSymbol=vs20roulette',
+    rtp: 97.3,
+    volatility: 'Medium',
+    min_bet: 0.10,
+    max_bet: 100,
+    features: ['Racetrack Bets'],
+    themes: ['Roulette', 'Classic'],
+    release_date: '2019-01-01',
+    enabled: true,
+    game_type: 'video'
+  },
+  {
+    id: 501,
+    name: 'Multihand Blackjack',
+    title: 'Multihand Blackjack',
+    provider: 'Pragmatic Play',
+    category: 'Table Games',
+    description: 'Play up to 3 hands simultaneously.',
+    image_url: 'https://via.placeholder.com/300x300?text=Multihand+Blackjack',
+    embed_url: 'https://demogamesfree.pragmaticplay.net/gs2c/openGame.do?stylename=demo_clienthub&lang=en&cur=USD&websiteUrl=https%3A%2F%2Fclienthub.pragmaticplay.com%2F&gcpif=2273&gameSymbol=vs20blackjack',
+    rtp: 99.51,
+    volatility: 'Low',
+    min_bet: 1.0,
+    max_bet: 100,
+    features: ['Multihand'],
+    themes: ['Blackjack', 'Classic'],
+    release_date: '2019-05-01',
+    enabled: true,
+    game_type: 'video'
+  }
+];
+
+/**
  * Combine all games into a single database
  */
 export const ALL_SLOT_GAMES: SlotGameData[] = [
@@ -483,7 +590,9 @@ export const ALL_SLOT_GAMES: SlotGameData[] = [
   ...CLASSIC_SLOTS,
   ...PROGRESSIVE_GAMES,
   ...GAME_SHOW_GAMES,
-  ...CT_INTERACTIVE_GAMES
+  ...CT_INTERACTIVE_GAMES,
+  ...LIVE_CASINO_GAMES,
+  ...RNG_TABLE_GAMES
 ];
 
 /**

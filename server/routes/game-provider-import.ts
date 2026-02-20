@@ -254,6 +254,12 @@ function normalizeCategory(category: string): string {
     bingo: 'Bingo',
     casino: 'Casino Games',
     'casino game': 'Casino Games',
+    live: 'Live Casino',
+    live_casino: 'Live Casino',
+    'live casino': 'Live Casino',
+    'live dealer': 'Live Casino',
+    'live-dealer': 'Live Casino',
+    baccarat: 'Baccarat',
   };
 
   const normalized = categoryMap[category.toLowerCase()];
