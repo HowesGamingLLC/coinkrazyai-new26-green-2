@@ -6,6 +6,9 @@ export class AIService {
   private static intervals: NodeJS.Timeout[] = [];
 
   static startAIProcesses() {
+    // Clear existing processes first to avoid duplicates on hot-reload
+    this.stopAIProcesses();
+
     // LuckyAI: General manager, periodic health check and settings update
     this.intervals.push(setInterval(async () => {
       try {

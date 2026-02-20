@@ -28,7 +28,9 @@ CREATE TABLE IF NOT EXISTS support_ticket_messages (
 );
 
 -- Alias for ticket_messages if used in code
-CREATE OR REPLACE VIEW ticket_messages AS SELECT * FROM support_ticket_messages;
+DROP VIEW IF EXISTS ticket_messages;
+DROP TABLE IF EXISTS ticket_messages;
+CREATE VIEW ticket_messages AS SELECT * FROM support_ticket_messages;
 
 -- 2. Analytics & Usage
 CREATE TABLE IF NOT EXISTS analytics_events (

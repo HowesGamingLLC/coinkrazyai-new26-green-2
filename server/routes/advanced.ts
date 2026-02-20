@@ -271,7 +271,7 @@ export const getTicketMessages: RequestHandler = async (req, res) => {
     const { ticketId } = req.params;
 
     const result = await query(
-      'SELECT * FROM ticket_messages WHERE ticket_id = $1 ORDER BY created_at ASC',
+      'SELECT * FROM support_ticket_messages WHERE ticket_id = $1 ORDER BY created_at ASC',
       [ticketId]
     );
 
