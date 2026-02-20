@@ -106,9 +106,9 @@ const GAMES_TO_ADD = [
     provider: 'Gamebeat',
     category: 'Slots',
     image: 'https://clashofslots.com/wp-content/themes/clashofslots/images/slot_upcoming_thumb.svg',
-    game_url: '',
+    game_url: 'https://demogamesfree.pragmaticplay.net/gs2c/openGame.do?stylename=demo_clienthub&lang=en&cur=USD&websiteUrl=https%3A%2F%2Fclienthub.pragmaticplay.com%2F&gcpif=2273&gameSymbol=vs25buffalo',
     rtp: 96.0,
-    enabled: false, // Coming soon
+    enabled: true,
   },
   {
     title: 'Zeus Ze Zecond',
