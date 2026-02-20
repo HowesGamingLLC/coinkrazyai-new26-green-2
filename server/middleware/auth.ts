@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth-service';
+import { query } from '../db/connection';
 
 // Extend Express Request type to include user
 declare global {
@@ -17,7 +18,7 @@ declare global {
 }
 
 // Middleware to verify player authentication
-export const verifyPlayer = (req: Request, res: Response, next: NextFunction) => {
+export const verifyPlayer = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Get token from header or cookie
     const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
@@ -26,6 +27,15 @@ export const verifyPlayer = (req: Request, res: Response, next: NextFunction) =>
       return res.status(401).json({
         success: false,
         error: 'Authentication required'
+      });
+    }
+
+    // Check blacklist
+    const blacklisted = await query('SELECT id FROM token_blacklist WHERE token = $1', [token]);
+    if (blacklisted.rows.length > 0) {
+      return res.status(401).json({
+        success: false,
+        error: 'Token has been revoked'
       });
     }
 
@@ -57,7 +67,7 @@ export const verifyPlayer = (req: Request, res: Response, next: NextFunction) =>
 };
 
 // Middleware to verify admin authentication
-export const verifyAdmin = (req: Request, res: Response, next: NextFunction) => {
+export const verifyAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Get token from header or cookie
     const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.admin_token;
@@ -66,6 +76,15 @@ export const verifyAdmin = (req: Request, res: Response, next: NextFunction) => 
       return res.status(401).json({
         success: false,
         error: 'Admin authentication required'
+      });
+    }
+
+    // Check blacklist
+    const blacklisted = await query('SELECT id FROM token_blacklist WHERE token = $1', [token]);
+    if (blacklisted.rows.length > 0) {
+      return res.status(401).json({
+        success: false,
+        error: 'Token has been revoked'
       });
     }
 
@@ -97,20 +116,24 @@ export const verifyAdmin = (req: Request, res: Response, next: NextFunction) => 
 };
 
 // Optional auth middleware - continues even if not authenticated
-export const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
+export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
 
     if (token) {
-      const decoded = AuthService.verifyJWT(token);
-      if (decoded) {
-        req.user = {
-          playerId: decoded.playerId,
-          username: decoded.username,
-          email: decoded.email,
-          role: decoded.role,
-          token
-        };
+      // Check blacklist
+      const blacklisted = await query('SELECT id FROM token_blacklist WHERE token = $1', [token]);
+      if (blacklisted.rows.length === 0) {
+        const decoded = AuthService.verifyJWT(token);
+        if (decoded) {
+          req.user = {
+            playerId: decoded.playerId,
+            username: decoded.username,
+            email: decoded.email,
+            role: decoded.role,
+            token
+          };
+        }
       }
     }
 

@@ -18,7 +18,12 @@ if (result.error) {
 
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
+import { rateLimit } from "express-rate-limit";
 import { initializeDatabase } from "./db/init";
+import { query } from "./db/connection";
+import { errorHandler } from "./middleware/error-handler";
 import { handleDemo } from "./routes/demo";
 import {
   handleRegister,
@@ -31,6 +36,14 @@ import {
   handleDebugReseedUsers
 } from "./routes/auth";
 import { verifyPlayer, verifyAdmin } from "./middleware/auth";
+import { validate } from "./middleware/validate";
+import {
+  registerSchema,
+  loginSchema,
+  adminLoginSchema,
+  updateProfileSchema
+} from "./validation/auth-schema";
+import { updateWalletSchema } from "./validation/wallet-schema";
 import { handleGetWallet, handleUpdateWallet, handleGetTransactions } from "./routes/wallet";
 import {
   handleGetPacks,
@@ -390,10 +403,24 @@ export function createServer() {
   // Start AI processes
   AIService.startAIProcesses();
 
-  // Middleware
+  // Security Middleware
+  app.use(helmet({
+    contentSecurityPolicy: false, // Vite handles CSP in dev
+  }));
   app.use(cors());
+  app.use(cookieParser());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Rate Limiting
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1000, // Limit each IP to 1000 requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Too many requests, please try again later.' }
+  });
+  app.use('/api/', limiter);
 
   // Log all requests
   app.use((req, _res, next) => {
@@ -402,18 +429,18 @@ export function createServer() {
   });
 
   // ===== AUTH ROUTES =====
-  app.post("/api/auth/register", handleRegister);
-  app.post("/api/auth/login", handleLogin);
-  app.post("/api/auth/admin/login", handleAdminLogin);
+  app.post("/api/auth/register", validate(registerSchema), handleRegister);
+  app.post("/api/auth/login", validate(loginSchema), handleLogin);
+  app.post("/api/auth/admin/login", validate(adminLoginSchema), handleAdminLogin);
   app.get("/api/auth/profile", verifyPlayer, handleGetProfile);
-  app.put("/api/auth/profile", verifyPlayer, handleUpdateProfile);
+  app.put("/api/auth/profile", verifyPlayer, validate(updateProfileSchema), handleUpdateProfile);
   app.post("/api/auth/logout", verifyPlayer, handleLogout);
   app.get("/api/auth/debug/check-users", handleDebugCheckUsers);
   app.post("/api/auth/debug/reseed-users", handleDebugReseedUsers);
 
   // ===== WALLET ROUTES =====
   app.get("/api/wallet", verifyPlayer, handleGetWallet);
-  app.post("/api/wallet/update", verifyPlayer, handleUpdateWallet);
+  app.post("/api/wallet/update", verifyPlayer, validate(updateWalletSchema), handleUpdateWallet);
   app.get("/api/wallet/transactions", verifyPlayer, handleGetTransactions);
 
   // ===== STORE ROUTES =====
@@ -895,6 +922,9 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+
+  // Global Error Handler - Must be last
+  app.use(errorHandler);
 
   return app;
 }

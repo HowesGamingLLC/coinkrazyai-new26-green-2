@@ -307,9 +307,24 @@ export class AuthService {
   // Logout player (invalidate session)
   static async logoutPlayer(token: string) {
     try {
-      // Sessions are JWT-based, so we could store them in a blacklist
-      // For now, client should just discard the token
-      // In production, you might want to add token to a blacklist cache (Redis)
+      // Decode to get expiry
+      const decoded = this.verifyJWT(token);
+      const expiresAt = decoded && (decoded as any).exp
+        ? new Date((decoded as any).exp * 1000)
+        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      // Add to blacklist
+      await query(
+        'INSERT INTO token_blacklist (token, expires_at) VALUES ($1, $2) ON CONFLICT (token) DO NOTHING',
+        [token, expiresAt]
+      );
+
+      // Also remove from player_sessions
+      await query(
+        'DELETE FROM player_sessions WHERE token = $1',
+        [token]
+      );
+
       return { success: true };
     } catch (error) {
       throw error;
