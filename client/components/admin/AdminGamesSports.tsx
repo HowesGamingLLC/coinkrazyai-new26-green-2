@@ -45,6 +45,25 @@ const AdminGamesSports = () => {
     enabled: true
   });
 
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      provider: 'Pragmatic',
+      category: 'Slots',
+      rtp: '95.0',
+      volatility: 'Medium',
+      image_url: '',
+      slug: '',
+      series: '',
+      family: '',
+      type: '',
+      embed_url: '',
+      enabled: true
+    });
+    setEditingGame(null);
+    setShowAddForm(false);
+  };
+
   const fetchData = async () => {
     try {
       setIsLoading(true);
@@ -81,7 +100,7 @@ const AdminGamesSports = () => {
 
     setIsCreating(true);
     try {
-      await adminV2.games.create({
+      const payload = {
         name: formData.name,
         provider: formData.provider,
         category: formData.category,
@@ -94,26 +113,19 @@ const AdminGamesSports = () => {
         type: formData.type || null,
         embed_url: formData.embed_url || null,
         enabled: formData.enabled
-      });
-      toast.success(`Game "${formData.name}" added successfully!`);
-      setFormData({
-        name: '',
-        provider: 'Pragmatic',
-        category: 'Slots',
-        rtp: '95.0',
-        volatility: 'Medium',
-        image_url: '',
-        slug: '',
-        series: '',
-        family: '',
-        type: '',
-        embed_url: '',
-        enabled: true
-      });
-      setShowAddForm(false);
+      };
+
+      if (editingGame) {
+        await adminV2.games.update(editingGame.id, payload);
+        toast.success(`Game "${formData.name}" updated successfully!`);
+      } else {
+        await adminV2.games.create(payload);
+        toast.success(`Game "${formData.name}" added successfully!`);
+      }
+      resetForm();
       await fetchData();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to add game');
+      toast.error(error.message || `Failed to ${editingGame ? 'update' : 'add'} game`);
     } finally {
       setIsCreating(false);
     }
@@ -296,8 +308,8 @@ const AdminGamesSports = () => {
               {showAddForm && (
                 <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold">Add New Slot Game</h3>
-                    <button onClick={() => setShowAddForm(false)} className="text-muted-foreground">
+                    <h3 className="font-semibold">{editingGame ? 'Edit Game' : 'Add New Game'}</h3>
+                    <button onClick={resetForm} className="text-muted-foreground">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -309,6 +321,19 @@ const AdminGamesSports = () => {
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium block mb-1">Category *</label>
+                      <select
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-md text-sm"
+                      >
+                        <option>Slots</option>
+                        <option>Poker</option>
+                        <option>Bingo</option>
+                        <option>Other</option>
+                      </select>
                     </div>
                     <div>
                       <label className="text-xs font-medium block mb-1">Provider *</label>
@@ -405,7 +430,7 @@ const AdminGamesSports = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setShowAddForm(false)}
+                      onClick={resetForm}
                     >
                       Cancel
                     </Button>
@@ -414,7 +439,7 @@ const AdminGamesSports = () => {
                       onClick={handleAddGame}
                       disabled={isCreating}
                     >
-                      {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Game'}
+                      {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingGame ? 'Update Game' : 'Add Game')}
                     </Button>
                   </div>
                 </div>
@@ -536,16 +561,26 @@ const AdminGamesSports = () => {
                             variant="outline"
                             className="flex-1 h-8 text-xs gap-1"
                             onClick={() => {
-                              const newRtp = prompt('Enter new RTP:', String(game.rtp));
-                              if (newRtp) {
-                                adminV2.games.update(game.id, { rtp: parseFloat(newRtp) })
-                                  .then(() => { toast.success('RTP updated'); fetchData(); })
-                                  .catch(() => toast.error('Failed to update'));
-                              }
+                              setEditingGame(game);
+                              setFormData({
+                                name: game.name,
+                                provider: game.provider || 'Pragmatic',
+                                category: game.category || 'Slots',
+                                rtp: String(game.rtp),
+                                volatility: game.volatility || 'Medium',
+                                image_url: game.image_url || '',
+                                slug: game.slug || '',
+                                series: game.series || '',
+                                family: game.family || '',
+                                type: game.type || '',
+                                embed_url: game.embed_url || '',
+                                enabled: game.enabled
+                              });
+                              setShowAddForm(true);
                             }}
                           >
                             <Edit className="w-3 h-3" />
-                            RTP
+                            Edit
                           </Button>
                           <Button
                             size="sm"
@@ -595,6 +630,23 @@ const AdminGamesSports = () => {
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={fetchData}>Refresh</Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowBulkImport(true)}
+                  className="gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  Bulk Import
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setShowAddForm(true)}
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Game
+                </Button>
                 <Button size="sm" variant="destructive" onClick={handleClearAllGames} className="gap-2">
                   <Trash2 className="w-4 h-4" />
                   Clear All
@@ -602,41 +654,32 @@ const AdminGamesSports = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                try {
-                  await adminV2.games.create({
-                    name: formData.get('gameName'),
-                    category: formData.get('category'),
-                    rtp: formData.get('rtp'),
-                  });
-                  toast.success('Game added');
-                  fetchData();
-                  (e.target as HTMLFormElement).reset();
-                } catch (error) {
-                  toast.error('Failed to add game');
-                }
-              }} className="p-4 border rounded-lg bg-muted/30 grid grid-cols-1 md:grid-cols-4 gap-3 items-end mb-4">
-                <div>
-                  <label className="text-sm font-medium block mb-1">Game Name</label>
-                  <Input name="gameName" placeholder="e.g., Mega Slots" required />
-                </div>
-                <div>
-                  <label className="text-sm font-medium block mb-1">Category</label>
-                  <select name="category" className="w-full px-3 py-2 border rounded-md text-sm" required>
-                    <option>Slots</option>
-                    <option>Poker</option>
-                    <option>Bingo</option>
-                    <option>Other</option>
+              {/* Control Bar for Games Tab */}
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between mb-4">
+                <div className="flex flex-col gap-2 lg:flex-row lg:gap-3 flex-1">
+                  <div className="relative flex-1 lg:max-w-xs">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search games..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                  <select
+                    value={filterProvider || ''}
+                    onChange={(e) => setFilterProvider(e.target.value || null)}
+                    className="px-3 py-2 border rounded-md text-sm"
+                  >
+                    <option value="">All Providers</option>
+                    {[...new Set(games.map((g: any) => g.provider))].sort().map((provider: string) => (
+                      <option key={provider} value={provider}>
+                        {provider}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                <div>
-                  <label className="text-sm font-medium block mb-1">RTP %</label>
-                  <Input name="rtp" placeholder="95.5" type="number" step="0.1" required />
-                </div>
-                <Button type="submit">Add Game</Button>
-              </form>
+              </div>
 
               {isLoading ? (
                 <div className="flex justify-center py-8">
@@ -648,34 +691,75 @@ const AdminGamesSports = () => {
                     <thead className="border-b">
                       <tr>
                         <th className="text-left py-2 px-2">Game Name</th>
+                        <th className="text-left py-2 px-2">Provider</th>
                         <th className="text-left py-2 px-2">Category</th>
                         <th className="text-left py-2 px-2">RTP</th>
+                        <th className="text-left py-2 px-2">Volatility</th>
                         <th className="text-left py-2 px-2">Status</th>
                         <th className="text-left py-2 px-2">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {games.map((game: any) => (
+                      {games
+                        .filter((game: any) => {
+                          const matchesSearch = game.name.toLowerCase().includes(searchTerm.toLowerCase());
+                          const matchesProvider = !filterProvider || game.provider === filterProvider;
+                          return matchesSearch && matchesProvider;
+                        })
+                        .map((game: any) => (
                         <tr key={game.id} className="border-b hover:bg-muted/50">
-                          <td className="py-3 px-2 font-semibold">{game.name}</td>
+                          <td className="py-3 px-2">
+                            <div className="flex items-center gap-2">
+                              {game.image_url && (
+                                <img src={game.image_url} alt="" className="w-8 h-8 rounded object-cover border" />
+                              )}
+                              <div>
+                                <p className="font-semibold">{game.name}</p>
+                                {game.slug && <p className="text-[10px] text-muted-foreground">{game.slug}</p>}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-2 text-xs">{game.provider || 'Internal'}</td>
                           <td className="py-3 px-2">{game.category}</td>
                           <td className="py-3 px-2 font-mono">{game.rtp}%</td>
+                          <td className="py-3 px-2 text-xs">{game.volatility || 'N/A'}</td>
                           <td className="py-3 px-2">
-                            <Badge variant={game.enabled ? 'default' : 'secondary'}>
+                            <Badge variant={game.enabled ? 'default' : 'secondary'} className="text-[10px]">
                               {game.enabled ? 'Active' : 'Disabled'}
                             </Badge>
                           </td>
                           <td className="py-3 px-2">
                             <div className="flex gap-2">
-                              <Button size="sm" variant="outline" onClick={() => toast.info('Edit coming soon')}>Edit</Button>
-                              <Button size="sm" variant="outline" onClick={() => {
-                                const newRtp = prompt('Enter new RTP:', String(game.rtp));
-                                if (newRtp) {
-                                  adminV2.games.update(game.id, { rtp: parseFloat(newRtp) })
-                                    .then(() => { toast.success('Updated'); fetchData(); })
-                                    .catch(() => toast.error('Failed'));
-                                }
-                              }}>RTP</Button>
+                              <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => {
+                                setEditingGame(game);
+                                setFormData({
+                                  name: game.name,
+                                  provider: game.provider || 'Pragmatic',
+                                  category: game.category || 'Slots',
+                                  rtp: String(game.rtp),
+                                  volatility: game.volatility || 'Medium',
+                                  image_url: game.image_url || '',
+                                  slug: game.slug || '',
+                                  series: game.series || '',
+                                  family: game.family || '',
+                                  type: game.type || '',
+                                  embed_url: game.embed_url || '',
+                                  enabled: game.enabled
+                                });
+                                setShowAddForm(true);
+                              }}>
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => {
+                                adminV2.games.update(game.id, { enabled: !game.enabled })
+                                  .then(() => { toast.success(game.enabled ? 'Disabled' : 'Enabled'); fetchData(); })
+                                  .catch(() => toast.error('Failed to toggle'));
+                              }}>
+                                {game.enabled ? 'Off' : 'On'}
+                              </Button>
+                              <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => handleDeleteGame(game.id, game.name)}>
+                                <Trash2 className="w-3 h-3 text-destructive" />
+                              </Button>
                             </div>
                           </td>
                         </tr>

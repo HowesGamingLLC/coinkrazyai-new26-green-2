@@ -642,6 +642,15 @@ export const adminV2 = {
         body: JSON.stringify({}),
       });
     },
+    getConfigs: async () => {
+      return adminApiCall<any>('/admin/v2/games/configs');
+    },
+    updateMaxWin: async (gameId: number, maxWinAmount: number) => {
+      return adminApiCall<any>(`/admin/v2/games/${gameId}/max-win`, {
+        method: 'PUT',
+        body: JSON.stringify({ max_win_amount: maxWinAmount }),
+      });
+    },
   },
 
   // Provider Management

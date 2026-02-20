@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { adminV2 } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,12 +28,9 @@ export const GameComplianceSettings: React.FC = () => {
     const loadConfigs = async () => {
       try {
         setLoading(true);
-        // Note: You'll need to add this endpoint or use existing game list
-        // For now, we'll fetch all games with a simple request
-        const response = await fetch('/api/admin/v2/games/configs');
-        const data = await response.json();
+        const data = await adminV2.games.getConfigs();
 
-        if (response.ok && data.success) {
+        if (data && data.success) {
           setGames(data.data);
           // Initialize edited max_win with current values
           const edited: { [key: number]: string } = {};
@@ -42,7 +39,7 @@ export const GameComplianceSettings: React.FC = () => {
           });
           setEditedMaxWin(edited);
         } else {
-          throw new Error(data.error || 'Failed to load');
+          throw new Error(data?.error || 'Failed to load');
         }
       } catch (err: any) {
         toast.error('Failed to load game configurations');
@@ -72,18 +69,9 @@ export const GameComplianceSettings: React.FC = () => {
         return;
       }
 
-      const response = await fetch(`/api/admin/v2/games/${gameId}/max-win`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-        },
-        body: JSON.stringify({ max_win_amount: newMaxWin })
-      });
+      const data = await adminV2.games.updateMaxWin(gameId, newMaxWin);
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (data && data.success) {
         // Update local state
         setGames(prev => prev.map(game =>
           game.game_id === gameId
@@ -92,7 +80,7 @@ export const GameComplianceSettings: React.FC = () => {
         ));
         toast.success(`Updated max win to ${newMaxWin.toFixed(2)} SC`);
       } else {
-        throw new Error(data.error || 'Failed to save');
+        throw new Error(data?.error || 'Failed to save');
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to save');

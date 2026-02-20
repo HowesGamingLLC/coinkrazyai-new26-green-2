@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { adminV2 } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,9 +71,8 @@ export const GamesEmbedSettings = () => {
   const fetchGames = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/games');
-      const data = await response.json();
-      const gamesData = Array.isArray(data) ? data : data.data || [];
+      const response = await adminV2.games.list();
+      const gamesData = Array.isArray(response) ? response : response.data || [];
       setGames(gamesData);
       toast.success(`Loaded ${gamesData.length} games`);
     } catch (error) {
@@ -114,15 +113,7 @@ export const GamesEmbedSettings = () => {
       const gamesData = JSON.parse(jsonData);
       const gamesToImport = Array.isArray(gamesData) ? gamesData : [gamesData];
 
-      const response = await fetch('/api/admin/v2/aggregation/bulk-import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ games: gamesToImport }),
-      });
-
-      if (!response.ok) throw new Error('Import failed');
-
-      const result = await response.json();
+      const result = await adminV2.aggregation.bulkImport(gamesToImport);
       toast.success(result.message || `Imported ${result.data?.imported || 0} games`);
       setJsonData('');
       setShowBulkImportDialog(false);
@@ -150,15 +141,7 @@ export const GamesEmbedSettings = () => {
         enabled: game.enabled,
       }));
 
-      const response = await fetch('/api/admin/v2/aggregation/bulk-import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ games: gamesToImport }),
-      });
-
-      if (!response.ok) throw new Error('Import failed');
-
-      const result = await response.json();
+      const result = await adminV2.aggregation.bulkImport(gamesToImport);
       toast.success(`Imported ${result.data?.imported || 0} new games, updated ${result.data?.updated || 0}`);
       setShowImportDialog(false);
       fetchGames();
@@ -171,14 +154,7 @@ export const GamesEmbedSettings = () => {
 
   const handleToggleGame = async (gameId: number, enabled: boolean) => {
     try {
-      const response = await fetch('/api/admin/games/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ game_id: gameId, enabled: !enabled }),
-      });
-
-      if (!response.ok) throw new Error('Toggle failed');
-
+      await adminV2.games.update(gameId, { enabled: !enabled });
       setGames(games.map(g => g.id === gameId ? { ...g, enabled: !g.enabled } : g));
       toast.success(`Game ${!enabled ? 'enabled' : 'disabled'}`);
     } catch (error) {
@@ -190,7 +166,7 @@ export const GamesEmbedSettings = () => {
     if (!confirm('Are you sure you want to delete this game?')) return;
 
     try {
-      // Note: This is a placeholder - implement in your backend
+      await adminV2.games.delete(gameId);
       setGames(games.filter(g => g.id !== gameId));
       toast.success('Game deleted');
     } catch (error) {
@@ -200,9 +176,8 @@ export const GamesEmbedSettings = () => {
 
   const handleExportGames = async () => {
     try {
-      const response = await fetch('/api/admin/v2/aggregation/export');
-      const data = await response.json();
-      
+      const data = await adminV2.aggregation.exportGames();
+
       const element = document.createElement('a');
       element.setAttribute(
         'href',
