@@ -422,6 +422,31 @@ const GAME_SHOW_GAMES: SlotGameData[] = [
 ];
 
 /**
+ * CT Interactive Games
+ */
+const CT_INTERACTIVE_GAMES: SlotGameData[] = [
+  {
+    id: 300,
+    name: 'Big Joker',
+    title: 'Big Joker',
+    provider: 'CT Interactive',
+    category: 'Slots',
+    description: 'Classic fruit-themed slot with a big joker surprise!',
+    image_url: 'https://via.placeholder.com/300x300?text=Big+Joker',
+    embed_url: 'https://free-slots.games/game/BigJokerCT/',
+    rtp: 95.8,
+    volatility: 'Medium',
+    min_bet: 0.01,
+    max_bet: 100,
+    features: ['Wild', 'Scatter', 'Free Spins'],
+    themes: ['Fruit', 'Classic', 'Joker'],
+    release_date: '2024-01-01',
+    enabled: true,
+    game_type: 'classic'
+  }
+];
+
+/**
  * Combine all games into a single database
  */
 export const ALL_SLOT_GAMES: SlotGameData[] = [
@@ -437,7 +462,8 @@ export const ALL_SLOT_GAMES: SlotGameData[] = [
   ...GAMEBEAT_GAMES,
   ...CLASSIC_SLOTS,
   ...PROGRESSIVE_GAMES,
-  ...GAME_SHOW_GAMES
+  ...GAME_SHOW_GAMES,
+  ...CT_INTERACTIVE_GAMES
 ];
 
 /**
