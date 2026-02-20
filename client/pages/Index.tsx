@@ -8,6 +8,7 @@ import { Gamepad2, Coins, TrendingUp, Users, Zap, MessageSquare, Loader2, Sparkl
 import { games as gamesApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { GamePlayerModal } from '@/components/slots/GamePlayerModal';
 
 interface Game {
   id: number;
@@ -27,7 +28,8 @@ interface Game {
 
 const Index = () => {
   const [featuredGames, setFeaturedGames] = useState<Game[]>([]);
-  const [isLoadingGames, setIsLoadingGames] = useState(true);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [platformStats, setPlatformStats] = useState({
     activePlayers: '4,521',
     jackpotTotal: '52,140 SC',
@@ -307,14 +309,9 @@ const Index = () => {
                     variant="secondary"
                     className="font-bold group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                     onClick={() => {
-                      console.log('[Index] Game Play Clicked:', {
-                        gameId: game.id,
-                        gameName: game.name,
-                        provider: game.provider,
-                        timestamp: new Date().toISOString(),
-                      });
                       if (game.embed_url) {
-                        window.open(game.embed_url, '_blank');
+                        setSelectedGame(game);
+                        setIsPlayerOpen(true);
                       } else {
                         toast.info('Game embed URL not available');
                       }
@@ -337,6 +334,15 @@ const Index = () => {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {/* Game Player Modal */}
+        {selectedGame && (
+          <GamePlayerModal
+            isOpen={isPlayerOpen}
+            onClose={() => setIsPlayerOpen(false)}
+            game={selectedGame}
+          />
         )}
       </section>
 
