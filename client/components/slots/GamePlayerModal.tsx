@@ -9,6 +9,7 @@ import { BetSelector } from '@/components/external-games/BetSelector';
 import { useAuth } from '@/lib/auth-context';
 import { useWallet } from '@/hooks/use-wallet';
 import { apiCall } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 interface GamePlayerModalProps {
   isOpen: boolean;
@@ -147,10 +148,6 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
     }
   };
 
-  if (!isOpen || !game.embed_url) {
-    return null;
-  }
-
   const scBalance = wallet?.sweepsCoins || 0;
   const gcBalance = wallet?.goldCoins || 0;
 
@@ -172,6 +169,10 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
       return `${game.embed_url}${separator}bet=${currentBet}&balance=${scBalance}&sc_balance=${scBalance}&gc_balance=${gcBalance}&currency=SC&username=${user?.username || 'Guest'}`;
     }
   }, [game.embed_url, currentBet, scBalance, gcBalance, user?.username]);
+
+  if (!isOpen || !game.embed_url) {
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
