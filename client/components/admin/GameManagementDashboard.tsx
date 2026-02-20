@@ -145,7 +145,7 @@ export const GameManagementDashboard: React.FC = () => {
         return;
       }
 
-      toast.success(`Successfully imported: ${data.data?.name || 'Game'}`);
+      toast.success(`Successfully imported: ${data.game?.name || data.data?.name || 'Game'}`);
       setCrawlUrl('');
       loadGames();
     } catch (error) {

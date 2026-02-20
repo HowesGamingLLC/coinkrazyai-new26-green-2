@@ -413,15 +413,154 @@ export const clearAllGames: RequestHandler = async (req, res) => {
 };
 
 export const crawlSlots: RequestHandler = async (req, res) => {
-  // ... existing implementation
+  try {
+    const { url, urls, dryRun = false } = req.body;
+
+    if (!url && (!urls || !Array.isArray(urls))) {
+      return res.status(400).json({ error: 'At least one URL or an array of URLs is required' });
+    }
+
+    console.log(`[Crawler] Received crawl request for: ${url || (urls ? urls.length : 0) + ' URLs'}${dryRun ? ' (Dry Run)' : ''}`);
+
+    const { gameCrawler } = await import('../services/game-crawler');
+
+    // Handle single URL
+    if (url) {
+      // First, try to crawl as a single game
+      let resultData: any = null;
+      let isMultiple = false;
+
+      // Check if it's a list page by fetching HTML briefly or just use crawlMultiple
+      // Actually crawlMultiple handles both list pages and game pages if passed as a single element array
+      const crawlResults = await gameCrawler.crawlMultiple([url]);
+
+      if (crawlResults.games.length === 0) {
+        return res.status(404).json({
+          error: 'Failed to extract any game data from the provided URL',
+          details: crawlResults.errors.length > 0 ? crawlResults.errors[0].error : undefined
+        });
+      }
+
+      if (crawlResults.games.length > 1) {
+        isMultiple = true;
+        resultData = crawlResults.games;
+      } else {
+        resultData = crawlResults.games[0];
+      }
+
+      if (dryRun) {
+        return res.json({
+          success: true,
+          message: isMultiple ? `Found ${resultData.length} games (Dry Run)` : `Found game: ${resultData.title} (Dry Run)`,
+          data: isMultiple ? resultData : [resultData], // Always return array in data for GameAggregationManager
+          game: isMultiple ? resultData[0] : resultData // Return single object for Dashboard
+        });
+      }
+
+      // Not a dry run, save the games
+      if (isMultiple) {
+        const savedGames = [];
+        const saveErrors = [];
+
+        for (const gameData of resultData) {
+          try {
+            const saved = await gameCrawler.saveGame(gameData);
+            savedGames.push(saved);
+          } catch (error: any) {
+            saveErrors.push({ title: gameData.title, error: error.message });
+          }
+        }
+
+        return res.json({
+          success: true,
+          message: `Successfully imported ${savedGames.length} games.`,
+          data: savedGames,
+          summary: {
+            imported: savedGames.length,
+            failed: saveErrors.length,
+            errors: saveErrors
+          }
+        });
+      } else {
+        const savedGame = await gameCrawler.saveGame(resultData);
+        return res.json({
+          success: true,
+          message: `Successfully imported: ${savedGame.name}`,
+          data: [savedGame],
+          game: savedGame
+        });
+      }
+    }
+
+    // Handle multiple URLs
+    if (urls && Array.isArray(urls)) {
+      const results = await gameCrawler.crawlMultiple(urls);
+
+      if (dryRun) {
+        return res.json({
+          success: true,
+          message: `Dry run: found ${results.games.length} games.`,
+          data: results.games,
+          errors: results.errors
+        });
+      }
+
+      const savedGames = [];
+      const saveErrors = [];
+
+      for (const gameData of results.games) {
+        try {
+          const saved = await gameCrawler.saveGame(gameData);
+          savedGames.push(saved);
+        } catch (error: any) {
+          saveErrors.push({ title: gameData.title, error: error.message });
+        }
+      }
+
+      return res.json({
+        success: true,
+        message: `Crawled ${results.games.length} games, successfully saved ${savedGames.length} games.`,
+        data: savedGames,
+        summary: {
+          imported: savedGames.length,
+          failed: results.errors.length + saveErrors.length,
+          errors: [...results.errors, ...saveErrors]
+        }
+      });
+    }
+  } catch (error: any) {
+    console.error('[Crawler] Route error:', error.message);
+    res.status(500).json({
+      error: 'Crawler operation failed',
+      details: error.message
+    });
+  }
 };
 
 export const handleSaveCrawledGame: RequestHandler = async (req, res) => {
   try {
-    const gameData = req.body;
+    const rawData = req.body;
 
-    if (!gameData || !gameData.title) {
-      return res.status(400).json({ error: 'Game data with title is required' });
+    if (!rawData) {
+      return res.status(400).json({ error: 'Game data is required' });
+    }
+
+    // Normalize data (support both internal crawler format and GameAggregationManager format)
+    const gameData = {
+      title: rawData.title || rawData.name,
+      provider: rawData.provider || rawData.provider_name,
+      rtp: rawData.rtp ? parseFloat(String(rawData.rtp)) : 95.0,
+      volatility: rawData.volatility || 'Medium',
+      description: rawData.description || '',
+      image_url: rawData.image_url || rawData.thumbnail || '',
+      thumbnail_url: rawData.thumbnail_url || rawData.thumbnail || '',
+      embed_url: rawData.embed_url || '',
+      type: rawData.type || 'Video Slot',
+      source: rawData.source || rawData.crawl_source_url || 'manual'
+    };
+
+    if (!gameData.title) {
+      return res.status(400).json({ error: 'Game name/title is required' });
     }
 
     console.log(`[Crawler] Saving crawled game: ${gameData.title}`);
@@ -430,12 +569,13 @@ export const handleSaveCrawledGame: RequestHandler = async (req, res) => {
     const { gameCrawler } = await import('../services/game-crawler');
 
     // Save game using crawler service (handles games table and game_config)
-    const savedGame = await gameCrawler.saveGame(gameData);
+    const savedGame = await gameCrawler.saveGame(gameData as any);
 
     res.json({
       success: true,
       message: `Successfully saved game: ${savedGame.name}`,
-      game: savedGame
+      game: savedGame,
+      data: savedGame // Support different client formats
     });
   } catch (error: any) {
     console.error('[Crawler] Save error:', error.message);

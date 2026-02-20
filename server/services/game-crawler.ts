@@ -20,6 +20,7 @@ export interface CrawledGame {
   release_date?: string;
   features?: string[];
   theme?: string;
+  type?: string;
   source: string;
   raw_html?: string;
 }
@@ -118,6 +119,7 @@ class GameCrawler {
       const release_date = this.extractReleaseDate(html, $);
       const features = this.extractFeatures(html, $);
       const theme = this.extractTheme(html, $);
+      const type = this.extractType(html, $);
 
       if (!title || title.length < 2) {
         console.warn(`[Crawler] Could not extract valid title from ${url}. HTML might be empty or obfuscated.`);
@@ -144,6 +146,7 @@ class GameCrawler {
         release_date,
         features,
         theme,
+        type,
         source: url,
       };
     } catch (error) {
@@ -222,6 +225,14 @@ class GameCrawler {
       // Fallback to meta name title
       const metaTitle = $('meta[name="title"]').attr('content');
       if (metaTitle) title = metaTitle.trim();
+    }
+
+    if (!title) {
+      // Try to find in script tags (common for single-page apps or games)
+      const scriptMatch = html.match(/game_name\s*=\s*["']([^"']+)["']/i) ||
+                          html.match(/gameName\s*=\s*["']([^"']+)["']/i) ||
+                          html.match(/title\s*:\s*["']([^"']+)["']/i);
+      if (scriptMatch) title = scriptMatch[1].trim();
     }
 
     // Clean up common suffixes and prefixes
@@ -340,6 +351,12 @@ class GameCrawler {
       description = $('.description').first().text().trim() ||
                    $('.game-info').first().text().trim() ||
                    $('[role="main"]').first().text().substring(0, 500).trim();
+    }
+
+    // Try to find in scripts
+    if (description === 'Game details not available') {
+      const scriptMatch = html.match(/description\s*:\s*["']([^"']{20,})["']/i);
+      if (scriptMatch) description = scriptMatch[1].trim();
     }
 
     return description || 'Game details not available';
@@ -583,6 +600,29 @@ class GameCrawler {
     return undefined;
   }
 
+  private extractType(html: string, $: cheerio.CheerioAPI): string | undefined {
+    // Try SlotCatalog specific layout
+    const scType = $('td:contains("Game Type"), span:contains("Game Type")').next().text().trim();
+    if (scType) return scType;
+
+    const patterns = [
+      /Game[\s]+Type[:\s]+([^<\n,]+)/i,
+      /Type[:\s]+(Video Slot|Classic Slot|3D Slot|Mobile Slot|Progressive Slot)/i,
+      /(Video Slot|Classic Slot|3D Slot|Mobile Slot|Progressive Slot)/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match) return match[1].trim();
+    }
+
+    // Heuristics based on features
+    if (html.toLowerCase().includes('megaways')) return 'Megaways Slot';
+    if (html.toLowerCase().includes('3-reel') || html.toLowerCase().includes('three-reel')) return 'Classic Slot';
+
+    return 'Video Slot'; // Default for most modern games
+  }
+
   private extractReleaseDate(html: string, $: cheerio.CheerioAPI): string | undefined {
     const patterns = [
       /Released?[:\s]+(\d{1,2}[\s-/]\d{1,2}[\s-/]\d{4})/i,
@@ -602,21 +642,21 @@ class GameCrawler {
 
   private guessProvider(title: string, html: string): string {
     const commonProviders: Record<string, RegExp> = {
-      'Pragmatic Play': /pragmatic|pp/i,
-      'Microgaming': /microgaming|mg/i,
+      'Pragmatic Play': /pragmatic[\s]play|pragmaticplay/i,
+      'Microgaming': /microgaming/i,
       'NetEnt': /netent/i,
       'Nolimit City': /nolimit|no limit/i,
       'Hacksaw Gaming': /hacksaw/i,
       'Relax Gaming': /relax gaming/i,
       'IGT': /igt|wagerworks/i,
       'WMS': /wms|williams/i,
-      'Playtech': /playtech|pt/i,
+      'Playtech': /playtech/i,
       'Bally': /bally/i,
       'Play\'n GO': /playngo|play n go/i,
-      'Betsoft': /betsoft|bs/i,
+      'Betsoft': /betsoft/i,
       'Red Tiger': /red tiger|redtiger/i,
       'Quickspin': /quickspin/i,
-      'Yggdrasil': /yggdrasil|yg/i,
+      'Yggdrasil': /yggdrasil/i,
       'ELK Studios': /elk studios|elk/i,
       'Push Gaming': /push gaming/i,
       'Evolution': /evolution/i,
@@ -858,6 +898,10 @@ class GameCrawler {
           updates.push(`description = $${i++}`);
           values.push(gameData.description);
         }
+        if (!existing.type && gameData.type) {
+          updates.push(`type = $${i++}`);
+          values.push(gameData.type);
+        }
 
         if (updates.length > 0) {
           values.push(existing.id);
@@ -872,13 +916,14 @@ class GameCrawler {
         const slug = gameData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
         const result = await query(
-          `INSERT INTO games (name, slug, category, provider, rtp, volatility, description, image_url, thumbnail, embed_url, enabled)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
+          `INSERT INTO games (name, slug, category, type, provider, rtp, volatility, description, image_url, thumbnail, embed_url, enabled)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true)
            RETURNING *`,
           [
             gameData.title,
             slug,
             'Slots',
+            gameData.type || 'Video Slot',
             gameData.provider,
             gameData.rtp,
             gameData.volatility,
