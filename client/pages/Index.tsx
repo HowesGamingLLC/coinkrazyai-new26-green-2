@@ -206,7 +206,9 @@ const Index = () => {
             <Crown className="w-10 h-10 text-white/50" />
             <h3 className="text-2xl font-black italic uppercase leading-none">VIP STATUS <br /> CHALLENGES</h3>
             <p className="text-white/70 font-bold uppercase text-xs">Complete challenges to level up your status!</p>
-            <Button size="sm" className="bg-slate-950 text-yellow-500 font-black rounded-xl">VIEW CHALLENGES</Button>
+            <Button size="sm" className="bg-slate-950 text-yellow-500 font-black rounded-xl" asChild>
+              <Link to="/vip">VIEW BENEFITS</Link>
+            </Button>
           </div>
           <div className="absolute -right-10 -bottom-10 opacity-20 transform rotate-12 group-hover:rotate-0 transition-transform duration-500">
             <Trophy className="w-40 h-40" />
@@ -218,7 +220,9 @@ const Index = () => {
             <Zap className="w-10 h-10 text-white/50" />
             <h3 className="text-2xl font-black italic uppercase leading-none">REFER A <br /> FRIEND BONUS</h3>
             <p className="text-white/70 font-bold uppercase text-xs">Earn 5.00 SC for every friend who joins!</p>
-            <Button size="sm" className="bg-white text-emerald-700 font-black rounded-xl">SHARE LINK</Button>
+            <Button size="sm" className="bg-white text-emerald-700 font-black rounded-xl" asChild>
+              <Link to="/referrals">SHARE LINK</Link>
+            </Button>
           </div>
           <div className="absolute -right-10 -bottom-10 opacity-20 transform rotate-12 group-hover:rotate-0 transition-transform duration-500">
             <Users className="w-40 h-40" />

@@ -52,6 +52,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { label: 'Dice', path: '/dice', icon: Dice5 },
     { label: 'Plinko', path: '/plinko', icon: Zap },
     { label: 'Community', path: '/community', icon: Users },
+    { label: 'Referrals', path: '/referrals', icon: Users },
+    { label: 'VIP Club', path: '/vip', icon: Star },
     { label: 'Store', path: '/store', icon: ShoppingCart },
     { label: 'Challenges', path: '#challenges', icon: Trophy, onClick: () => setIsChallengesOpen(true) },
     { label: 'Leaderboard', path: '/leaderboards', icon: Trophy },

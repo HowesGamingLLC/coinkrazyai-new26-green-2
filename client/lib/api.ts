@@ -1284,3 +1284,83 @@ export const admin = {
     return adminApiCall<{ success: boolean; data: any }>('/admin/health');
   },
 };
+
+// ===== DAILY BONUS =====
+export const dailyBonus = {
+  getStatus: async () => {
+    return apiCall<{ success: boolean; data: any }>('/daily-bonus');
+  },
+  claim: async () => {
+    return apiCall<{ success: boolean; data: any }>('/daily-bonus/claim', {
+      method: 'POST',
+    });
+  },
+  getStreak: async () => {
+    return apiCall<{ success: boolean; data: any }>('/daily-bonus/streak');
+  },
+};
+
+// ===== REFERRALS =====
+export const referrals = {
+  getLink: async () => {
+    return apiCall<{ success: boolean; data: any }>('/referral/link');
+  },
+  getStats: async () => {
+    return apiCall<{ success: boolean; data: any }>('/referral/stats');
+  },
+  register: async (referralCode: string, registrationData: any) => {
+    return apiCall<{ success: boolean; data: any }>('/referral/register', {
+      method: 'POST',
+      body: JSON.stringify({ referralCode, ...registrationData }),
+    });
+  },
+};
+
+// ===== SOCIAL SHARING =====
+export const socialSharing = {
+  recordShare: async (platform: string, gameId?: number) => {
+    return apiCall<{ success: boolean; data: any }>('/social/share', {
+      method: 'POST',
+      body: JSON.stringify({ platform, gameId }),
+    });
+  },
+  getHistory: async () => {
+    return apiCall<{ success: boolean; data: any }>('/social/history');
+  },
+};
+
+// ===== MESSAGING =====
+export const messaging = {
+  getThreads: async () => {
+    return apiCall<{ success: boolean; data: any }>('/messages/threads');
+  },
+  getMessages: async (threadId?: string) => {
+    const params = threadId ? `?threadId=${threadId}` : '';
+    return apiCall<{ success: boolean; data: any }>(`/messages${params}`);
+  },
+  sendMessage: async (recipientId: number, content: string) => {
+    return apiCall<{ success: boolean; data: any }>('/messages/send', {
+      method: 'POST',
+      body: JSON.stringify({ recipientId, content }),
+    });
+  },
+  markRead: async (messageIds: number[]) => {
+    return apiCall<{ success: boolean }>('/messages/read', {
+      method: 'POST',
+      body: JSON.stringify({ messageIds }),
+    });
+  },
+};
+
+// ===== CHALLENGES =====
+export const challenges = {
+  getChallenges: async () => {
+    return apiCall<{ success: boolean; data: any }>('/challenges');
+  },
+  claimReward: async (challengeId: number) => {
+    return apiCall<{ success: boolean; data: any }>('/challenges/claim', {
+      method: 'POST',
+      body: JSON.stringify({ challengeId }),
+    });
+  },
+};

@@ -3,8 +3,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trophy, Clock, Hammer, Sparkles, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const PoolShark = () => {
+  const handleJoinWaitlist = () => {
+    toast.success("You've been added to the Pool Shark elite waitlist! 🦈");
+  };
+
   return (
     <div className="max-w-4xl mx-auto py-20 px-4">
       <Button variant="ghost" asChild className="mb-8 hover:bg-slate-100">
@@ -54,7 +59,11 @@ const PoolShark = () => {
 
           <div className="pt-8 border-t border-white/5">
              <p className="text-slate-500 font-bold uppercase text-sm mb-6">Want to be the first to play?</p>
-             <Button size="lg" className="h-16 px-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-xl italic rounded-2xl shadow-xl shadow-blue-500/20">
+             <Button
+                size="lg"
+                className="h-16 px-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-xl italic rounded-2xl shadow-xl shadow-blue-500/20"
+                onClick={handleJoinWaitlist}
+             >
                 JOIN THE WAITLIST
              </Button>
           </div>

@@ -33,6 +33,8 @@ import Dice from "./pages/Dice";
 import Plinko from "./pages/Plinko";
 import Community from "./pages/Community";
 import PoolShark from "./pages/PoolShark";
+import Referrals from "./pages/Referrals";
+import VIP from "./pages/VIP";
 
 const queryClient = new QueryClient();
 
@@ -158,6 +160,22 @@ const AppRoutes = () => (
       element={
         <Layout>
           <PoolShark />
+        </Layout>
+      }
+    />
+    <Route
+      path="/referrals"
+      element={
+        <Layout>
+          <Referrals />
+        </Layout>
+      }
+    />
+    <Route
+      path="/vip"
+      element={
+        <Layout>
+          <VIP />
         </Layout>
       }
     />
