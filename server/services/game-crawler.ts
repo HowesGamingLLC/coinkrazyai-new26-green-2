@@ -9,8 +9,17 @@ export interface CrawledGame {
   volatility: 'Low' | 'Medium' | 'High';
   description: string;
   image_url?: string;
+  thumbnail_url?: string;
+  embed_url?: string;
   max_paylines?: number;
+  reels?: number;
+  rows?: number;
+  min_bet?: number;
+  max_bet?: number;
+  max_win?: string;
   release_date?: string;
+  features?: string[];
+  theme?: string;
   source: string;
   raw_html?: string;
 }
@@ -71,10 +80,21 @@ class GameCrawler {
 
       // Extract image URL
       const image_url = this.extractImageUrl(html, $, url);
+      const thumbnail_url = this.extractThumbnailUrl(html, $, url);
+
+      // Extract embed URL (iframe or demo link)
+      const embed_url = this.extractEmbedUrl(html, $, url);
 
       // Extract additional data
       const max_paylines = this.extractPaylines(html, $);
+      const reels = this.extractReels(html, $);
+      const rows = this.extractRows(html, $);
+      const min_bet = this.extractMinBet(html, $);
+      const max_bet = this.extractMaxBet(html, $);
+      const max_win = this.extractMaxWin(html, $);
       const release_date = this.extractReleaseDate(html, $);
+      const features = this.extractFeatures(html, $);
+      const theme = this.extractTheme(html, $);
 
       if (!title || title.length < 2) {
         console.warn(`[Crawler] Could not extract title from ${url}`);
@@ -90,8 +110,17 @@ class GameCrawler {
         volatility,
         description: description.substring(0, 500),
         image_url,
+        thumbnail_url,
+        embed_url,
         max_paylines,
+        reels,
+        rows,
+        min_bet,
+        max_bet,
+        max_win,
         release_date,
+        features,
+        theme,
         source: url,
       };
     } catch (error) {
@@ -102,11 +131,16 @@ class GameCrawler {
 
   private extractTitle(html: string, $: cheerio.CheerioAPI): string {
     // Try various title extraction methods
-    let title = $('title').text().trim();
+    let title = '';
+
+    // Try specific game title elements first
+    title = $('.game-title').first().text().trim() ||
+            $('.slot-title').first().text().trim() ||
+            $('.entry-title').first().text().trim() ||
+            $('h1').first().text().trim();
 
     if (!title || title.toLowerCase().includes('just a moment')) {
-      const h1Title = $('h1').first().text().trim();
-      if (h1Title) title = h1Title;
+      title = $('title').text().trim();
     }
 
     if (!title) {
@@ -126,6 +160,9 @@ class GameCrawler {
       .replace(/Demo Slot/i, '')
       .replace(/Play for Free/i, '')
       .replace(/Online Slot/i, '')
+      .replace(/Slot Free Play/i, '')
+      .replace(/Review & Demo/i, '')
+      .replace(/ - [^-|:]+$/i, '') // Remove last part after dash if it looks like a site name
       .split('|')[0]
       .split('-')[0]
       .split(':')[0]
@@ -229,8 +266,12 @@ class GameCrawler {
     }
 
     if (!imageUrl) {
-      // Try to find game image in common locations
-      imageUrl = $('img.game-image').first().attr('src') ||
+      // Try to find game image in common locations - prioritize high quality/large images
+      imageUrl = $('img.game-header-image').first().attr('src') ||
+                $('img.game-hero-image').first().attr('src') ||
+                $('img.featured-image').first().attr('src') ||
+                $('img.game-image').first().attr('src') ||
+                $('img[src*="logo"]').first().attr('src') ||
                 $('img[alt*="logo"]').first().attr('src') ||
                 $('img[alt*="game"]').first().attr('src') ||
                 $('img[alt*="slot"]').first().attr('src') ||
@@ -249,23 +290,202 @@ class GameCrawler {
     return imageUrl;
   }
 
+  private extractThumbnailUrl(html: string, $: cheerio.CheerioAPI, baseUrl: string): string | undefined {
+    // Look for smaller images or explicitly labeled thumbnails
+    let thumbUrl = $('link[rel="icon"]').attr('href') ||
+                   $('link[rel="apple-touch-icon"]').attr('href');
+
+    if (!thumbUrl) {
+      thumbUrl = $('img[src*="thumb"]').first().attr('src') ||
+                 $('img[class*="thumb"]').first().attr('src') ||
+                 $('img[id*="thumb"]').first().attr('src') ||
+                 $('.thumbnail img').first().attr('src');
+    }
+
+    if (thumbUrl && !thumbUrl.startsWith('http')) {
+      try {
+        const urlObj = new URL(baseUrl);
+        thumbUrl = new URL(thumbUrl, urlObj.origin).toString();
+      } catch (e) {
+        // Fallback
+      }
+    }
+
+    return thumbUrl;
+  }
+
+  private extractEmbedUrl(html: string, $: cheerio.CheerioAPI, baseUrl: string): string | undefined {
+    // Look for iframes with various sources or data attributes
+    const iframeSrc = $('iframe[src*="demo"]').first().attr('src') ||
+                    $('iframe[src*="game"]').first().attr('src') ||
+                    $('iframe[src*="play"]').first().attr('src') ||
+                    $('iframe#game-iframe').attr('src') ||
+                    $('iframe[data-src*="demo"]').first().attr('data-src') ||
+                    $('iframe[data-url*="demo"]').first().attr('data-url');
+
+    if (iframeSrc) {
+      if (!iframeSrc.startsWith('http') && !iframeSrc.startsWith('//')) {
+        try {
+          const urlObj = new URL(baseUrl);
+          return new URL(iframeSrc, urlObj.origin).toString();
+        } catch (e) {}
+      }
+      return iframeSrc;
+    }
+
+    // Look for "Play Demo" or "Play for Free" buttons/links with various text and attributes
+    const demoLink = $('a:contains("Play Demo")').attr('href') ||
+                    $('a:contains("Demo")').attr('href') ||
+                    $('a:contains("Play for Free")').attr('href') ||
+                    $('a:contains("Free Play")').attr('href') ||
+                    $('button[data-demo-url]').attr('data-demo-url') ||
+                    $('div[data-game-url]').attr('data-game-url');
+
+    if (demoLink && !demoLink.startsWith('http') && !demoLink.startsWith('//')) {
+      try {
+        const urlObj = new URL(baseUrl);
+        return new URL(demoLink, urlObj.origin).toString();
+      } catch (e) {
+        // Fallback
+      }
+    }
+
+    return demoLink;
+  }
+
   private extractPaylines(html: string, $: cheerio.CheerioAPI): number | undefined {
     const patterns = [
       /(\d+)[\s]+paylines?/i,
       /Paylines?[:\s]+(\d+)/i,
       /lines?[:\s]+(\d+)/i,
+      /ways[\s]+to[\s]+win[:\s]+(\d+)/i,
+      /(\d+)[\s]+ways[\s]+to[\s]+win/i,
     ];
 
     for (const pattern of patterns) {
       const match = html.match(pattern);
       if (match) {
         const paylines = parseInt(match[1]);
-        if (!isNaN(paylines) && paylines > 0 && paylines <= 10000) {
+        if (!isNaN(paylines) && paylines > 0 && paylines <= 1000000) {
           return paylines;
         }
       }
     }
 
+    return undefined;
+  }
+
+  private extractReels(html: string, $: cheerio.CheerioAPI): number | undefined {
+    const patterns = [
+      /Reels?[:\s]+(\d+)/i,
+      /(\d+)[\s]+reels?/i,
+      /Layout[:\s]+(\d+)x\d+/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match) {
+        const val = parseInt(match[1]);
+        if (!isNaN(val) && val > 0 && val < 20) return val;
+      }
+    }
+    return undefined;
+  }
+
+  private extractRows(html: string, $: cheerio.CheerioAPI): number | undefined {
+    const patterns = [
+      /Rows?[:\s]+(\d+)/i,
+      /(\d+)[\s]+rows?/i,
+      /Layout[:\s]+\d+x(\d+)/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match) {
+        const val = parseInt(match[1]);
+        if (!isNaN(val) && val > 0 && val < 20) return val;
+      }
+    }
+    return undefined;
+  }
+
+  private extractMinBet(html: string, $: cheerio.CheerioAPI): number | undefined {
+    const patterns = [
+      /Min[\s]+bet[:\s]+(?:[$€£])?(\d+(?:\.\d+)?)/i,
+      /Minimum[\s]+bet[:\s]+(?:[$€£])?(\d+(?:\.\d+)?)/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match) return parseFloat(match[1]);
+    }
+    return undefined;
+  }
+
+  private extractMaxBet(html: string, $: cheerio.CheerioAPI): number | undefined {
+    const patterns = [
+      /Max[\s]+bet[:\s]+(?:[$€£])?(\d+(?:\.\d+)?)/i,
+      /Maximum[\s]+bet[:\s]+(?:[$€£])?(\d+(?:\.\d+)?)/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match) return parseFloat(match[1]);
+    }
+    return undefined;
+  }
+
+  private extractMaxWin(html: string, $: cheerio.CheerioAPI): string | undefined {
+    const patterns = [
+      /Max[\s]+win[:\s]+([\d,]+x?)/i,
+      /Maximum[\s]+win[:\s]+([\d,]+x?)/i,
+      /Max[\s]+payout[:\s]+([\d,]+x?)/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match) return match[1];
+    }
+    return undefined;
+  }
+
+  private extractFeatures(html: string, $: cheerio.CheerioAPI): string[] | undefined {
+    const features: string[] = [];
+    const keywords = [
+      'Free Spins', 'Bonus Round', 'Multipliers', 'Wilds', 'Scatters',
+      'Expanding Wilds', 'Sticky Wilds', 'Cascading Reels', 'Megaways',
+      'Jackpot', 'Gamble Feature', 'Buy Feature', 'Re-Spins', 'Tumbling Reels',
+      'Avalanche', 'Pick and Click', 'Bonus Game', 'Cluster Pays', 'Pay Anywhere'
+    ];
+
+    for (const keyword of keywords) {
+      const regex = new RegExp(keyword, 'i');
+      if (regex.test(html)) {
+        features.push(keyword);
+      }
+    }
+
+    // Try to extract more features from specific lists if they exist
+    $('.game-features li, .features-list li, .slot-features li').each((_, el) => {
+      const feature = $(el).text().trim();
+      if (feature && !features.includes(feature) && feature.length < 50) {
+        features.push(feature);
+      }
+    });
+
+    return features.length > 0 ? features : undefined;
+  }
+
+  private extractTheme(html: string, $: cheerio.CheerioAPI): string | undefined {
+    const patterns = [
+      /Theme[:\s]+([^<\n,]+)/i,
+      /Genre[:\s]+([^<\n,]+)/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match) return match[1].trim();
+    }
     return undefined;
   }
 
@@ -470,50 +690,96 @@ class GameCrawler {
 
     try {
       // Check if game already exists
-      const existingGame = await query(
-        'SELECT id FROM games WHERE name = $1 AND provider = $2',
+      const existingGameResult = await query(
+        'SELECT id, image_url, thumbnail, embed_url, description FROM games WHERE name = $1 AND provider = $2',
         [gameData.title, gameData.provider]
       );
 
-      if (existingGame.rows.length > 0) {
-        console.log(`[Crawler] Game already exists: ${gameData.title}`);
-        return { exists: true, id: existingGame.rows[0].id };
+      let savedGame;
+
+      if (existingGameResult.rows.length > 0) {
+        console.log(`[Crawler] Game already exists: ${gameData.title}. Updating missing details.`);
+        const existing = existingGameResult.rows[0];
+
+        // Update existing game if fields are missing
+        const updates = [];
+        const values = [];
+        let i = 1;
+
+        if (!existing.image_url && gameData.image_url) {
+          updates.push(`image_url = $${i++}`);
+          values.push(gameData.image_url);
+        }
+        if (!existing.thumbnail && gameData.thumbnail_url) {
+          updates.push(`thumbnail = $${i++}`);
+          values.push(gameData.thumbnail_url);
+        }
+        if (!existing.embed_url && gameData.embed_url) {
+          updates.push(`embed_url = $${i++}`);
+          values.push(gameData.embed_url);
+        }
+        if ((!existing.description || existing.description.length < 50) && gameData.description) {
+          updates.push(`description = $${i++}`);
+          values.push(gameData.description);
+        }
+
+        if (updates.length > 0) {
+          values.push(existing.id);
+          const updateSql = `UPDATE games SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${i} RETURNING *`;
+          const updateResult = await query(updateSql, values);
+          savedGame = updateResult.rows[0];
+        } else {
+          savedGame = existing;
+        }
+      } else {
+        // Insert new game
+        const slug = gameData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+        const result = await query(
+          `INSERT INTO games (name, slug, category, provider, rtp, volatility, description, image_url, thumbnail, embed_url, enabled)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
+           RETURNING *`,
+          [
+            gameData.title,
+            slug,
+            'Slots',
+            gameData.provider,
+            gameData.rtp,
+            gameData.volatility,
+            gameData.description,
+            gameData.image_url,
+            gameData.thumbnail_url,
+            gameData.embed_url
+          ]
+        );
+
+        savedGame = result.rows[0];
       }
-
-      // Insert new game
-      const slug = gameData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-
-      const result = await query(
-        `INSERT INTO games (name, slug, category, provider, rtp, volatility, description, image_url, enabled)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
-         RETURNING *`,
-        [gameData.title, slug, 'Slots', gameData.provider, gameData.rtp, gameData.volatility, gameData.description, gameData.image_url]
-      );
-
-      const savedGame = result.rows[0];
 
       // Store additional metadata in game_config
-      if (gameData.max_paylines) {
-        await query(
-          'INSERT INTO game_config (game_id, config_key, config_value) VALUES ($1, $2, $3)',
-          [savedGame.id, 'max_paylines', JSON.stringify(gameData.max_paylines)]
-        );
+      const configEntries = [
+        { key: 'max_paylines', value: gameData.max_paylines },
+        { key: 'reels', value: gameData.reels },
+        { key: 'rows', value: gameData.rows },
+        { key: 'min_bet', value: gameData.min_bet },
+        { key: 'max_bet', value: gameData.max_bet },
+        { key: 'max_win', value: gameData.max_win },
+        { key: 'release_date', value: gameData.release_date },
+        { key: 'features', value: gameData.features },
+        { key: 'theme', value: gameData.theme },
+        { key: 'crawl_source_url', value: gameData.source }
+      ];
+
+      for (const entry of configEntries) {
+        if (entry.value !== undefined) {
+          await query(
+            'INSERT INTO game_config (game_id, config_key, config_value) VALUES ($1, $2, $3) ON CONFLICT (game_id, config_key) DO UPDATE SET config_value = $3',
+            [savedGame.id, entry.key, JSON.stringify(entry.value)]
+          );
+        }
       }
 
-      if (gameData.release_date) {
-        await query(
-          'INSERT INTO game_config (game_id, config_key, config_value) VALUES ($1, $2, $3)',
-          [savedGame.id, 'release_date', JSON.stringify(gameData.release_date)]
-        );
-      }
-
-      // Store source URL
-      await query(
-        'INSERT INTO game_config (game_id, config_key, config_value) VALUES ($1, $2, $3)',
-        [savedGame.id, 'crawl_source_url', JSON.stringify(gameData.source)]
-      );
-
-      console.log(`[Crawler] Saved game: ${gameData.title} (ID: ${savedGame.id})`);
+      console.log(`[Crawler] Processed game: ${gameData.title} (ID: ${savedGame.id})`);
       return savedGame;
     } catch (error) {
       console.error(`[Crawler] Error saving game:`, (error as Error).message);
