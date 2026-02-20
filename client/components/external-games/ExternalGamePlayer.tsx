@@ -3,6 +3,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useWallet } from '@/hooks/use-wallet';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
