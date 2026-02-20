@@ -447,7 +447,9 @@ class GameCrawler {
                     $('iframe#game_frame').attr('src') ||
                     $('iframe.game-iframe').attr('src') ||
                     $('iframe[data-src*="demo"]').first().attr('data-src') ||
-                    $('iframe[data-url*="demo"]').first().attr('data-url');
+                    $('iframe[data-url*="demo"]').first().attr('data-url') ||
+                    $('iframe[data-embed-url]').first().attr('data-embed-url') ||
+                    $('iframe[data-iframe-url]').first().attr('data-iframe-url');
 
     // 2. If no matching iframe found, and there is exactly one iframe on the page, take it (excluding ads/social)
     if (!iframeSrc) {
@@ -498,15 +500,17 @@ class GameCrawler {
       'button[data-game-url]',
       'div[data-game-url]',
       'div[data-demo-url]',
+      'div[data-embed-url]',
       'a.play-demo',
       'a.demo-button',
-      'a.btn-play'
+      'a.btn-play',
+      '[data-game-launch-url]'
     ];
 
     let demoLink: string | undefined;
     for (const selector of demoSelectors) {
       const el = $(selector);
-      demoLink = el.attr('href') || el.attr('data-demo-url') || el.attr('data-game-url');
+      demoLink = el.attr('href') || el.attr('data-demo-url') || el.attr('data-game-url') || el.attr('data-embed-url') || el.attr('data-game-launch-url');
       if (demoLink && demoLink.length > 5 && !demoLink.startsWith('#') && !demoLink.startsWith('javascript:')) {
         break;
       }
@@ -1035,13 +1039,17 @@ class GameCrawler {
         { key: 'crawl_source_url', value: gameData.source }
       ];
 
-      for (const entry of configEntries) {
-        if (entry.value !== undefined) {
-          await query(
-            'INSERT INTO game_config (game_id, config_key, config_value) VALUES ($1, $2, $3) ON CONFLICT (game_id, config_key) DO UPDATE SET config_value = $3',
-            [savedGame.id, entry.key, JSON.stringify(entry.value)]
-          );
+      try {
+        for (const entry of configEntries) {
+          if (entry.value !== undefined) {
+            await query(
+              'INSERT INTO game_config (game_id, config_key, config_value) VALUES ($1, $2, $3) ON CONFLICT (game_id, config_key) DO UPDATE SET config_value = $3',
+              [savedGame.id, entry.key, JSON.stringify(entry.value)]
+            );
+          }
         }
+      } catch (configError) {
+        console.warn(`[Crawler] Failed to save some game config for ${gameData.title}:`, (configError as Error).message);
       }
 
       console.log(`[Crawler] Processed game: ${gameData.title} (ID: ${savedGame.id})`);

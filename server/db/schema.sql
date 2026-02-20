@@ -570,8 +570,15 @@ CREATE TABLE IF NOT EXISTS game_providers (
 
 CREATE TABLE IF NOT EXISTS game_compliance (
     id SERIAL PRIMARY KEY,
-    game_id INTEGER REFERENCES games(id) ON DELETE CASCADE,
+    game_id INTEGER UNIQUE REFERENCES games(id) ON DELETE CASCADE,
     jurisdiction VARCHAR(100),
     is_compliant BOOLEAN DEFAULT TRUE,
+    is_external BOOLEAN DEFAULT TRUE,
+    is_sweepstake BOOLEAN DEFAULT TRUE,
+    is_social_casino BOOLEAN DEFAULT TRUE,
+    currency VARCHAR(10) DEFAULT 'SC',
+    max_win_amount DECIMAL(15, 2) DEFAULT 20.00,
+    min_bet DECIMAL(15, 2) DEFAULT 0.01,
+    max_bet DECIMAL(15, 2) DEFAULT 5.00,
     last_checked TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

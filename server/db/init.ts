@@ -151,6 +151,35 @@ export const initializeDatabase = async () => {
       console.log('[DB] Schema check for games.updated_at:', err.message?.substring(0, 100));
     }
 
+    // Ensure game_compliance has required columns for crawler
+    try {
+      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS is_external BOOLEAN DEFAULT TRUE`);
+      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS is_sweepstake BOOLEAN DEFAULT TRUE`);
+      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS is_social_casino BOOLEAN DEFAULT TRUE`);
+      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'SC'`);
+      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS max_win_amount DECIMAL(15, 2) DEFAULT 20.00`);
+      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS min_bet DECIMAL(15, 2) DEFAULT 0.01`);
+      await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS max_bet DECIMAL(15, 2) DEFAULT 5.00`);
+
+      // Add UNIQUE constraint to game_id if not present
+      try {
+        await query(`ALTER TABLE game_compliance ADD CONSTRAINT game_compliance_game_id_key UNIQUE (game_id)`);
+      } catch (uniqueErr: any) {
+        // Ignore if constraint already exists
+      }
+
+      console.log('[DB] Verified game_compliance table schema for crawler');
+    } catch (err: any) {
+      console.log('[DB] game_compliance schema update:', err.message?.substring(0, 100));
+    }
+
+    // Ensure game_config has UNIQUE constraint
+    try {
+      await query(`ALTER TABLE game_config ADD CONSTRAINT game_config_game_id_config_key_key UNIQUE (game_id, config_key)`);
+    } catch (uniqueErr: any) {
+      // Ignore if constraint already exists
+    }
+
     // Add bonus_sc column to store_packs table if it doesn't exist
     try {
       await query(`ALTER TABLE store_packs ADD COLUMN IF NOT EXISTS bonus_sc DECIMAL(15, 2) DEFAULT 0`);
