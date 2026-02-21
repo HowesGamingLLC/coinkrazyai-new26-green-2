@@ -33,10 +33,11 @@ const Index = () => {
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [isLoadingGames, setIsLoadingGames] = useState(false);
   const [platformStats, setPlatformStats] = useState({
-    activePlayers: '4,521',
-    jackpotTotal: '52,140 SC',
-    gamesLive: '0',
-    aiStatus: 'Optimized'
+    activePlayers: '...',
+    jackpotTotal: '...',
+    gamesLive: '...',
+    aiStatus: '...',
+    totalPlayers: 0
   });
 
   // Fetch featured games and stats from backend
@@ -54,7 +55,8 @@ const Index = () => {
           activePlayers: result.data.activePlayers.toLocaleString(),
           jackpotTotal: `${result.data.jackpotTotal.toLocaleString()} SC`,
           gamesLive: result.data.gamesLive.toString(),
-          aiStatus: result.data.aiStatus
+          aiStatus: result.data.aiStatus,
+          totalPlayers: result.data.totalPlayers
         });
       }
     } catch (error) {
@@ -143,11 +145,11 @@ const Index = () => {
                   </div>
                 ))}
                 <div className="w-10 h-10 rounded-full border-2 border-slate-950 bg-yellow-500 flex items-center justify-center text-slate-950 font-black text-xs">
-                  +4k
+                  +{platformStats.totalPlayers > 1000 ? `${Math.floor(platformStats.totalPlayers / 1000)}k` : platformStats.totalPlayers}
                 </div>
               </div>
               <div className="text-xs font-black uppercase text-slate-500 tracking-widest">
-                Trusted by 45,000+ Players
+                Trusted by {platformStats.totalPlayers > 1000 ? `${(platformStats.totalPlayers / 1000).toFixed(1)}k+` : platformStats.totalPlayers} Players
               </div>
             </div>
           </div>

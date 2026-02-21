@@ -556,7 +556,7 @@ const seedDatabase = async () => {
         ['3 Blades & Blessings', 'Slots', 'External', 96.2, 'High', 'Mythological adventure with ancient gods and sacred treasures', true, 'https://clashofslots.com/wp-content/uploads/2026/01/3-blades-blessings-logo.jpg', '3-blades', 'https://released.playngonetwork.com/casino/ContainerLauncher?pid=2&gid=3bladesandblessings&lang=en_GB&practice=1&channel=desktop&demo=2'],
         ['Arcanum', 'Slots', 'External', 96.3, 'Medium', 'Mystical magical experience with arcane symbols', true, 'https://clashofslots.com/wp-content/uploads/2025/11/arcanum-logo.jpg', 'arcanum', 'https://static-stage.contentmedia.eu/ecf3/index.html?gameid=10256&operatorid=44&currency=EUR&mode=demo&device=desktop&gamename=arcanum&language=en_gb&xdm=1&capi=https%3A%2F%2Fgc5-stage.contentmedia.eu%2Fcapi&papi=https%3A%2F%2Fpapi-stage.contentmedia.eu'],
         ['Dragon Boyz', 'Slots', 'External', 96.1, 'High', 'Roaring action with dragons and fiery wins', true, 'https://clashofslots.com/wp-content/uploads/2025/12/dragon-boyz-logo.jpg', 'dragon-boyz', 'https://playin.com/embed/v1/demo/dragonboyz000000'],
-        ['Big Joker', 'Slots', 'External', 95.8, 'Medium', 'Classic fruit-themed slot with a big joker surprise!', true, 'https://via.placeholder.com/300x300?text=Big+Joker', 'big-joker', 'https://free-slots.games/game/BigJokerCT/']
+        ['Big Joker', 'Slots', 'External', 95.8, 'Medium', 'Classic fruit-themed slot with a big joker surprise!', true, 'https://images.pexels.com/photos/2838511/pexels-photo-2838511.jpeg', 'big-joker', 'https://free-slots.games/game/BigJokerCT/']
       ];
 
       for (const game of starterGames) {

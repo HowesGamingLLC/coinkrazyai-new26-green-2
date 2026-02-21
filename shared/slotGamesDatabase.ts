@@ -23,6 +23,7 @@ export interface SlotGameData {
   release_date?: string;
   enabled: boolean;
   game_type: 'video' | 'classic' | 'progressive';
+  is_demo?: boolean;
 }
 
 /**
