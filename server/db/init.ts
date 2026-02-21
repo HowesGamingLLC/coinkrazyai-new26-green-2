@@ -264,6 +264,14 @@ const seedDatabase = async () => {
       console.log('[DB] Welcome bonus update:', err.message?.substring(0, 100));
     }
 
+    // Add notification_settings column to players table if it doesn't exist
+    try {
+      await query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS notification_settings JSONB DEFAULT '{"email": true, "push": true, "sms": false, "promotions": true, "security": true}'`);
+      console.log('[DB] Verified notification_settings column in players');
+    } catch (err: any) {
+      console.log('[DB] Schema check for players.notification_settings:', err.message?.substring(0, 100));
+    }
+
     // Always ensure admin user exists
     console.log('[DB] Ensuring admin user exists...');
     const adminEmail = process.env.ADMIN_EMAIL || 'coinkrazy26@gmail.com';

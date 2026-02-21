@@ -25,7 +25,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isChallengesOpen, setIsChallengesOpen] = React.useState(false);
-  const [unreadMessages, setUnreadMessages] = React.useState(3); // Mock unread count
+  const [unreadMessages, setUnreadMessages] = React.useState(0);
+  const [aiEmployees, setAiEmployees] = React.useState<any[]>([]);
 
   // Auto-open challenges popup on login
   React.useEffect(() => {
@@ -36,6 +37,47 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       }, 1500);
       return () => clearTimeout(timer);
     }
+  }, [isAuthenticated]);
+
+  // Fetch AI Status and Unread Messages
+  React.useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const response = await fetch('/api/ai/status');
+        const data = await response.json();
+        if (data.success) {
+          setAiEmployees(data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch AI status:', err);
+      }
+    };
+
+    const fetchUnread = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const response = await fetch('/api/messages/unread', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          }
+        });
+        const data = await response.json();
+        // The API returns the array directly
+        setUnreadMessages(Array.isArray(data) ? data.length : 0);
+      } catch (err) {
+        console.error('Failed to fetch unread messages:', err);
+      }
+    };
+
+    fetchStatus();
+    if (isAuthenticated) fetchUnread();
+
+    const interval = setInterval(() => {
+      fetchStatus();
+      if (isAuthenticated) fetchUnread();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [isAuthenticated]);
 
   const mainNav = [
@@ -144,9 +186,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
                   {/* Quick Notifications/Messages */}
                   <div className="hidden md:flex gap-2">
-                    <Button variant="ghost" size="icon" className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white relative">
-                      <Bell className="w-5 h-5" />
-                      <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 border-2 border-slate-950 rounded-full" />
+                    <Button asChild variant="ghost" size="icon" className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white relative">
+                      <Link to="/support">
+                        <Bell className="w-5 h-5" />
+                        {unreadMessages > 0 && (
+                          <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 border-2 border-slate-950 rounded-full flex items-center justify-center text-[8px] font-black text-white">
+                            {unreadMessages}
+                          </span>
+                        )}
+                      </Link>
                     </Button>
                     <Button variant="ghost" size="icon" className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white relative" onClick={() => navigate('/profile')}>
                       <MessageSquare className="w-5 h-5" />
@@ -348,31 +396,57 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
               </div>
 
-              {/* AI Status */}
+                  {/* AI Status */}
               <div className="pt-4 border-t border-white/5">
                 <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] mb-6 pl-3">AI CORE STATUS</p>
                 <div className="space-y-4 px-3">
-                  <div className="flex items-center justify-between">
-                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                        <span className="text-xs font-black uppercase text-slate-400 tracking-wider">LuckyAI</span>
-                     </div>
-                     <Badge variant="outline" className="text-[8px] border-green-500/30 text-green-500 font-black">ONLINE</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                        <span className="text-xs font-black uppercase text-slate-400 tracking-wider">SecurityAI</span>
-                     </div>
-                     <Badge variant="outline" className="text-[8px] border-blue-500/30 text-blue-500 font-black">ACTIVE</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-                        <span className="text-xs font-black uppercase text-slate-400 tracking-wider">SlotsAI</span>
-                     </div>
-                     <Badge variant="outline" className="text-[8px] border-purple-500/30 text-purple-500 font-black">TUNING</Badge>
-                  </div>
+                  {aiEmployees.length > 0 ? (
+                    aiEmployees.map((ai) => (
+                      <div key={ai.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={cn(
+                            "w-2 h-2 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]",
+                            ai.status === 'active' ? "bg-green-500 shadow-green-500/50" :
+                            ai.status === 'maintenance' ? "bg-purple-500 shadow-purple-500/50" :
+                            "bg-blue-500 shadow-blue-500/50"
+                          )} />
+                          <span className="text-xs font-black uppercase text-slate-400 tracking-wider">{ai.name}</span>
+                        </div>
+                        <Badge variant="outline" className={cn(
+                          "text-[8px] font-black",
+                          ai.status === 'active' ? "border-green-500/30 text-green-500" :
+                          ai.status === 'maintenance' ? "border-purple-500/30 text-purple-500" :
+                          "border-blue-500/30 text-blue-500"
+                        )}>
+                          {ai.status?.toUpperCase() || 'ONLINE'}
+                        </Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                            <span className="text-xs font-black uppercase text-slate-400 tracking-wider">LuckyAI</span>
+                        </div>
+                        <Badge variant="outline" className="text-[8px] border-green-500/30 text-green-500 font-black">ONLINE</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                            <span className="text-xs font-black uppercase text-slate-400 tracking-wider">SecurityAI</span>
+                        </div>
+                        <Badge variant="outline" className="text-[8px] border-blue-500/30 text-blue-500 font-black">ACTIVE</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+                            <span className="text-xs font-black uppercase text-slate-400 tracking-wider">SlotsAI</span>
+                        </div>
+                        <Badge variant="outline" className="text-[8px] border-purple-500/30 text-purple-500 font-black">TUNING</Badge>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </nav>

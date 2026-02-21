@@ -278,7 +278,8 @@ export class AuthService {
         total_wagered: wagered,
         total_won: parseFloat(player.total_won || 0),
         games_played: parseInt(player.games_played || 0),
-        vip_tier: vipTier
+        vip_tier: vipTier,
+        notification_settings: player.notification_settings
       };
     } catch (error) {
       throw error;
@@ -292,20 +293,17 @@ export class AuthService {
       const values: any[] = [];
       let paramIndex = 1;
 
-      if (updates.name) {
-        updateFields.push(`name = $${paramIndex++}`);
-        values.push(updates.name);
-      }
-
-      if (updates.email) {
-        updateFields.push(`email = $${paramIndex++}`);
-        values.push(updates.email);
-      }
-
-      if (updates.password) {
-        const hash = await this.hashPassword(updates.password);
-        updateFields.push(`password_hash = $${paramIndex++}`);
-        values.push(hash);
+      for (const [key, value] of Object.entries(updates)) {
+        if (['name', 'email', 'password', 'notification_settings'].includes(key)) {
+          if (key === 'password') {
+            const hash = await this.hashPassword(value as string);
+            updateFields.push(`password_hash = $${paramIndex++}`);
+            values.push(hash);
+          } else {
+            updateFields.push(`${key} = $${paramIndex++}`);
+            values.push(value);
+          }
+        }
       }
 
       if (updateFields.length === 0) {

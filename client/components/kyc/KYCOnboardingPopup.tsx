@@ -108,22 +108,50 @@ export const KYCOnboardingPopup: React.FC<KYCOnboardingPopupProps> = ({
 
   const handleFileUpload = async (field: string) => {
     try {
-      setIsUploading(true);
-      updateLuckyAiMessage('Uploading your document... I\'m making sure it\'s securely encrypted!');
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*,application/pdf';
 
-      // Simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
 
-      const mockUrl = `https://coinkrazy-docs.s3.amazonaws.com/kyc/${Date.now()}_doc.jpg`;
-      setUploadedFiles(prev => ({ ...prev, [field]: mockUrl }));
-      setFormData(prev => ({ ...prev, [field]: mockUrl }));
+        setIsUploading(true);
+        updateLuckyAiMessage('Uploading your document... I\'m making sure it\'s securely encrypted!');
 
-      toast.success('Document uploaded successfully!');
-      updateLuckyAiMessage('Got it! That looks clear. Let\'s continue.');
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('documentType', field === 'id_photo' ? 'Government ID' : 'Proof of Address');
+
+        try {
+          const response = await fetch('/api/kyc/upload', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            },
+            body: formData
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            setUploadedFiles(prev => ({ ...prev, [field]: data.url }));
+            setFormData(prev => ({ ...prev, [field]: data.url }));
+            toast.success('Document uploaded successfully!');
+            updateLuckyAiMessage('Got it! That looks clear. Let\'s continue.');
+          } else {
+            toast.error(data.error || 'Upload failed');
+          }
+        } catch (error) {
+          toast.error('Upload failed. Please try again.');
+        } finally {
+          setIsUploading(false);
+        }
+      };
+
+      input.click();
     } catch (error) {
-      toast.error('Upload failed. Please try again.');
-    } finally {
-      setIsUploading(false);
+      toast.error('Could not open file picker');
     }
   };
 

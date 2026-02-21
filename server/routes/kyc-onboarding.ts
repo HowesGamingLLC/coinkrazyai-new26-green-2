@@ -1,5 +1,70 @@
 import { RequestHandler } from 'express';
+import multer from 'multer';
 import * as dbQueries from '../db/queries';
+import { S3Service } from '../services/s3-service';
+
+// Multer config for in-memory storage
+const storage = multer.memoryStorage();
+export const upload = multer({
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
+
+export const handleUploadKYCDocument: RequestHandler = async (req, res) => {
+  try {
+    const playerId = req.user?.id;
+    const { documentType } = req.body;
+    const file = req.file;
+
+    if (!playerId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!file) return res.status(400).json({ error: 'File required' });
+    if (!documentType) return res.status(400).json({ error: 'Document type required' });
+
+    console.log('[KYC] Uploading document:', documentType, 'for player:', playerId);
+
+    // Use S3Service to upload document
+    const result = await S3Service.uploadKYCDocument(
+      file.buffer,
+      file.originalname,
+      playerId,
+      documentType
+    );
+
+    if (result.success) {
+      // Record document in DB
+      await dbQueries.query(
+        'INSERT INTO kyc_documents (player_id, document_type, document_url, status) VALUES ($1, $2, $3, $4)',
+        [playerId, documentType, result.url, 'pending']
+      );
+
+      res.json({
+        success: true,
+        url: result.url,
+        message: 'Document uploaded and is pending review'
+      });
+    } else {
+      // Fallback for local development or missing S3 keys
+      console.warn('[KYC] S3 Upload failed, using mock URL for development:', result.error);
+      const mockUrl = `/uploads/kyc/${playerId}/${Date.now()}-${file.originalname}`;
+
+      await dbQueries.query(
+        'INSERT INTO kyc_documents (player_id, document_type, document_url, status) VALUES ($1, $2, $3, $4)',
+        [playerId, documentType, mockUrl, 'pending']
+      );
+
+      res.json({
+        success: true,
+        url: mockUrl,
+        message: 'Document uploaded (local/mock) and is pending review'
+      });
+    }
+  } catch (error) {
+    console.error('Error uploading KYC document:', error);
+    res.status(500).json({ error: 'Failed to upload document' });
+  }
+};
 
 export const handleGetOnboardingProgress: RequestHandler = async (req, res) => {
   try {

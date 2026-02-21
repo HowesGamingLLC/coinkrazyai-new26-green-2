@@ -364,7 +364,9 @@ import {
   handleUpdateOnboardingStep,
   handleCompleteOnboarding,
   handleSkipOnboarding,
-  handleGetOnboardingSteps
+  handleGetOnboardingSteps,
+  handleUploadKYCDocument,
+  upload as kycUpload
 } from "./routes/kyc-onboarding";
 import {
   handleRecordSale,
@@ -401,7 +403,7 @@ import {
   getTicketDetails,
   addTicketMessage
 } from "./routes/support";
-import { handleAIChat } from "./routes/ai";
+import { handleAIChat, handleGetAIStatus } from "./routes/ai";
 
 export function createServer() {
   const app = express();
@@ -874,6 +876,7 @@ export function createServer() {
   // KYC Onboarding
   app.get("/api/kyc/progress", verifyPlayer, handleGetOnboardingProgress);
   app.post("/api/kyc/progress", verifyPlayer, handleUpdateOnboardingStep);
+  app.post("/api/kyc/upload", verifyPlayer, kycUpload.single('file'), handleUploadKYCDocument);
   app.post("/api/kyc/complete", verifyPlayer, handleCompleteOnboarding);
   app.post("/api/kyc/skip", verifyPlayer, handleSkipOnboarding);
   app.get("/api/kyc/steps", handleGetOnboardingSteps);
@@ -920,6 +923,7 @@ export function createServer() {
 
   // AI Chat
   app.post("/api/ai/chat", verifyPlayer, handleAIChat);
+  app.get("/api/ai/status", handleGetAIStatus);
 
   // ===== DEBUG ROUTES =====
   app.get("/api/debug/store-packs", async (_req, res) => {
