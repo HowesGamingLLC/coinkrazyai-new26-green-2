@@ -69,11 +69,11 @@ export const getRecentWinners: RequestHandler = async (req, res) => {
       .slice(0, 10)
       .map((w, i) => ({
         id: i + 1,
-        username: w.username,
-        amount: `${Number(w.amount).toFixed(2)} ${w.currency}`,
-        game: w.game,
-        time: formatTimeAgo(new Date(w.created_at)),
-        avatar: (w.username.charCodeAt(0) % 20).toString()
+        username: w.username || 'Anonymous',
+        amount: `${Number(w.amount || 0).toFixed(2)} ${w.currency || 'SC'}`,
+        game: w.game || 'Unknown Game',
+        time: formatTimeAgo(new Date(w.created_at || new Date())),
+        avatar: ((w.username || 'A').charCodeAt(0) % 20).toString()
       }));
 
     // Fallback if no real wins yet

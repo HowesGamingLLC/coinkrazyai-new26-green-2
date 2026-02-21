@@ -21,6 +21,9 @@ export const RecentWinners = () => {
     const fetchWinners = async () => {
       try {
         const response = await fetch('/api/platform/winners');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const result = await response.json();
         if (result.success && result.data) {
           setWinners(result.data);

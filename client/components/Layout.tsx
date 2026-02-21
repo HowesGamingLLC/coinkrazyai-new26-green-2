@@ -44,6 +44,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const fetchStatus = async () => {
       try {
         const response = await fetch('/api/ai/status');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         if (data.success) {
           setAiEmployees(data.data);
@@ -61,6 +64,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
           }
         });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         // The API returns the array directly
         setUnreadMessages(Array.isArray(data) ? data.length : 0);

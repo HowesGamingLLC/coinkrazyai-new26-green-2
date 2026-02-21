@@ -49,14 +49,17 @@ const Index = () => {
   const fetchPlatformStats = async () => {
     try {
       const response = await fetch('/api/platform/stats');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const result = await response.json();
       if (result.success && result.data) {
         setPlatformStats({
           activePlayers: result.data.activePlayers.toLocaleString(),
-          jackpotTotal: `${result.data.jackpotTotal.toLocaleString()} SC`,
-          gamesLive: result.data.gamesLive.toString(),
-          aiStatus: result.data.aiStatus,
-          totalPlayers: result.data.totalPlayers
+          jackpotTotal: `${(result.data.jackpotTotal || 0).toLocaleString()} SC`,
+          gamesLive: (result.data.gamesLive || 0).toString(),
+          aiStatus: result.data.aiStatus || 'Optimal',
+          totalPlayers: result.data.totalPlayers || 0
         });
       }
     } catch (error) {

@@ -47,7 +47,7 @@ const Admin = () => {
       {/* Header */}
       <div className="border-b pb-6">
         <h1 className="text-4xl font-black tracking-tight mb-2">ADMIN DASHBOARD</h1>
-        <p className="text-muted-foreground">Manage the CoinKrazy AI2 platform</p>
+        <p className="text-muted-foreground">Manage the CoinKrazy AI platform</p>
       </div>
 
       {/* Main Tabs Navigation */}

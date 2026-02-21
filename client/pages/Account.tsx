@@ -208,13 +208,13 @@ const Account = () => {
             <CardTitle>Quick Settings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button variant="outline" className="w-full justify-start">
+            <Button variant="outline" className="w-full justify-start" onClick={() => toast.info('Two-Factor Authentication is coming soon!')}>
               Two-Factor Auth
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            <Button variant="outline" className="w-full justify-start" onClick={() => toast.info('Notification Settings are coming soon!')}>
               Notification Settings
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            <Button variant="outline" className="w-full justify-start" onClick={() => toast.info('Privacy Settings are coming soon!')}>
               Privacy Settings
             </Button>
           </CardContent>
