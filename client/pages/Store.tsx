@@ -32,6 +32,7 @@ const Store = () => {
   const [sortBy, setSortBy] = useState<'price' | 'value' | 'popular'>('popular');
   const [filterByPrice, setFilterByPrice] = useState<'all' | 'under50' | 'under100' | 'over100'>('all');
   const [googlePayReady, setGooglePayReady] = useState(false);
+  const [storeConfig, setStoreConfig] = useState<any>(null);
   const googlePayButtonRef = useRef<HTMLDivElement>(null);
 
   // Receipt State
@@ -115,14 +116,20 @@ const Store = () => {
 
     const fetchData = async () => {
       try {
-        console.log('[Store] Fetching packs...');
-        const [packsRes, methodsRes] = await Promise.all([
+        console.log('[Store] Fetching packs and config...');
+        const [packsRes, methodsRes, configRes] = await Promise.all([
           store.getPacks(),
-          store.getPaymentMethods()
+          store.getPaymentMethods(),
+          apiCall<{ success: boolean; data: any }>('/store/config')
         ]);
         console.log('[Store] Packs response:', packsRes);
         console.log('[Store] Setting packs:', packsRes.data);
         setPacks(packsRes.data || []);
+
+        if (configRes.success) {
+          setStoreConfig(configRes.data);
+        }
+
         const methodsData = methodsRes.data || [];
         const activeMethods = Array.isArray(methodsData) ? methodsData.filter((m: any) => m.is_active) : [];
         setPaymentMethods(activeMethods);
@@ -215,14 +222,14 @@ const Store = () => {
               type: 'PAYMENT_GATEWAY',
               parameters: {
                 gateway: 'stripe',
-                'stripe:publishableKey': 'pk_live_placeholder',
+                'stripe:publishableKey': storeConfig?.stripePublicKey || 'pk_live_placeholder',
                 'stripe:version': '2020-08-27'
               }
             }
           }
         ],
         merchantInfo: {
-          merchantId: GOOGLE_PAY_MERCHANT_ID,
+          merchantId: storeConfig?.googlePayMerchantId || GOOGLE_PAY_MERCHANT_ID,
           merchantName: 'CoinKrazy'
         },
         transactionInfo: {

@@ -55,6 +55,7 @@ import {
   handleDeletePack,
   handleStripeWebhook as handleStoreWebhook
 } from "./routes/store";
+import { getStoreConfig } from "./routes/store-config";
 import {
   handleGetAdminStats,
   handleUpdateGameConfig,
@@ -394,6 +395,12 @@ import {
 
 import { getChallenges, claimChallengeReward } from "./routes/challenges";
 import { getPlatformStats, getRecentWinners } from "./routes/platform";
+import {
+  listPlayerTickets,
+  createPlayerTicket,
+  getTicketDetails,
+  addTicketMessage
+} from "./routes/support";
 import { handleAIChat } from "./routes/ai";
 
 export function createServer() {
@@ -450,6 +457,7 @@ export function createServer() {
 
   // ===== STORE ROUTES =====
   app.get("/api/store/packs", handleGetPacks);
+  app.get("/api/store/config", getStoreConfig);
   app.get("/api/store/payment-methods", getPaymentMethods);
   app.post("/api/store/purchase", verifyPlayer, handlePurchase);
   app.post("/api/store/webhook", handleStoreWebhook);
@@ -903,6 +911,12 @@ export function createServer() {
   // Platform Stats (Public)
   app.get("/api/platform/stats", getPlatformStats);
   app.get("/api/platform/winners", getRecentWinners);
+
+  // Support & Tickets (Player Facing)
+  app.get("/api/support/tickets", verifyPlayer, listPlayerTickets);
+  app.post("/api/support/tickets", verifyPlayer, createPlayerTicket);
+  app.get("/api/support/tickets/:ticketId", verifyPlayer, getTicketDetails);
+  app.post("/api/support/tickets/:ticketId/messages", verifyPlayer, addTicketMessage);
 
   // AI Chat
   app.post("/api/ai/chat", verifyPlayer, handleAIChat);

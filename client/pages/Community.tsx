@@ -20,10 +20,23 @@ const Community = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [onlineCount, setOnlineCount] = useState<number>(4521);
 
   useEffect(() => {
     fetchThreads();
+    fetchPlatformStats();
   }, []);
+
+  const fetchPlatformStats = async () => {
+    try {
+      const response = await apiCall<{ success: boolean; data: any }>('/platform/stats');
+      if (response.success && response.data.activePlayers) {
+        setOnlineCount(response.data.activePlayers);
+      }
+    } catch (error) {
+      console.error('Failed to fetch platform stats:', error);
+    }
+  };
 
   const fetchThreads = async () => {
     try {
@@ -94,7 +107,7 @@ const Community = () => {
         </div>
         <div className="flex items-center gap-2">
            <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 font-black uppercase italic">
-             Online Players: 4,521
+             Online Players: {onlineCount.toLocaleString()}
            </Badge>
         </div>
       </div>
