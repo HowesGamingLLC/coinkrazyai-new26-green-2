@@ -1,25 +1,29 @@
 import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Facebook, Twitter, Mail, Copy, Check, X } from 'lucide-react';
+import { Facebook, Twitter, Mail, Copy, Check, X, Share2, Sparkles, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { apiCall } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface SocialSharePopupProps {
+  isOpen: boolean;
   winAmount: number;
   gameName: string;
   gameId?: number;
-  onShare?: (platform: string, message: string) => Promise<void>;
   onClose: () => void;
+  onShare?: (platform: string, message: string) => Promise<void>;
 }
 
 export const SocialSharePopup: React.FC<SocialSharePopupProps> = ({
+  isOpen,
   winAmount,
   gameName,
   gameId,
-  onShare,
   onClose,
+  onShare,
 }) => {
   const [copied, setCopied] = useState(false);
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
 
   const shareMessage = `🎉 I just won ${winAmount} SC playing ${gameName} on CoinKrazy Social Casino! 🎰 Join me and win big! 💰 https://coinkrazy.io/?ref=social`;
@@ -28,19 +32,19 @@ export const SocialSharePopup: React.FC<SocialSharePopupProps> = ({
     {
       name: 'Facebook',
       icon: Facebook,
-      color: 'bg-blue-600 hover:bg-blue-700',
+      color: 'bg-[#1877F2] hover:bg-[#1877F2]/90',
       url: `https://www.facebook.com/sharer/sharer.php?u=https://coinkrazy.io&quote=${encodeURIComponent(shareMessage)}`
     },
     {
       name: 'Twitter',
       icon: Twitter,
-      color: 'bg-sky-500 hover:bg-sky-600',
+      color: 'bg-[#1DA1F2] hover:bg-[#1DA1F2]/90',
       url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMessage)}`
     },
     {
       name: 'Email',
       icon: Mail,
-      color: 'bg-red-500 hover:bg-red-600',
+      color: 'bg-[#EA4335] hover:bg-[#EA4335]/90',
       url: `mailto:?subject=Check out CoinKrazy!&body=${encodeURIComponent(shareMessage)}`
     }
   ];
@@ -48,21 +52,33 @@ export const SocialSharePopup: React.FC<SocialSharePopupProps> = ({
   const handleCopyMessage = () => {
     navigator.clipboard.writeText(shareMessage);
     setCopied(true);
+    toast.success('Share message copied!');
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShare = async (platform: string, url: string) => {
-    setSelectedPlatform(platform);
     setIsSharing(true);
 
     try {
-      // Record the share
+      // Record the share via API
+      await apiCall('/social/share', {
+        method: 'POST',
+        body: JSON.stringify({
+          platform,
+          message: shareMessage,
+          winAmount,
+          gameName,
+          gameId
+        })
+      });
+
       if (onShare) {
         await onShare(platform, shareMessage);
       }
 
       // Open share URL
       window.open(url, '_blank', 'width=600,height=400');
+      toast.success(`Shared to ${platform}!`);
     } catch (error) {
       console.error('Share failed:', error);
     } finally {
@@ -71,31 +87,45 @@ export const SocialSharePopup: React.FC<SocialSharePopupProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-background border-2 border-primary rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-primary mb-1">You Won!</h2>
-            <p className="text-3xl font-black text-primary">{winAmount} SC</p>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md border-4 border-primary/30 bg-gradient-to-br from-slate-900 to-slate-950 text-white shadow-2xl">
+        <DialogHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="relative">
+              <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center border-2 border-primary/50 animate-pulse">
+                <Trophy className="w-10 h-10 text-primary" />
+              </div>
+              <Sparkles className="w-6 h-6 text-yellow-400 absolute -top-2 -right-2 animate-bounce" />
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+          <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-white">
+            SHARE THE GLORY!
+          </DialogTitle>
+          <DialogDescription className="text-slate-400 font-bold uppercase text-xs tracking-widest mt-2">
+            Show off your <span className="text-primary">{winAmount} SC</span> win at {gameName}!
+          </DialogDescription>
+        </DialogHeader>
 
-        {/* Share Message Preview */}
-        <div className="bg-muted p-4 rounded-lg mb-6 border border-border">
-          <p className="text-sm font-semibold text-muted-foreground mb-2">Your Share Message:</p>
-          <p className="text-sm text-foreground leading-relaxed">{shareMessage}</p>
-        </div>
+        <div className="space-y-6 mt-4">
+          {/* Share Message Preview */}
+          <div className="bg-slate-900 border-2 border-white/5 rounded-2xl p-4 relative group">
+            <div className="absolute -top-3 left-4 bg-slate-900 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest border border-white/5 rounded">
+              Your Victory Message
+            </div>
+            <p className="text-sm font-medium leading-relaxed italic text-slate-300 pt-2">
+              "{shareMessage}"
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopyMessage}
+              className="absolute top-2 right-2 h-8 w-8 p-0 text-slate-500 hover:text-white hover:bg-white/5"
+            >
+              {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+            </Button>
+          </div>
 
-        {/* Social Platforms */}
-        <div className="space-y-3 mb-6">
-          <p className="text-sm font-semibold text-muted-foreground">Share your win:</p>
+          {/* Social Platforms */}
           <div className="grid grid-cols-3 gap-3">
             {platforms.map((platform) => {
               const Icon = platform.icon;
@@ -105,63 +135,44 @@ export const SocialSharePopup: React.FC<SocialSharePopupProps> = ({
                   onClick={() => handleShare(platform.name, platform.url)}
                   disabled={isSharing}
                   className={cn(
-                    'flex flex-col items-center gap-2 p-3 rounded-lg transition-all',
+                    'flex flex-col items-center gap-2 p-4 rounded-2xl transition-all duration-300 border border-transparent',
                     platform.color,
-                    'text-white font-semibold text-sm',
+                    'text-white font-black italic uppercase text-[10px] tracking-tight shadow-xl',
+                    'hover:scale-105 active:scale-95',
                     isSharing && 'opacity-50 cursor-not-allowed'
                   )}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-6 h-6" />
                   <span>{platform.name}</span>
                 </button>
               );
             })}
           </div>
-        </div>
 
-        {/* Copy to Clipboard */}
-        <div className="mb-6">
-          <Button
-            variant="outline"
-            className="w-full flex items-center justify-center gap-2"
-            onClick={handleCopyMessage}
-          >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                Copy Message
-              </>
-            )}
-          </Button>
-        </div>
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="ghost"
+              className="flex-1 rounded-xl font-black italic uppercase text-xs text-slate-500 hover:text-white hover:bg-white/5 border border-white/5"
+              onClick={onClose}
+            >
+              Maybe Later
+            </Button>
+            <Button
+              className="flex-1 bg-primary hover:bg-primary/90 text-white font-black italic uppercase text-xs rounded-xl shadow-xl shadow-primary/20 h-12"
+              onClick={onClose}
+            >
+              Continue Winning
+            </Button>
+          </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={onClose}
-          >
-            Maybe Later
-          </Button>
-          <Button
-            className="flex-1 bg-primary hover:bg-primary/90"
-            onClick={onClose}
-          >
-            Continue Playing
-          </Button>
+          {/* Footer Info */}
+          <div className="flex items-center justify-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest italic pt-2">
+            <Share2 className="w-3 h-3" />
+            <span>Sharing boosts your LuckyAI Score!</span>
+          </div>
         </div>
-
-        {/* Info Text */}
-        <p className="text-xs text-muted-foreground text-center mt-4">
-          Share your wins to unlock exclusive rewards and bonuses!
-        </p>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };

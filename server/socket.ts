@@ -81,3 +81,9 @@ export function emitGameUpdate(gameType: string, data: any) {
     io.emit(`${gameType}:update`, data);
   }
 }
+
+export function emitAdminNotification(notification: any) {
+  if (io) {
+    io.emit('admin:notification', notification);
+  }
+}

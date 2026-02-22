@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Users, Copy, Share2, Gift, TrendingUp, Loader2, Link as LinkIcon } from 'lucide-react';
+import { Users, Copy, Share2, Gift, TrendingUp, Loader2, Link as LinkIcon, Trophy } from 'lucide-react';
 import { referrals as referralsApi } from '@/lib/api';
+import { ReferralLeaderboard } from '@/components/profile/ReferralLeaderboard';
 
 const Referrals = () => {
   const [referralLink, setReferralLink] = useState('');
@@ -155,7 +156,7 @@ const Referrals = () => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-6">
           <h2 className="text-2xl font-black italic uppercase">How it works</h2>
           <div className="space-y-4">
@@ -177,43 +178,45 @@ const Referrals = () => {
           </div>
         </div>
 
-        <div className="space-y-6">
-          <h2 className="text-2xl font-black italic uppercase text-slate-400">Recent Referrals</h2>
-          <Card className="border-border/50">
-            <CardContent className="p-0">
-               <div className="divide-y divide-border/50">
-                  {recentReferrals.length > 0 ? (
-                    recentReferrals.map((ref) => (
-                      <div key={ref.id} className="flex items-center justify-between p-4 hover:bg-muted/20 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-black text-primary text-xs">
-                            {ref.username.substring(0, 2).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-black italic text-sm">{ref.username}</p>
-                            <p className="text-[10px] text-muted-foreground font-bold uppercase">
-                              Joined {new Date(ref.joined_at).toLocaleDateString()}
-                            </p>
-                          </div>
+        <ReferralLeaderboard />
+      </div>
+
+      <div className="space-y-6">
+        <h2 className="text-2xl font-black italic uppercase text-slate-400">Recent Referrals</h2>
+        <Card className="border-border/50">
+          <CardContent className="p-0">
+             <div className="divide-y divide-border/50">
+                {recentReferrals.length > 0 ? (
+                  recentReferrals.map((ref) => (
+                    <div key={ref.id} className="flex items-center justify-between p-4 hover:bg-muted/20 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-black text-primary text-xs">
+                          {ref.username.substring(0, 2).toUpperCase()}
                         </div>
-                        <Badge variant={ref.status === 'completed' ? 'default' : 'secondary'} className="font-black italic uppercase text-[10px]">
-                          {ref.status}
-                        </Badge>
+                        <div>
+                          <p className="font-black italic text-sm">{ref.username}</p>
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase">
+                            Joined {new Date(ref.joined_at).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="p-12 text-center space-y-4">
-                       <Users className="w-12 h-12 text-muted/30 mx-auto" />
-                       <div>
-                         <p className="font-black italic uppercase text-muted-foreground">No referrals yet</p>
-                         <p className="text-xs text-muted-foreground/60 font-bold uppercase tracking-widest mt-1">Be the first to invite your crew!</p>
-                       </div>
+                      <Badge variant={ref.status === 'completed' ? 'default' : 'secondary'} className="font-black italic uppercase text-[10px]">
+                        {ref.status}
+                      </Badge>
                     </div>
-                  )}
-               </div>
-            </CardContent>
-          </Card>
-        </div>
+                  ))
+                ) : (
+                  <div className="p-12 text-center space-y-4">
+                     <Users className="w-12 h-12 text-muted/30 mx-auto" />
+                     <div>
+                       <p className="font-black italic uppercase text-muted-foreground">No referrals yet</p>
+                       <p className="text-xs text-muted-foreground/60 font-bold uppercase tracking-widest mt-1">Be the first to invite your crew!</p>
+                     </div>
+                  </div>
+                )}
+             </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

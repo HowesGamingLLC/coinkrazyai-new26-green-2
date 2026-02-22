@@ -246,6 +246,150 @@ class EmailService {
       text: `Your daily bonus streak has reset. Come back today to restart and claim your bonus!`,
     });
   }
+
+  async sendReferralCompletedNotification(playerEmail: string, playerName: string, bonusSc: number, bonusGc: number): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); color: white; padding: 30px; border-radius: 8px; text-align: center; }
+            .content { padding: 30px; background: #f8f9fa; border-radius: 8px; margin: 20px 0; }
+            .bonus-pill { display: inline-block; padding: 10px 20px; background: #fff; border-radius: 50px; font-weight: bold; color: #fda085; margin: 10px; border: 2px solid #fda085; }
+            .footer { text-align: center; color: #999; font-size: 12px; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>💰 Referral Bonus Awarded!</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${playerName},</p>
+              <p>Great news! One of your referrals has just completed their registration and verification.</p>
+              <p>As a thank you, we've dropped a bonus into your wallet:</p>
+              <div style="text-align: center;">
+                <div class="bonus-pill">${bonusSc} SC</div>
+                <div class="bonus-pill">${bonusGc} GC</div>
+              </div>
+              <p>Keep sharing your link to earn even more rewards!</p>
+              <p style="text-align: center; margin-top: 30px;">
+                <a href="https://coinkrazy.io/referrals" style="background: #fda085; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; display: inline-block;">
+                  View Referral Stats
+                </a>
+              </p>
+            </div>
+            <div class="footer">
+              <p>Thank you for being part of the CoinKrazy community!</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    return this.sendEmail({
+      to: playerEmail,
+      subject: `💰 Referral Bonus Awarded! - CoinKrazy`,
+      html,
+      text: `Congratulations! You've earned a referral bonus of ${bonusSc} SC and ${bonusGc} GC!`,
+    });
+  }
+
+  async sendRedemptionUpdate(playerEmail: string, playerName: string, amount: number, status: 'approved' | 'rejected', reason?: string): Promise<boolean> {
+    const isApproved = status === 'approved';
+    const color = isApproved ? '#00c853' : '#ff5252';
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: ${color}; color: white; padding: 30px; border-radius: 8px; text-align: center; }
+            .content { padding: 30px; background: #f8f9fa; border-radius: 8px; margin: 20px 0; }
+            .status-box { padding: 20px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 18px; border: 2px solid ${color}; color: ${color}; }
+            .footer { text-align: center; color: #999; font-size: 12px; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Redemption Request ${isApproved ? 'Approved' : 'Updated'}</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${playerName},</p>
+              <p>Your redemption request for <strong>${amount} SC</strong> has been processed.</p>
+              <div class="status-box">
+                Status: ${status.toUpperCase()}
+              </div>
+              ${!isApproved && reason ? `<p style="margin-top: 20px;"><strong>Reason:</strong> ${reason}</p>` : ''}
+              ${isApproved ? `<p style="margin-top: 20px;">Your funds are on the way! Depending on your payment method, it may take 1-3 business days to appear in your account.</p>` : ''}
+            </div>
+            <div class="footer">
+              <p>If you have any questions, please contact our support team.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    return this.sendEmail({
+      to: playerEmail,
+      subject: `Redemption Request ${status.charAt(0).toUpperCase() + status.slice(1)} - CoinKrazy`,
+      html,
+      text: `Your redemption request for ${amount} SC has been ${status}.`,
+    });
+  }
+
+  async sendSupportMessageNotification(playerEmail: string, playerName: string, messagePreview: string): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #2196f3; color: white; padding: 30px; border-radius: 8px; text-align: center; }
+            .content { padding: 30px; background: #f8f9fa; border-radius: 8px; margin: 20px 0; }
+            .message-box { background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #2196f3; font-style: italic; }
+            .footer { text-align: center; color: #999; font-size: 12px; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>💬 New Message from Support</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${playerName},</p>
+              <p>You have a new message from the CoinKrazy support team:</p>
+              <div class="message-box">
+                "${messagePreview}..."
+              </div>
+              <p style="text-align: center; margin-top: 30px;">
+                <a href="https://coinkrazy.io/profile?tab=messages" style="background: #2196f3; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; display: inline-block;">
+                  Read Full Message
+                </a>
+              </p>
+            </div>
+            <div class="footer">
+              <p>We're here to help! Reply directly through the platform.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    return this.sendEmail({
+      to: playerEmail,
+      subject: `💬 New Message from Support - CoinKrazy`,
+      html,
+      text: `You have a new message from CoinKrazy support: ${messagePreview}`,
+    });
+  }
 }
 
 export const emailService = new EmailService();

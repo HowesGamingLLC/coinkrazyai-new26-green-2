@@ -244,29 +244,28 @@ const Plinko = () => {
         </Card>
       </div>
 
-      {showWinPopup && (
-        <SocialSharePopup
-          winAmount={lastWinAmount}
-          gameName="Power Plinko"
-          onClose={() => setShowWinPopup(false)}
-          onShare={async (platform, message) => {
-            try {
-              await apiCall('/social-sharing/share', {
-                method: 'POST',
-                body: JSON.stringify({
-                  platform,
-                  message,
-                  winAmount: lastWinAmount,
-                  gameName: 'Power Plinko'
-                })
-              });
-              toast.success('Share recorded!');
-            } catch (error) {
-              console.error('Failed to record share:', error);
-            }
-          }}
-        />
-      )}
+      <SocialSharePopup
+        isOpen={showWinPopup}
+        winAmount={lastWinAmount}
+        gameName="Power Plinko"
+        onClose={() => setShowWinPopup(false)}
+        onShare={async (platform, message) => {
+          try {
+            await apiCall('/social-sharing/share', {
+              method: 'POST',
+              body: JSON.stringify({
+                platform,
+                message,
+                winAmount: lastWinAmount,
+                gameName: 'Power Plinko'
+              })
+            });
+            toast.success('Share recorded!');
+          } catch (error) {
+            console.error('Failed to record share:', error);
+          }
+        }}
+      />
 
       {/* Stats & History */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

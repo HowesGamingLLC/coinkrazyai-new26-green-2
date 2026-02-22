@@ -1,6 +1,7 @@
 import { RequestHandler } from 'express';
 import * as dbQueries from '../db/queries';
 import { asyncHandler } from '../middleware/error-handler';
+import { emailService } from '../services/email-service';
 
 const generateReferralCode = (playerId: number): string => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -98,6 +99,22 @@ export const handleCompleteReferralClaim: RequestHandler = asyncHandler(async (r
       claim.referral_bonus_sc,
       `Referral bonus for inviting ${claim.referred_player_id}`
     );
+
+    // Send email notification to referrer
+    try {
+      const referrerResult = await dbQueries.query('SELECT email, name, username FROM players WHERE id = $1', [claim.referrer_id]);
+      if (referrerResult.rows.length > 0) {
+        const referrer = referrerResult.rows[0];
+        await emailService.sendReferralCompletedNotification(
+          referrer.email,
+          referrer.name || referrer.username,
+          claim.referral_bonus_sc,
+          claim.referral_bonus_gc
+        );
+      }
+    } catch (emailError) {
+      console.error('Failed to send referral email:', emailError);
+    }
   }
 
   res.json({

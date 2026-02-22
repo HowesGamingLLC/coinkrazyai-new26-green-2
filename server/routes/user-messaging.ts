@@ -1,5 +1,6 @@
 import { RequestHandler } from 'express';
 import * as dbQueries from '../db/queries';
+import { emailService } from '../services/email-service';
 
 export const handleSendMessage: RequestHandler = async (req, res) => {
   try {
@@ -22,7 +23,26 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       messageType || 'general'
     );
 
-    res.json(result.rows[0]);
+    const sentMessage = result.rows[0];
+
+    // If sent to a player (from an admin), send email notification
+    if (recipientId) {
+      try {
+        const playerResult = await dbQueries.getPlayerById(recipientId);
+        if (playerResult.rows.length > 0) {
+          const player = playerResult.rows[0];
+          await emailService.sendSupportMessageNotification(
+            player.email,
+            player.name || player.username,
+            message.substring(0, 100)
+          );
+        }
+      } catch (emailError) {
+        console.error('Failed to send message notification email:', emailError);
+      }
+    }
+
+    res.json(sentMessage);
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({ error: 'Failed to send message' });

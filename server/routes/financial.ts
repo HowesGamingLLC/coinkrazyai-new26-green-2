@@ -1,6 +1,7 @@
 import { RequestHandler } from 'express';
 import { query } from '../db/connection';
 import { SlackService } from '../services/slack-service';
+import { emailService } from '../services/email-service';
 
 // BONUSES
 export const listBonuses: RequestHandler = async (req, res) => {
@@ -275,9 +276,16 @@ export const approveRedemption: RequestHandler = async (req, res) => {
     );
 
     // Get player for notification
-    const playerResult = await query('SELECT email FROM players WHERE id = $1', [redemptionRequest.player_id]);
+    const playerResult = await query('SELECT email, name, username FROM players WHERE id = $1', [redemptionRequest.player_id]);
     if (playerResult.rows.length > 0) {
-      await SlackService.notifyWithdrawalApproval(playerResult.rows[0].email, redemptionRequest.amount, true);
+      const player = playerResult.rows[0];
+      await SlackService.notifyWithdrawalApproval(player.email, redemptionRequest.amount, true);
+      await emailService.sendRedemptionUpdate(
+        player.email,
+        player.name || player.username,
+        redemptionRequest.amount,
+        'approved'
+      );
     }
 
     res.json({ success: true });
@@ -303,11 +311,19 @@ export const rejectRedemption: RequestHandler = async (req, res) => {
     );
 
     // Get player for notification
-    const playerResult = await query('SELECT email FROM players WHERE id = $1', [
+    const playerResult = await query('SELECT email, name, username FROM players WHERE id = $1', [
       requestResult.rows[0].player_id,
     ]);
     if (playerResult.rows.length > 0) {
-      await SlackService.notifyWithdrawalApproval(playerResult.rows[0].email, requestResult.rows[0].amount, false);
+      const player = playerResult.rows[0];
+      await SlackService.notifyWithdrawalApproval(player.email, requestResult.rows[0].amount, false);
+      await emailService.sendRedemptionUpdate(
+        player.email,
+        player.name || player.username,
+        requestResult.rows[0].amount,
+        'rejected',
+        reason
+      );
     }
 
     res.json({ success: true });

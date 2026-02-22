@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { dailyBonus, apiCall } from '@/lib/api';
-import { DailyLoginBonusPopup } from './popups/DailyLoginBonusPopup';
-import { KYCOnboardingPopup } from './popups/KYCOnboardingPopup';
+import { DailyLoginBonusPopup } from './daily-bonus/DailyLoginBonusPopup';
+import { KYCOnboardingPopup } from './kyc/KYCOnboardingPopup';
 import { useWallet } from '@/hooks/use-wallet';
 import { toast } from 'sonner';
 
@@ -49,62 +49,32 @@ export const PopupManager = () => {
   };
 
   const handleClaimBonus = async () => {
-    try {
-      const result = await dailyBonus.claim();
-      if (result.success) {
-        toast.success(`Claimed ${result.data.sc_amount} SC and ${result.data.gc_amount} GC!`);
-        await refreshWallet();
-        setShowDailyBonus(false);
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to claim bonus');
-    }
+    await refreshWallet();
+    setShowDailyBonus(false);
   };
 
   const handleKYCComplete = async () => {
-    try {
-      const result = await apiCall<any>('/kyc/complete', { method: 'POST' });
-      if (result.success) {
-        toast.success('KYC Verification submitted for review!');
-        await refreshProfile();
-        setShowKYC(false);
-        // After KYC, check for daily bonus
-        checkPopups();
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to complete KYC');
-    }
+    await refreshProfile();
+    setShowKYC(false);
+    // After KYC, check for daily bonus
+    checkPopups();
   };
 
   if (!isAuthenticated) return null;
 
   return (
     <>
-      {showKYC && kycData && (
-        <KYCOnboardingPopup
-          currentStep={kycData.current_step || 1}
-          onComplete={handleKYCComplete}
-          onSkip={() => setShowKYC(false)}
-        />
-      )}
+      <KYCOnboardingPopup
+        isOpen={showKYC}
+        onClose={() => setShowKYC(false)}
+        onComplete={handleKYCComplete}
+      />
 
-      {showDailyBonus && bonusData && (
-        <DailyLoginBonusPopup
-          currentDay={bonusData.streak_days || 1}
-          currentBonus={{
-            day: bonusData.streak_days || 1,
-            sc: bonusData.sc_amount || 0.5,
-            gc: bonusData.gc_amount || 100
-          }}
-          nextBonus={{
-            day: (bonusData.streak_days % 7) + 1,
-            sc: bonusData.next_sc_amount || 1.0,
-            gc: bonusData.next_gc_amount || 200
-          }}
-          onClaim={handleClaimBonus}
-          onSkip={() => setShowDailyBonus(false)}
-        />
-      )}
+      <DailyLoginBonusPopup
+        isOpen={showDailyBonus}
+        onClose={() => setShowDailyBonus(false)}
+        onBonusClaimed={handleClaimBonus}
+      />
     </>
   );
 };

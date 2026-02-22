@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminApiCall } from '@/lib/api';
+import { io } from 'socket.io-client';
 
 interface AdminNotification {
   id: number;
@@ -42,9 +43,32 @@ export function AdminNotificationsPanel() {
 
   useEffect(() => {
     fetchNotifications();
-    // Refresh every 30 seconds
+
+    // Setup WebSocket for real-time updates
+    const socket = io();
+    socket.on('admin:notification', (notification: AdminNotification) => {
+      console.log('[Socket] New admin notification:', notification);
+      if (notification.status === activeStatus) {
+        setNotifications(prev => {
+          const exists = prev.find(n => n.id === notification.id);
+          if (exists) {
+            return prev.map(n => n.id === notification.id ? notification : n);
+          }
+          return [notification, ...prev];
+        });
+        toast.info(`New ${notification.priority} notification: ${notification.subject}`);
+      } else {
+        // If status changed, remove from current list if it was there
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      }
+    });
+
+    // Refresh every 30 seconds as fallback
     const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      socket.disconnect();
+    };
   }, [activeStatus]);
 
   const fetchNotifications = async () => {

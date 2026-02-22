@@ -20,13 +20,21 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, isAuthenticated, logout, isAdmin } = useAuth();
-  const { wallet, currency, toggleCurrency } = useWallet();
+  const { user, isAuthenticated, logout, isAdmin, refreshProfile } = useAuth();
+  const { wallet, currency, toggleCurrency, refreshWallet } = useWallet();
   const location = useLocation();
   const navigate = useNavigate();
   const [isChallengesOpen, setIsChallengesOpen] = React.useState(false);
   const [unreadMessages, setUnreadMessages] = React.useState(0);
   const [aiEmployees, setAiEmployees] = React.useState<any[]>([]);
+
+  // Calculate Level and Progress
+  const totalWagered = Number(user?.total_wagered || 0);
+  const level = Math.floor(Math.sqrt(totalWagered / 10)) + 1;
+  const nextLevelWagered = Math.pow(level, 2) * 10;
+  const currentLevelWagered = Math.pow(level - 1, 2) * 10;
+  const levelProgress = totalWagered > 0 ? ((totalWagered - currentLevelWagered) / (nextLevelWagered - currentLevelWagered)) * 100 : 0;
+  const progressText = `${Math.round(levelProgress)}% to Level ${level + 1}`;
 
   // Auto-open challenges popup on login
   React.useEffect(() => {
@@ -265,21 +273,30 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
                  <div className="flex items-center gap-4 mb-4">
                     <div className="w-14 h-14 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
-                       <ShieldCheck className="w-8 h-8 text-primary" />
+                       {user?.kyc_verified ? (
+                         <ShieldCheck className="w-8 h-8 text-primary" />
+                       ) : (
+                         <AlertCircle className="w-8 h-8 text-yellow-500" />
+                       )}
                     </div>
                     <div className="flex flex-col">
                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Player Status</span>
-                       <span className="text-white font-black italic uppercase text-lg tracking-tighter">Verified Elite</span>
+                       <span className="text-white font-black italic uppercase text-lg tracking-tighter">
+                         {user?.kyc_verified ? 'Verified Elite' : 'Unverified'}
+                       </span>
                     </div>
                  </div>
 
                  <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                       <span className="text-[10px] font-black uppercase text-slate-500">Level 42</span>
-                       <span className="text-[10px] font-black uppercase text-primary">85% to Level 43</span>
+                       <span className="text-[10px] font-black uppercase text-slate-500">Level {level}</span>
+                       <span className="text-[10px] font-black uppercase text-primary">{progressText}</span>
                     </div>
                     <div className="h-2 bg-slate-800 rounded-full overflow-hidden border border-white/5">
-                       <div className="h-full bg-gradient-to-r from-primary to-blue-500 w-[85%]" />
+                       <div
+                         className="h-full bg-gradient-to-r from-primary to-blue-500 transition-all duration-1000"
+                         style={{ width: `${levelProgress}%` }}
+                       />
                     </div>
                  </div>
 

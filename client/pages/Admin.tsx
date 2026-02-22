@@ -7,7 +7,8 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Import admin sub-components
-import AdminDashboard from '@/components/admin/AdminDashboard';
+import AdminSalesDashboard from '@/components/admin/AdminSalesDashboard';
+import { AdminNotificationsPanel } from '@/components/admin/AdminNotificationsPanel';
 import AdminPlayers from '@/components/admin/AdminPlayers';
 import AdminKYC from '@/components/admin/AdminKYC';
 import AdminWallet from '@/components/admin/AdminWallet';
@@ -52,8 +53,10 @@ const Admin = () => {
 
       {/* Main Tabs Navigation */}
       <Tabs value={activeSection} onValueChange={setActiveSection} className="w-full">
-        <TabsList className="grid w-full grid-cols-9 mb-6 overflow-x-auto">
+        <TabsList className="grid w-full grid-cols-11 mb-6 overflow-x-auto">
           <TabsTrigger value="dashboard" className="text-xs">Dashboard</TabsTrigger>
+          <TabsTrigger value="sales" className="text-xs">Sales Analytics</TabsTrigger>
+          <TabsTrigger value="notifications" className="text-xs">Notifications</TabsTrigger>
           <TabsTrigger value="players" className="text-xs">Players</TabsTrigger>
           <TabsTrigger value="kyc" className="text-xs">KYC</TabsTrigger>
           <TabsTrigger value="wallet" className="text-xs">Wallet</TabsTrigger>
@@ -67,6 +70,16 @@ const Admin = () => {
         {/* Dashboard */}
         <TabsContent value="dashboard">
           <AdminDashboard />
+        </TabsContent>
+
+        {/* Sales Analytics */}
+        <TabsContent value="sales">
+          <AdminSalesDashboard />
+        </TabsContent>
+
+        {/* Notifications */}
+        <TabsContent value="notifications">
+          <AdminNotificationsPanel />
         </TabsContent>
 
         {/* Player Management */}

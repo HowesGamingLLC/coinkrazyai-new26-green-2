@@ -1,5 +1,6 @@
 import { RequestHandler } from 'express';
 import * as dbQueries from '../db/queries';
+import { emitAdminNotification } from '../socket';
 
 export const handleCreateNotification: RequestHandler = async (req, res) => {
   try {
@@ -24,7 +25,10 @@ export const handleCreateNotification: RequestHandler = async (req, res) => {
       priority || 'medium'
     );
 
-    res.json(result.rows[0]);
+    const notification = result.rows[0];
+    emitAdminNotification(notification);
+
+    res.json(notification);
   } catch (error) {
     console.error('Error creating notification:', error);
     res.status(500).json({ error: 'Failed to create notification' });
@@ -93,6 +97,7 @@ export const handleUpdateNotificationStatus: RequestHandler = async (req, res) =
 
     // Update status
     const result = await dbQueries.updateAdminNotificationStatus(notificationId, status);
+    const notification = result.rows[0];
 
     // Record action taken
     if (action) {
@@ -104,9 +109,11 @@ export const handleUpdateNotificationStatus: RequestHandler = async (req, res) =
       );
     }
 
+    emitAdminNotification(notification);
+
     res.json({
       success: true,
-      notification: result.rows[0],
+      notification,
       action: action || null
     });
   } catch (error) {
