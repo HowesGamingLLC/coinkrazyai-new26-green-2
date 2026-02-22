@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS games (
     embed_url VARCHAR(500),
     launch_url VARCHAR(500),
     enabled BOOLEAN DEFAULT TRUE,
+    is_branded_popup BOOLEAN DEFAULT FALSE,
+    branding_config JSONB DEFAULT '{}',
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

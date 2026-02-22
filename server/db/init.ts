@@ -151,6 +151,22 @@ export const initializeDatabase = async () => {
       console.log('[DB] Schema check for games.updated_at:', err.message?.substring(0, 100));
     }
 
+    // Add is_branded_popup column to games table if it doesn't exist
+    try {
+      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS is_branded_popup BOOLEAN DEFAULT FALSE`);
+      console.log('[DB] Verified is_branded_popup column in games');
+    } catch (err: any) {
+      console.log('[DB] Schema check for games.is_branded_popup:', err.message?.substring(0, 100));
+    }
+
+    // Add branding_config column to games table if it doesn't exist
+    try {
+      await query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS branding_config JSONB DEFAULT '{}'`);
+      console.log('[DB] Verified branding_config column in games');
+    } catch (err: any) {
+      console.log('[DB] Schema check for games.branding_config:', err.message?.substring(0, 100));
+    }
+
     // Ensure game_compliance has required columns for crawler
     try {
       await query(`ALTER TABLE game_compliance ADD COLUMN IF NOT EXISTS is_external BOOLEAN DEFAULT TRUE`);
