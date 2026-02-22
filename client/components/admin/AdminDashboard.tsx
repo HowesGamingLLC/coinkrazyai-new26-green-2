@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { adminV2 } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Users, TrendingUp, Gamepad2, AlertCircle, DollarSign, Activity, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ interface DashboardStats {
 }
 
 const AdminDashboard = () => {
+  const { logout, isAdmin } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({});
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -28,11 +30,9 @@ const AdminDashboard = () => {
     try {
       setRefreshing(true);
 
-      // Check if admin token exists
-      const adminToken = localStorage.getItem('admin_token');
-      if (!adminToken) {
-        console.warn('No admin token found. Admin must be logged in.');
-        toast.error('Please log in as admin to access this dashboard');
+      // Check if admin is logged in via context
+      if (!isAdmin) {
+        console.warn('Admin not logged in.');
         setIsLoading(false);
         return;
       }
@@ -59,7 +59,7 @@ const AdminDashboard = () => {
       // Check if it's an auth error
       if (error?.status === 401 || errorMsg.includes('401')) {
         toast.error('Admin session expired. Please log in again.');
-        localStorage.removeItem('admin_token');
+        logout();
       } else if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
         toast.error('Network error: Unable to reach the server. Check your connection.');
       } else {

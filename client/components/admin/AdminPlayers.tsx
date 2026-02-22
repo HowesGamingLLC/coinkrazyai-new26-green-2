@@ -40,8 +40,9 @@ const AdminPlayers = () => {
     try {
       setIsLoading(true);
       const response = await adminV2.players.list(page, limit, searchTerm, statusFilter, kycFilter);
-      setPlayers(response.data?.players || response.data || []);
-      setTotal(response.data?.total || response.data?.length || 0);
+      const data = response.data || response;
+      setPlayers(data.players || []);
+      setTotal(data.total || 0);
     } catch (error) {
       console.error('Failed to fetch players:', error);
       toast.error('Failed to load players');
@@ -51,12 +52,8 @@ const AdminPlayers = () => {
   };
 
   useEffect(() => {
-    setPage(1);
-  }, [searchTerm, statusFilter, kycFilter]);
-
-  useEffect(() => {
     fetchPlayers();
-  }, []);
+  }, [page, searchTerm, statusFilter, kycFilter]);
 
   const handleStatusChange = async (username: string, newStatus: string) => {
     try {
@@ -80,7 +77,7 @@ const AdminPlayers = () => {
           setIsSaving(true);
           const gcNum = parseFloat(gcAmount);
           const scNum = parseFloat(scAmount);
-          await adminV2.players.updateBalanceByUsername(player.username, gcNum, scNum);
+          await adminV2.players.updateBalanceByUsername(player.username, undefined, undefined, gcNum, scNum);
           setPlayers(players.map(p => p.id === player.id ? {
             ...p,
             gc_balance: p.gc_balance + gcNum,
@@ -96,15 +93,8 @@ const AdminPlayers = () => {
     }
   };
 
-  const filteredPlayers = players.filter(p => {
-    const matchSearch = !searchTerm || p.username.toLowerCase().includes(searchTerm.toLowerCase()) || p.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatus = !statusFilter || p.status === statusFilter;
-    const matchKyc = !kycFilter || p.kyc_level === kycFilter;
-    return matchSearch && matchStatus && matchKyc;
-  });
-
-  const totalPages = Math.ceil(filteredPlayers.length / limit);
-  const paginatedPlayers = filteredPlayers.slice((page - 1) * limit, page * limit);
+  const totalPages = Math.ceil(total / limit);
+  const paginatedPlayers = players;
 
   return (
     <div className="space-y-6">

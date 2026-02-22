@@ -84,7 +84,7 @@ const AdminWallet = () => {
 
     try {
       setIsLoading(true);
-      await adminV2.players.updateBalanceByUsername(username, gc, sc, 'Admin fund addition');
+      await adminV2.players.updateBalanceByUsername(username, undefined, undefined, gc, sc, 'Admin fund addition');
       setTotalGCCirculation(totalGCCirculation + gc);
       setTotalSCCirculation(totalSCCirculation + sc);
       toast.success('Funds added successfully');
@@ -105,7 +105,7 @@ const AdminWallet = () => {
 
     try {
       setIsLoading(true);
-      await adminV2.players.updateBalanceByUsername(username, -gc, -sc, 'Admin fund removal');
+      await adminV2.players.updateBalanceByUsername(username, undefined, undefined, -gc, -sc, 'Admin fund removal');
       setTotalGCCirculation(totalGCCirculation - gc);
       setTotalSCCirculation(totalSCCirculation - sc);
       toast.success('Funds removed successfully');

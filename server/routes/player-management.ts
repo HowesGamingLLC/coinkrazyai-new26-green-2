@@ -189,7 +189,7 @@ export const updatePlayerStatus: RequestHandler = async (req, res) => {
 export const updatePlayerBalance: RequestHandler = async (req, res) => {
   try {
     const playerId = getStringParam(req.params.playerId);
-    const { gcAmount, scAmount, reason } = req.body;
+    const { gcAmount, scAmount, gcDelta, scDelta, reason } = req.body;
 
     const playerResult = await query('SELECT gc_balance, sc_balance FROM players WHERE id = $1', [playerId]);
     if (playerResult.rows.length === 0) {
@@ -199,13 +199,24 @@ export const updatePlayerBalance: RequestHandler = async (req, res) => {
     const currentGc = Number(playerResult.rows[0].gc_balance || 0);
     const currentSc = Number(playerResult.rows[0].sc_balance || 0);
 
-    // gcAmount and scAmount are NEW balances, not deltas
-    const newGcBalance = gcAmount !== undefined ? Number(gcAmount) : currentGc;
-    const newScBalance = scAmount !== undefined ? Number(scAmount) : currentSc;
+    // Support both absolute amounts and deltas
+    let newGcBalance = currentGc;
+    if (gcAmount !== undefined) {
+      newGcBalance = Number(gcAmount);
+    } else if (gcDelta !== undefined) {
+      newGcBalance = currentGc + Number(gcDelta);
+    }
+
+    let newScBalance = currentSc;
+    if (scAmount !== undefined) {
+      newScBalance = Number(scAmount);
+    } else if (scDelta !== undefined) {
+      newScBalance = currentSc + Number(scDelta);
+    }
 
     // Calculate the actual change amounts for the ledger
-    const gcDelta = newGcBalance - currentGc;
-    const scDelta = newScBalance - currentSc;
+    const actualGcDelta = newGcBalance - currentGc;
+    const actualScDelta = newScBalance - currentSc;
 
     await query('UPDATE players SET gc_balance = $1, sc_balance = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3', [
       newGcBalance,
@@ -213,10 +224,10 @@ export const updatePlayerBalance: RequestHandler = async (req, res) => {
       playerId,
     ]);
 
-    // Log wallet ledger - record the CHANGE amounts, not the new balances
+    // Log wallet ledger
     await query(
       'INSERT INTO wallet_ledger (player_id, transaction_type, gc_amount, sc_amount, gc_balance_after, sc_balance_after, description) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [playerId, 'admin_adjustment', gcDelta, scDelta, newGcBalance, newScBalance, reason || 'Manual adjustment']
+      [playerId, 'admin_adjustment', actualGcDelta, actualScDelta, newGcBalance, newScBalance, reason || 'Manual adjustment']
     );
 
     // Notify wallet update via socket
@@ -388,7 +399,7 @@ export const getPlayerTransactionsByUsername: RequestHandler = async (req, res) 
 export const updatePlayerBalanceByUsername: RequestHandler = async (req, res) => {
   try {
     const username = getStringParam(req.params.username);
-    const { gcAmount, scAmount, reason } = req.body;
+    const { gcAmount, scAmount, gcDelta, scDelta, reason } = req.body;
 
     // Resolve username to playerId
     const playerId = await resolvePlayerIdentifier(username);
@@ -404,13 +415,24 @@ export const updatePlayerBalanceByUsername: RequestHandler = async (req, res) =>
     const currentGc = Number(playerResult.rows[0].gc_balance || 0);
     const currentSc = Number(playerResult.rows[0].sc_balance || 0);
 
-    // gcAmount and scAmount are NEW balances, not deltas
-    const newGcBalance = gcAmount !== undefined ? Number(gcAmount) : currentGc;
-    const newScBalance = scAmount !== undefined ? Number(scAmount) : currentSc;
+    // Support both absolute amounts and deltas
+    let newGcBalance = currentGc;
+    if (gcAmount !== undefined) {
+      newGcBalance = Number(gcAmount);
+    } else if (gcDelta !== undefined) {
+      newGcBalance = currentGc + Number(gcDelta);
+    }
+
+    let newScBalance = currentSc;
+    if (scAmount !== undefined) {
+      newScBalance = Number(scAmount);
+    } else if (scDelta !== undefined) {
+      newScBalance = currentSc + Number(scDelta);
+    }
 
     // Calculate the actual change amounts for the ledger
-    const gcDelta = newGcBalance - currentGc;
-    const scDelta = newScBalance - currentSc;
+    const actualGcDelta = newGcBalance - currentGc;
+    const actualScDelta = newScBalance - currentSc;
 
     await query('UPDATE players SET gc_balance = $1, sc_balance = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3', [
       newGcBalance,
@@ -418,10 +440,10 @@ export const updatePlayerBalanceByUsername: RequestHandler = async (req, res) =>
       playerId,
     ]);
 
-    // Log wallet ledger - record the CHANGE amounts, not the new balances
+    // Log wallet ledger
     await query(
       'INSERT INTO wallet_ledger (player_id, transaction_type, gc_amount, sc_amount, gc_balance_after, sc_balance_after, description) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [playerId, 'admin_adjustment', gcDelta, scDelta, newGcBalance, newScBalance, reason || 'Manual adjustment']
+      [playerId, 'admin_adjustment', actualGcDelta, actualScDelta, newGcBalance, newScBalance, reason || 'Manual adjustment']
     );
 
     // Notify wallet update via socket

@@ -545,45 +545,45 @@ export function createServer() {
   app.post("/api/admin/store-pack", verifyAdmin, handleUpdateStorePack);
   app.post("/api/admin/maintenance", verifyAdmin, handleSetMaintenanceMode);
   app.get("/api/admin/health", verifyAdmin, handleGetSystemHealth);
-  app.post("/api/admin/logout", handleLogout);
+  app.post("/api/admin/logout", verifyAdmin, handleLogout);
 
   // ===== DATABASE-DRIVEN ADMIN ROUTES =====
   // Dashboard
-  app.get("/api/admin/dashboard/stats", adminDb.getAdminDashboardStats);
+  app.get("/api/admin/dashboard/stats", verifyAdmin, adminDb.getAdminDashboardStats);
 
   // Players
-  app.get("/api/admin/players", adminDb.getPlayersList);
-  app.get("/api/admin/players/:id", adminDb.getPlayer);
-  app.post("/api/admin/players/balance", adminDb.updatePlayerBalance);
-  app.post("/api/admin/players/status", adminDb.updatePlayerStatus);
+  app.get("/api/admin/players", verifyAdmin, adminDb.getPlayersList);
+  app.get("/api/admin/players/:id", verifyAdmin, adminDb.getPlayer);
+  app.post("/api/admin/players/balance", verifyAdmin, adminDb.updatePlayerBalance);
+  app.post("/api/admin/players/status", verifyAdmin, adminDb.updatePlayerStatus);
 
   // Games
-  app.get("/api/admin/games", adminDb.getGamesList);
-  app.post("/api/admin/games/rtp", adminDb.updateGameRTP);
-  app.post("/api/admin/games/toggle", adminDb.toggleGame);
+  app.get("/api/admin/games", verifyAdmin, adminDb.getGamesList);
+  app.post("/api/admin/games/rtp", verifyAdmin, adminDb.updateGameRTP);
+  app.post("/api/admin/games/toggle", verifyAdmin, adminDb.toggleGame);
 
   // Bonuses
-  app.get("/api/admin/bonuses", adminDb.getBonusesList);
-  app.post("/api/admin/bonuses/create", adminDb.createBonus);
+  app.get("/api/admin/bonuses", verifyAdmin, adminDb.getBonusesList);
+  app.post("/api/admin/bonuses/create", verifyAdmin, adminDb.createBonus);
 
   // Transactions
-  app.get("/api/admin/transactions", adminDb.getTransactionsList);
+  app.get("/api/admin/transactions", verifyAdmin, adminDb.getTransactionsList);
 
   // Security
-  app.get("/api/admin/alerts", adminDb.getSecurityAlerts);
+  app.get("/api/admin/alerts", verifyAdmin, adminDb.getSecurityAlerts);
 
   // KYC
-  app.get("/api/admin/kyc/:playerId", adminDb.getKYCDocs);
-  app.post("/api/admin/kyc/approve", adminDb.approveKYC);
+  app.get("/api/admin/kyc/:playerId", verifyAdmin, adminDb.getKYCDocs);
+  app.post("/api/admin/kyc/approve", verifyAdmin, adminDb.approveKYC);
 
   // Poker
-  app.get("/api/admin/poker/tables", adminDb.getPokerTablesList);
+  app.get("/api/admin/poker/tables", verifyAdmin, adminDb.getPokerTablesList);
 
   // Bingo
-  app.get("/api/admin/bingo/games", adminDb.getBingoGamesList);
+  app.get("/api/admin/bingo/games", verifyAdmin, adminDb.getBingoGamesList);
 
   // Sports
-  app.get("/api/admin/sports/events", adminDb.getSportsEventsList);
+  app.get("/api/admin/sports/events", verifyAdmin, adminDb.getSportsEventsList);
 
   // ===== LEADERBOARD ROUTES =====
   app.get("/api/leaderboards", handleGetLeaderboard);

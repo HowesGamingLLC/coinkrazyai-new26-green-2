@@ -466,10 +466,10 @@ export const adminV2 = {
         body: JSON.stringify({ status, reason }),
       });
     },
-    updateBalance: async (playerId: number, gcAmount: number, scAmount: number, reason?: string) => {
+    updateBalance: async (playerId: number, gcAmount?: number, scAmount?: number, gcDelta?: number, scDelta?: number, reason?: string) => {
       return adminApiCall<any>(`/admin/v2/players/${playerId}/balance`, {
         method: 'PUT',
-        body: JSON.stringify({ gcAmount, scAmount, reason }),
+        body: JSON.stringify({ gcAmount, scAmount, gcDelta, scDelta, reason }),
       });
     },
     getTransactions: async (playerId: number, page = 1, limit = 50) => {
@@ -483,10 +483,10 @@ export const adminV2 = {
         body: JSON.stringify({ status, reason }),
       });
     },
-    updateBalanceByUsername: async (username: string, gcAmount: number, scAmount: number, reason?: string) => {
+    updateBalanceByUsername: async (username: string, gcAmount?: number, scAmount?: number, gcDelta?: number, scDelta?: number, reason?: string) => {
       return adminApiCall<any>(`/admin/v2/players/username/${encodeURIComponent(username)}/balance`, {
         method: 'PUT',
-        body: JSON.stringify({ gcAmount, scAmount, reason }),
+        body: JSON.stringify({ gcAmount, scAmount, gcDelta, scDelta, reason }),
       });
     },
     getTransactionsByUsername: async (username: string, page = 1, limit = 50) => {
