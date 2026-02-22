@@ -1,10 +1,11 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Star, Trophy, Crown, Zap, Shield, Gift, ChevronRight, Lock } from 'lucide-react';
+import { Star, Trophy, Crown, Zap, Shield, Gift, ChevronRight, Lock, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { cn } from '@/lib/utils';
 
 const VIP_TIERS = [
   {
@@ -201,10 +202,5 @@ const VIP = () => {
     </div>
   );
 };
-
-// Helper for conditional classes
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(' ');
-}
 
 export default VIP;

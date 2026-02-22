@@ -143,7 +143,8 @@ export class PullTabService {
       // Find the winning tab index if this is a winning ticket
       let winningTabIndex = null;
       for (let i = 0; i < tabs.length; i++) {
-        if (typeof tabs[i].value === 'number' && tabs[i].value > 0) {
+        const val = tabs[i].value;
+        if (typeof val === 'number' && val > 0) {
           winningTabIndex = i;
           break;
         }
@@ -349,9 +350,9 @@ export class PullTabService {
       let winningTabIndex = -1;
 
       for (let i = 0; i < tabs.length; i++) {
-        const value = tabs[i].value;
-        if (typeof value === 'number' && value > 0) {
-          prizeAmount = value;
+        const val = tabs[i].value;
+        if (typeof val === 'number' && val > 0) {
+          prizeAmount = val;
           winningTabIndex = i;
           break;
         }

@@ -348,7 +348,7 @@ export const handleStripeWebhook: RequestHandler = async (req, res) => {
     }
 
     // Verify webhook signature
-    const event = StripeService.verifyWebhookSignature(
+    const event = await StripeService.verifyWebhookSignature(
       JSON.stringify(req.body),
       signature
     );
@@ -366,7 +366,7 @@ export const handleStripeWebhook: RequestHandler = async (req, res) => {
     switch (event.type) {
       case 'checkout.session.completed':
         {
-          const session = event.data.object;
+          const session = event.data.object as any;
           await StripeService.handlePaymentSuccess(session.id);
           console.log('[Store] Payment successful for session:', session.id);
           break;
@@ -374,7 +374,7 @@ export const handleStripeWebhook: RequestHandler = async (req, res) => {
 
       case 'checkout.session.expired':
         {
-          const session = event.data.object;
+          const session = event.data.object as any;
           await StripeService.handlePaymentFailure(session.id);
           console.log('[Store] Payment expired for session:', session.id);
           break;
@@ -382,7 +382,7 @@ export const handleStripeWebhook: RequestHandler = async (req, res) => {
 
       case 'charge.failed':
         {
-          const charge = event.data.object;
+          const charge = event.data.object as any;
           if (charge.metadata?.playerId) {
             console.log('[Store] Charge failed for player:', charge.metadata.playerId);
           }
@@ -404,5 +404,17 @@ export const handleStripeWebhook: RequestHandler = async (req, res) => {
       success: false,
       error: 'Webhook processing failed'
     });
+  }
+};
+
+// Square webhook handler
+export const handleSquareWebhook: RequestHandler = async (req, res) => {
+  try {
+    console.log('[Store] Square webhook received:', req.body);
+    // TODO: Implement Square signature verification and processing
+    res.status(200).json({ success: true, received: true });
+  } catch (error) {
+    console.error('[Store] Square webhook error:', error);
+    res.status(500).json({ success: false, error: 'Webhook processing failed' });
   }
 };

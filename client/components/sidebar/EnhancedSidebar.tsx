@@ -294,7 +294,7 @@ export const EnhancedSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isAdm
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-400">Member Since</span>
-                <span className="font-medium">{new Date(user.created_at).toLocaleDateString()}</span>
+                <span className="font-medium">{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</span>
               </div>
               {user.last_login && (
                 <div className="flex items-center justify-between text-sm">

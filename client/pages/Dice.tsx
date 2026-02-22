@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { useWallet } from '@/hooks/use-wallet';
-import { Dice5, Trophy, AlertCircle, TrendingUp, History, Coins } from 'lucide-react';
+import { Dice5, Trophy, AlertCircle, TrendingUp, History, Coins, Loader2, Sparkles } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { apiCall } from '@/lib/api';
@@ -43,7 +44,7 @@ const Dice = () => {
       // Simulate backend call or actually call an endpoint if we add one
       // For now, let's use the casino/play endpoint if possible, or simulate
       
-      const response = await apiCall('/casino/play', {
+      const response = await apiCall<any>('/casino/play', {
         method: 'POST',
         body: JSON.stringify({
           gameId: 'krazy-dice',
@@ -59,10 +60,10 @@ const Dice = () => {
       if (response.success) {
         const result = response.result.roll; // Assuming backend returns the roll
         setLastResult(result);
-        
+
         const isWin = isRollUnder ? (result < targetNumber) : (result > targetNumber);
         setWinStatus(isWin ? 'win' : 'loss');
-        
+
         if (isWin) {
           toast.success(`You won ${response.result.payout} ${currency}!`);
           setLastWinAmount(response.result.payout);
@@ -70,7 +71,7 @@ const Dice = () => {
         } else {
           toast.error('Better luck next time!');
         }
-        
+
         refreshWallet();
         fetchRecentGames();
       }
@@ -84,7 +85,7 @@ const Dice = () => {
 
   const fetchRecentGames = async () => {
     try {
-      const response = await apiCall('/casino/spins?gameId=krazy-dice');
+      const response = await apiCall<any>('/casino/spins?gameId=krazy-dice');
       if (response && response.data) {
         setRecentGames(response.data.slice(0, 10));
       }

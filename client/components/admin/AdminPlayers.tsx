@@ -94,7 +94,7 @@ const AdminPlayers = () => {
   };
 
   const totalPages = Math.ceil(total / limit);
-  const paginatedPlayers = players;
+  const filteredPlayers = players;
 
   return (
     <div className="space-y-6">
@@ -153,7 +153,7 @@ const AdminPlayers = () => {
             <CardContent>
               {isLoading ? (
                 <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>
-              ) : paginatedPlayers.length > 0 ? (
+              ) : filteredPlayers.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="border-b">
@@ -168,7 +168,7 @@ const AdminPlayers = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedPlayers.map(player => (
+                      {filteredPlayers.map(player => (
                         <tr key={player.id} className="border-b hover:bg-muted/50">
                           <td className="py-3 px-2">
                             <div>

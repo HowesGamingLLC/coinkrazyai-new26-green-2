@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useWallet } from '@/hooks/use-wallet';
 import { Zap, Trophy, History, Coins, Loader2, Sparkles, TrendingUp, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { apiCall } from '@/lib/api';
@@ -38,7 +39,7 @@ const Plinko = () => {
       setLastWin(null);
       setBallPath([]);
 
-      const response = await apiCall('/casino/play', {
+      const response = await apiCall<any>('/casino/play', {
         method: 'POST',
         body: JSON.stringify({
           gameId: 'power-plinko',
@@ -102,7 +103,7 @@ const Plinko = () => {
 
   const fetchRecentGames = async () => {
     try {
-      const response = await apiCall('/casino/spins?gameId=power-plinko');
+      const response = await apiCall<any>('/casino/spins?gameId=power-plinko');
       if (response && response.data) {
         setRecentGames(response.data.slice(0, 10));
       }

@@ -61,16 +61,16 @@ import {
   handleUpdateGameConfig,
   handleUpdateStorePack,
   handleAssignAIDuty,
-  handleGetGameConfig,
+  handleGetGameConfig as handleGetAdminGameConfig,
   handleGetAIEmployees,
   handleUpdateAIStatus,
   handleGetStorePacks,
   handleSetMaintenanceMode,
-  handleGetSystemHealth
+  handleGetSystemHealth as handleGetAdminSystemHealth
 } from "./routes/admin";
 import { handleSpin, handleGetConfig as getSlotsConfig, handleUpdateConfig as updateSlotsConfig } from "./routes/slots";
 import { handleImportGames } from "./routes/game-import";
-import { handlePlayCasinoGame, handleGetSpinHistory, handleGetSpinStats, handleSlotsSpin } from "./routes/casino";
+import { handlePlayCasinoGame, handleGetSpinHistory as handleGetCasinoSpinHistory, handleGetSpinStats, handleSlotsSpin } from "./routes/casino";
 import {
   handleGetPokerTables,
   handleJoinTable,
@@ -476,7 +476,7 @@ export function createServer() {
   // ===== CASINO ROUTES =====
   app.post("/api/casino/play", verifyPlayer, handlePlayCasinoGame);
   app.post("/api/casino/slots/spin", verifyPlayer, handleSlotsSpin);
-  app.get("/api/casino/spins", verifyPlayer, handleGetSpinHistory);
+  app.get("/api/casino/spins", verifyPlayer, handleGetCasinoSpinHistory);
   app.get("/api/casino/stats", verifyPlayer, handleGetSpinStats);
 
   // ===== POKER ROUTES =====
@@ -536,7 +536,7 @@ export function createServer() {
   // ===== ADMIN ROUTES =====
   app.post("/api/admin/login", handleAdminLogin);
   app.get("/api/admin/stats", verifyAdmin, handleGetAdminStats);
-  app.get("/api/admin/game-config", verifyAdmin, handleGetGameConfig);
+  app.get("/api/admin/game-config", verifyAdmin, handleGetAdminGameConfig);
   app.post("/api/admin/game-config", verifyAdmin, handleUpdateGameConfig);
   app.get("/api/admin/ai-employees", verifyAdmin, handleGetAIEmployees);
   app.post("/api/admin/ai-duty", verifyAdmin, handleAssignAIDuty);
@@ -544,7 +544,7 @@ export function createServer() {
   app.get("/api/admin/store-packs", verifyAdmin, handleGetStorePacks);
   app.post("/api/admin/store-pack", verifyAdmin, handleUpdateStorePack);
   app.post("/api/admin/maintenance", verifyAdmin, handleSetMaintenanceMode);
-  app.get("/api/admin/health", verifyAdmin, handleGetSystemHealth);
+  app.get("/api/admin/health", verifyAdmin, handleGetAdminSystemHealth);
   app.post("/api/admin/logout", verifyAdmin, handleLogout);
 
   // ===== DATABASE-DRIVEN ADMIN ROUTES =====

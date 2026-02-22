@@ -9,7 +9,7 @@ import {
   Coins, User, Users, Home, Gamepad2, ShoppingCart,
   BarChart3, MessageSquare, Trophy, Award, Headphones,
   Settings, Zap, LogOut, Ticket, Dice5, Star,
-  ShieldCheck, ChevronRight, Bell, CreditCard, LayoutDashboard
+  ShieldCheck, ChevronRight, Bell, CreditCard, LayoutDashboard, AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ChallengesPopup } from '@/components/popups/ChallengesPopup';

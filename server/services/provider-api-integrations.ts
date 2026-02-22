@@ -34,6 +34,7 @@ interface ProviderAdapter {
   fetchGames: (config: ProviderConfig) => Promise<ProviderGame[]>;
   validateConnection: (config: ProviderConfig) => Promise<boolean>;
   mapToGame: (externalGame: any) => Partial<ProviderGame>;
+  mapVolatility: (vol: string) => 'Low' | 'Medium' | 'High';
 }
 
 // ===== PRAGMATIC PLAY ADAPTER =====

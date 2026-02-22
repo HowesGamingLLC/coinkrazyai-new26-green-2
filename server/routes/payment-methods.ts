@@ -3,15 +3,21 @@ import * as dbQueries from '../db/queries';
 import * as crypto from 'crypto';
 
 // Simple encryption for sensitive data (in production, use proper encryption)
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'secret-key-32-chars-long-needed-!!';
+
 const encryptData = (data: string): string => {
-  const cipher = crypto.createCipher('aes-256-cbc', process.env.ENCRYPTION_KEY || 'secret-key');
+  const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
+  const iv = Buffer.alloc(16, 0); // Fixed IV for demonstration
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
   let encrypted = cipher.update(data, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   return encrypted;
 };
 
 const decryptData = (encrypted: string): string => {
-  const decipher = crypto.createDecipher('aes-256-cbc', process.env.ENCRYPTION_KEY || 'secret-key');
+  const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
+  const iv = Buffer.alloc(16, 0); // Fixed IV for demonstration
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
   let decrypted = decipher.update(encrypted, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
   return decrypted;

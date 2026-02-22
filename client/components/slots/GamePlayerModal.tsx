@@ -345,13 +345,14 @@ export const GamePlayerModal = ({ isOpen, onClose, game }: GamePlayerModalProps)
 
         {showWinPopup && (
           <SocialSharePopup
+            isOpen={showWinPopup}
             winAmount={lastWinAmount}
             gameName={game.name}
             gameId={game.id}
             onClose={() => setShowWinPopup(false)}
             onShare={async (platform, message) => {
               try {
-                await apiCall('/social-sharing/share', {
+                await apiCall<any>('/social-sharing/share', {
                   method: 'POST',
                   body: JSON.stringify({
                     platform,

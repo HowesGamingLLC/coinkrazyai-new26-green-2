@@ -38,6 +38,8 @@ export interface PlayerProfile {
   kyc_verified: boolean;
   join_date: string;
   last_login?: string;
+  avatar_url?: string;
+  created_at?: string;
   password?: string;
   // Stats & VIP
   total_wagered?: number;
@@ -112,7 +114,7 @@ export interface SlotGame {
   image: string;
   gameUrl: string;
   launchUrl?: string;
-  badges: ('New' | 'Buy Bonus')[];
+  badges: ('New' | 'Buy Bonus' | 'Classic')[];
   releaseDate?: string;
   slug?: string;
   thumbnail?: string;
@@ -380,10 +382,15 @@ export interface GameImportHistory {
   import_type: string;
   provider?: string;
   games_imported: number;
+  total_games_imported?: number;
   games_updated?: number;
+  total_games_updated?: number;
   games_failed?: number;
+  total_games_skipped?: number;
   source_url?: string;
   import_log?: Record<string, any>;
+  import_duration_seconds?: number;
+  error_message?: string;
   status: 'completed' | 'in_progress' | 'failed';
   started_at: string;
   completed_at?: string;

@@ -38,7 +38,7 @@ export const WinningPopup: React.FC<WinningPopupProps> = ({
       const message = generateShareMessage();
 
       // Record the share in the database
-      const response = await apiCall('/social/share', {
+      const response = await apiCall<any>('/social/share', {
         method: 'POST',
         body: JSON.stringify({
           gameId: gameId || null,

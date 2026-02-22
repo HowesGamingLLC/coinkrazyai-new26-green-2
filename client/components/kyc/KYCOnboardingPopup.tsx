@@ -83,7 +83,7 @@ export const KYCOnboardingPopup: React.FC<KYCOnboardingPopupProps> = ({
 
   const fetchKYCProgress = async () => {
     try {
-      const response = await apiCall('/kyc/progress');
+      const response = await apiCall<any>('/kyc/progress');
       if (response && response.current_step) {
         setCurrentStep(response.current_step);
         const completed: number[] = [];
@@ -166,7 +166,7 @@ export const KYCOnboardingPopup: React.FC<KYCOnboardingPopupProps> = ({
       setIsLoading(true);
       updateLuckyAiMessage('Processing your information... Please wait.');
 
-      const response = await apiCall('/kyc/progress', {
+      const response = await apiCall<any>('/kyc/progress', {
         method: 'POST',
         body: JSON.stringify({
           step: currentStep,
