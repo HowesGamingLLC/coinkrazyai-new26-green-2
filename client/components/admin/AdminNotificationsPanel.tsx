@@ -14,7 +14,7 @@ import {
   MessageSquare,
   Check,
   X,
-  Assign,
+  UserPlus,
   Reply,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -298,7 +298,7 @@ export function AdminNotificationsPanel() {
                         {actionLoading === notif.id ? (
                           <Loader2 className="w-3 h-3 mr-2 animate-spin" />
                         ) : (
-                          <Assign className="w-3 h-3 mr-2" />
+                          <UserPlus className="w-3 h-3 mr-2" />
                         )}
                         Assign to AI
                       </Button>
