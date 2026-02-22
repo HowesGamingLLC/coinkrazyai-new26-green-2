@@ -42,7 +42,16 @@ const AdminGamesSports = () => {
     family: '',
     type: '',
     embed_url: '',
-    enabled: true
+    enabled: true,
+    is_branded_popup: false,
+    branding_config: {
+      backgroundUrl: '',
+      logoUrl: '',
+      primaryColor: '#0f172a',
+      accentColor: '#3b82f6',
+      buttonStyle: 'rounded',
+      displayName: ''
+    }
   });
 
   const resetForm = () => {
@@ -58,7 +67,16 @@ const AdminGamesSports = () => {
       family: '',
       type: '',
       embed_url: '',
-      enabled: true
+      enabled: true,
+      is_branded_popup: false,
+      branding_config: {
+        backgroundUrl: '',
+        logoUrl: '',
+        primaryColor: '#0f172a',
+        accentColor: '#3b82f6',
+        buttonStyle: 'rounded',
+        displayName: ''
+      }
     });
     setEditingGame(null);
     setShowAddForm(false);
@@ -112,7 +130,9 @@ const AdminGamesSports = () => {
         family: formData.family || null,
         type: formData.type || null,
         embed_url: formData.embed_url || null,
-        enabled: formData.enabled
+        enabled: formData.enabled,
+        is_branded_popup: formData.is_branded_popup,
+        branding_config: formData.branding_config
       };
 
       if (editingGame) {
@@ -425,6 +445,123 @@ const AdminGamesSports = () => {
                         <span className="text-sm font-medium">Enabled</span>
                       </label>
                     </div>
+
+                    {/* Branding Section */}
+                    <div className="md:col-span-2 border-t pt-3 mt-1">
+                      <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
+                        <Settings className="w-4 h-4" />
+                        Branding & Popup Settings
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="md:col-span-2">
+                          <label className="flex items-center gap-2 mb-3">
+                            <input
+                              type="checkbox"
+                              checked={formData.is_branded_popup}
+                              onChange={(e) => setFormData({ ...formData, is_branded_popup: e.target.checked })}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm font-medium text-blue-600 dark:text-blue-400 font-bold">Enable Branded Popup Mode</span>
+                          </label>
+                        </div>
+
+                        {formData.is_branded_popup && (
+                          <>
+                            <div>
+                              <label className="text-xs font-medium block mb-1">Custom Display Name</label>
+                              <Input
+                                placeholder="Override game name"
+                                value={formData.branding_config.displayName}
+                                onChange={(e) => setFormData({
+                                  ...formData,
+                                  branding_config: { ...formData.branding_config, displayName: e.target.value }
+                                })}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium block mb-1">Logo Overlay URL</label>
+                              <Input
+                                placeholder="PNG with transparency"
+                                value={formData.branding_config.logoUrl}
+                                onChange={(e) => setFormData({
+                                  ...formData,
+                                  branding_config: { ...formData.branding_config, logoUrl: e.target.value }
+                                })}
+                              />
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="text-xs font-medium block mb-1">Custom Background Image URL</label>
+                              <Input
+                                placeholder="Full screen background"
+                                value={formData.branding_config.backgroundUrl}
+                                onChange={(e) => setFormData({
+                                  ...formData,
+                                  branding_config: { ...formData.branding_config, backgroundUrl: e.target.value }
+                                })}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium block mb-1">Primary Color (Hex)</label>
+                              <div className="flex gap-2">
+                                <Input
+                                  type="color"
+                                  className="w-10 h-10 p-1"
+                                  value={formData.branding_config.primaryColor}
+                                  onChange={(e) => setFormData({
+                                    ...formData,
+                                    branding_config: { ...formData.branding_config, primaryColor: e.target.value }
+                                  })}
+                                />
+                                <Input
+                                  value={formData.branding_config.primaryColor}
+                                  onChange={(e) => setFormData({
+                                    ...formData,
+                                    branding_config: { ...formData.branding_config, primaryColor: e.target.value }
+                                  })}
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium block mb-1">Accent Color (Hex)</label>
+                              <div className="flex gap-2">
+                                <Input
+                                  type="color"
+                                  className="w-10 h-10 p-1"
+                                  value={formData.branding_config.accentColor}
+                                  onChange={(e) => setFormData({
+                                    ...formData,
+                                    branding_config: { ...formData.branding_config, accentColor: e.target.value }
+                                  })}
+                                />
+                                <Input
+                                  value={formData.branding_config.accentColor}
+                                  onChange={(e) => setFormData({
+                                    ...formData,
+                                    branding_config: { ...formData.branding_config, accentColor: e.target.value }
+                                  })}
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium block mb-1">Button Style</label>
+                              <select
+                                value={formData.branding_config.buttonStyle}
+                                onChange={(e) => setFormData({
+                                  ...formData,
+                                  branding_config: { ...formData.branding_config, buttonStyle: e.target.value }
+                                })}
+                                className="w-full px-3 py-2 border rounded-md text-sm"
+                              >
+                                <option value="rounded">Rounded</option>
+                                <option value="square">Square</option>
+                                <option value="pill">Pill</option>
+                                <option value="glow">Glow Effect</option>
+                              </select>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex gap-2 justify-end pt-2">
                     <Button
@@ -574,7 +711,18 @@ const AdminGamesSports = () => {
                                 family: game.family || '',
                                 type: game.type || '',
                                 embed_url: game.embed_url || '',
-                                enabled: game.enabled
+                                enabled: game.enabled,
+                                is_branded_popup: game.is_branded_popup || false,
+                                branding_config: typeof game.branding_config === 'string'
+                                  ? JSON.parse(game.branding_config)
+                                  : (game.branding_config || {
+                                      backgroundUrl: '',
+                                      logoUrl: '',
+                                      primaryColor: '#0f172a',
+                                      accentColor: '#3b82f6',
+                                      buttonStyle: 'rounded',
+                                      displayName: ''
+                                    })
                               });
                               setShowAddForm(true);
                             }}
@@ -744,7 +892,18 @@ const AdminGamesSports = () => {
                                   family: game.family || '',
                                   type: game.type || '',
                                   embed_url: game.embed_url || '',
-                                  enabled: game.enabled
+                                  enabled: game.enabled,
+                                  is_branded_popup: game.is_branded_popup || false,
+                                  branding_config: typeof game.branding_config === 'string'
+                                    ? JSON.parse(game.branding_config)
+                                    : (game.branding_config || {
+                                        backgroundUrl: '',
+                                        logoUrl: '',
+                                        primaryColor: '#0f172a',
+                                        accentColor: '#3b82f6',
+                                        buttonStyle: 'rounded',
+                                        displayName: ''
+                                      })
                                 });
                                 setShowAddForm(true);
                               }}>

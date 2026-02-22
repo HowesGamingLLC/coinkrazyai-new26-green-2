@@ -70,7 +70,7 @@ import {
 } from "./routes/admin";
 import { handleSpin, handleGetConfig as getSlotsConfig, handleUpdateConfig as updateSlotsConfig } from "./routes/slots";
 import { handleImportGames } from "./routes/game-import";
-import { handlePlayCasinoGame, handleGetSpinHistory, handleGetSpinStats } from "./routes/casino";
+import { handlePlayCasinoGame, handleGetSpinHistory, handleGetSpinStats, handleSlotsSpin } from "./routes/casino";
 import {
   handleGetPokerTables,
   handleJoinTable,
@@ -475,6 +475,7 @@ export function createServer() {
 
   // ===== CASINO ROUTES =====
   app.post("/api/casino/play", verifyPlayer, handlePlayCasinoGame);
+  app.post("/api/casino/slots/spin", verifyPlayer, handleSlotsSpin);
   app.get("/api/casino/spins", verifyPlayer, handleGetSpinHistory);
   app.get("/api/casino/stats", verifyPlayer, handleGetSpinStats);
 

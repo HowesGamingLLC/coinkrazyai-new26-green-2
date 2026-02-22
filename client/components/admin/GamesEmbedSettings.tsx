@@ -45,6 +45,7 @@ interface GameRecord {
   image_url?: string;
   embed_url?: string;
   enabled: boolean;
+  is_branded_popup?: boolean;
 }
 
 export const GamesEmbedSettings = () => {
@@ -140,6 +141,12 @@ export const GamesEmbedSettings = () => {
         image_url: game.image_url,
         embed_url: game.embed_url,
         enabled: game.enabled,
+        is_branded_popup: true,
+        branding_config: {
+          primaryColor: '#0f172a',
+          accentColor: '#3b82f6',
+          buttonStyle: 'rounded'
+        }
       }));
 
       const result = await adminV2.aggregation.bulkImport(gamesToImport);
@@ -403,6 +410,7 @@ export const GamesEmbedSettings = () => {
                     <th className="text-left py-3 px-4 font-semibold">RTP</th>
                     <th className="text-left py-3 px-4 font-semibold">Volatility</th>
                     <th className="text-left py-3 px-4 font-semibold">Embed</th>
+                    <th className="text-left py-3 px-4 font-semibold">Branded</th>
                     <th className="text-left py-3 px-4 font-semibold">Status</th>
                     <th className="text-left py-3 px-4 font-semibold">Actions</th>
                   </tr>
@@ -426,6 +434,21 @@ export const GamesEmbedSettings = () => {
                         ) : (
                           <AlertCircle className="w-4 h-4 text-yellow-600" />
                         )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={async () => {
+                            try {
+                              await adminV2.games.update(game.id, { isBrandedPopup: !game.is_branded_popup });
+                              fetchGames();
+                            } catch (e) {
+                              toast.error('Failed to update');
+                            }
+                          }}
+                          className={`w-10 h-5 rounded-full transition-colors relative ${game.is_branded_popup ? 'bg-blue-600' : 'bg-gray-300'}`}
+                        >
+                          <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${game.is_branded_popup ? 'left-6' : 'left-1'}`} />
+                        </button>
                       </td>
                       <td className="py-3 px-4">
                         <Badge variant={game.enabled ? 'default' : 'secondary'}>

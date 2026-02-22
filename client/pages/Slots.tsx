@@ -108,6 +108,12 @@ const Slots = () => {
         image_url: game.image_url,
         embed_url: game.embed_url,
         enabled: game.enabled,
+        is_branded_popup: true,
+        branding_config: {
+          primaryColor: '#0f172a',
+          accentColor: '#3b82f6',
+          buttonStyle: 'rounded'
+        }
       }));
 
       const result = await adminApiCall<any>('/admin/v2/aggregation/bulk-import', {

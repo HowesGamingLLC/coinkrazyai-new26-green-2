@@ -43,7 +43,7 @@ export const createGame: RequestHandler = async (req, res) => {
     const {
       name, category, provider, rtp, volatility, description,
       image_url, imageUrl, enabled, embed_url, launch_url, slug,
-      series, family, type
+      series, family, type, is_branded_popup, branding_config
     } = req.body;
 
     // Validate required fields
@@ -62,11 +62,13 @@ export const createGame: RequestHandler = async (req, res) => {
     const finalDescription = description || `${name} - ${category}`;
     const finalEnabled = enabled !== false;
     const finalSlug = slug || name.toLowerCase().replace(/\s+/g, '-');
+    const finalIsBrandedPopup = is_branded_popup === true || is_branded_popup === 'true';
+    const finalBrandingConfig = typeof branding_config === 'object' ? JSON.stringify(branding_config) : (branding_config || '{}');
 
     const result = await query(
-      `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url, enabled, embed_url, launch_url, slug, series, family, type)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
-      [name, category, finalProvider, finalRtp, finalVolatility, finalDescription, finalImageUrl, finalEnabled, embed_url || null, launch_url || embed_url || null, finalSlug, series || null, family || null, type || null]
+      `INSERT INTO games (name, category, provider, rtp, volatility, description, image_url, enabled, embed_url, launch_url, slug, series, family, type, is_branded_popup, branding_config)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
+      [name, category, finalProvider, finalRtp, finalVolatility, finalDescription, finalImageUrl, finalEnabled, embed_url || null, launch_url || embed_url || null, finalSlug, series || null, family || null, type || null, finalIsBrandedPopup, finalBrandingConfig]
     );
 
     if (result.rows.length > 0) {
@@ -109,7 +111,7 @@ export const updateGame: RequestHandler = async (req, res) => {
     const allowedFields = [
       'name', 'category', 'provider', 'rtp', 'volatility',
       'description', 'image_url', 'enabled', 'embed_url', 'launch_url',
-      'slug', 'series', 'family', 'type'
+      'slug', 'series', 'family', 'type', 'is_branded_popup', 'branding_config'
     ];
 
     const updateFields: string[] = [];
@@ -122,13 +124,19 @@ export const updateGame: RequestHandler = async (req, res) => {
       if (key === 'imageUrl') normalizedUpdates['image_url'] = value;
       else if (key === 'embedUrl') normalizedUpdates['embed_url'] = value;
       else if (key === 'launchUrl') normalizedUpdates['launch_url'] = value;
+      else if (key === 'isBrandedPopup') normalizedUpdates['is_branded_popup'] = value;
+      else if (key === 'brandingConfig') normalizedUpdates['branding_config'] = value;
       else normalizedUpdates[key] = value;
     }
 
     for (const field of allowedFields) {
       if (field in normalizedUpdates) {
         updateFields.push(`${field} = $${paramIndex}`);
-        updateValues.push(normalizedUpdates[field]);
+        let value = normalizedUpdates[field];
+        if (field === 'branding_config' && typeof value === 'object') {
+          value = JSON.stringify(value);
+        }
+        updateValues.push(value);
         paramIndex++;
       }
     }

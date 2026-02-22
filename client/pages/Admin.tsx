@@ -7,6 +7,7 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Import admin sub-components
+import AdminDashboard from '@/components/admin/AdminDashboard';
 import AdminSalesDashboard from '@/components/admin/AdminSalesDashboard';
 import { AdminNotificationsPanel } from '@/components/admin/AdminNotificationsPanel';
 import AdminPlayers from '@/components/admin/AdminPlayers';

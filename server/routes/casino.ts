@@ -161,6 +161,122 @@ export const handlePlayCasinoGame: RequestHandler = async (req, res) => {
   }
 };
 
+export const handleSlotsSpin: RequestHandler = async (req, res) => {
+  try {
+    const { game_id, bet_amount: raw_bet_amount, winnings: raw_winnings, outcome } = req.body;
+    const playerId = (req as any).user?.playerId;
+    const bet_amount = parseFloat(raw_bet_amount);
+    let winnings = parseFloat(raw_winnings || 0);
+
+    if (!playerId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    if (!game_id || isNaN(bet_amount) || bet_amount < 0) {
+      return res.status(400).json({ error: 'Invalid game_id or bet_amount' });
+    }
+
+    // Hard cap winnings at 10 SC
+    if (winnings > 10) {
+      console.warn(`[Casino] Winnings cap applied for player ${playerId}: ${winnings} -> 10`);
+      winnings = 10;
+    }
+
+    // Get current player
+    const playerResult = await query(
+      'SELECT sc_balance FROM players WHERE id = $1',
+      [playerId]
+    );
+
+    if (!playerResult.rows.length) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    const currentBalance = Number(playerResult.rows[0].sc_balance);
+
+    // Check if player has enough balance for the bet
+    if (currentBalance < bet_amount) {
+      return res.status(400).json({
+        error: 'Insufficient balance',
+        current_balance: currentBalance,
+        required: bet_amount
+      });
+    }
+
+    // Calculate new balance
+    const newBalance = currentBalance - bet_amount + winnings;
+
+    // Deduct bet from balance
+    if (bet_amount > 0) {
+      await dbQueries.recordWalletTransaction(
+        playerId,
+        'Loss',
+        0,
+        -bet_amount,
+        `Slot game bet (${game_id})`
+      );
+    }
+
+    // Add winnings if any
+    if (winnings > 0) {
+      await dbQueries.recordWalletTransaction(
+        playerId,
+        'Win',
+        0,
+        winnings,
+        `Slot game winnings (${game_id})`
+      );
+    }
+
+    // Track spin in casino_game_spins table
+    try {
+      const gameResult = await query('SELECT name, provider FROM games WHERE id = $1 OR slug = $2', [isNaN(parseInt(game_id)) ? -1 : parseInt(game_id), game_id]);
+      const gameName = gameResult.rows[0]?.name || game_id;
+      const provider = gameResult.rows[0]?.provider || 'External';
+
+      await query(
+        `INSERT INTO casino_game_spins
+        (player_id, game_id, game_name, provider, bet_amount, winnings, balance_before, balance_after, result, result_data)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [
+          playerId,
+          isNaN(parseInt(game_id)) ? null : parseInt(game_id),
+          gameName,
+          provider,
+          bet_amount,
+          winnings,
+          currentBalance,
+          newBalance,
+          winnings > bet_amount ? 'win' : (winnings === 0 ? 'loss' : 'push'),
+          JSON.stringify({ outcome, raw_winnings })
+        ]
+      );
+    } catch (err: any) {
+      console.error('[Casino] Failed to record slot spin:', err);
+    }
+
+    // Emit wallet update via Socket.io
+    emitWalletUpdate(playerId, {
+      userId: playerId,
+      sweepsCoins: newBalance,
+      goldCoins: 0,
+      type: 'slot_game',
+      timestamp: new Date().toISOString()
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        winnings,
+        new_balance: newBalance
+      }
+    });
+  } catch (err) {
+    console.error('[Casino] Slot spin error:', err);
+    return res.status(500).json({ error: 'Failed to process spin' });
+  }
+};
+
 export const handleGetSpinHistory: RequestHandler = async (req, res) => {
   const playerId = (req as any).user?.playerId;
   const limit = parseInt(req.query.limit as string) || 20;

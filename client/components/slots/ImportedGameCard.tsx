@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Play, ExternalLink, Info } from 'lucide-react';
 import { GamePlayerModal } from './GamePlayerModal';
+import { BrandedGamePlayer } from '../casino/BrandedGamePlayer';
 
 interface ImportedGame {
   id: number;
@@ -20,6 +21,8 @@ interface ImportedGame {
   embed_url?: string;
   launch_url?: string;
   enabled?: boolean;
+  is_branded_popup?: boolean;
+  branding_config?: any;
 }
 
 interface ImportedGameCardProps {
@@ -186,11 +189,18 @@ export const ImportedGameCard = ({
       </CardContent>
 
       {/* Game Player Modal */}
-      <GamePlayerModal
-        isOpen={isPlayerOpen}
-        onClose={() => setIsPlayerOpen(false)}
-        game={game}
-      />
+      {game.is_branded_popup && isPlayerOpen ? (
+        <BrandedGamePlayer
+          game={game}
+          onClose={() => setIsPlayerOpen(false)}
+        />
+      ) : (
+        <GamePlayerModal
+          isOpen={isPlayerOpen}
+          onClose={() => setIsPlayerOpen(false)}
+          game={game}
+        />
+      )}
     </Card>
   );
 };
