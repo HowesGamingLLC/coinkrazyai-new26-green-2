@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Loader2, Bell, CheckCircle2, XCircle, Clock, AlertCircle, MessageSquare, Zap, User } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiCall } from '@/lib/api';
+import { adminApiCall } from '@/lib/api';
 
 interface AdminNotification {
   id: number;
@@ -43,7 +43,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ onNotifi
   const fetchNotifications = async () => {
     try {
       setIsLoading(true);
-      const response = await apiCall<{ success: boolean; data?: AdminNotification[] }>(
+      const response = await adminApiCall<{ success: boolean; data?: AdminNotification[] }>(
         '/admin/v2/notifications/all'
       );
       if (response.success && response.data) {
@@ -75,7 +75,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ onNotifi
 
     try {
       setIsProcessing(true);
-      await apiCall('/admin/notifications/approve', {
+      await adminApiCall('/admin/notifications/approve', {
         method: 'POST',
         body: JSON.stringify({ notificationId: selectedNotification.id, reason: actionReason }),
       });
@@ -95,7 +95,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ onNotifi
 
     try {
       setIsProcessing(true);
-      await apiCall('/admin/notifications/deny', {
+      await adminApiCall('/admin/notifications/deny', {
         method: 'POST',
         body: JSON.stringify({
           notificationId: selectedNotification.id,
@@ -118,7 +118,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ onNotifi
 
     try {
       setIsProcessing(true);
-      await apiCall('/admin/notifications/assign', {
+      await adminApiCall('/admin/notifications/assign', {
         method: 'POST',
         body: JSON.stringify({
           notificationId: selectedNotification.id,
@@ -141,7 +141,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ onNotifi
 
     try {
       setIsProcessing(true);
-      await apiCall('/admin/notifications/resolve', {
+      await adminApiCall('/admin/notifications/resolve', {
         method: 'POST',
         body: JSON.stringify({
           notificationId: selectedNotification.id,
@@ -161,7 +161,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ onNotifi
 
   const handleMarkAsRead = async (id: number) => {
     try {
-      await apiCall('/admin/notifications/read', {
+      await adminApiCall('/admin/notifications/read', {
         method: 'POST',
         body: JSON.stringify({ notificationId: id }),
       });

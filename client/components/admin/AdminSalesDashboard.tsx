@@ -9,7 +9,7 @@ import {
   RefreshCw, Download, Filter
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiCall } from '@/lib/api';
+import { adminApiCall } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 interface SalesSummary {
@@ -43,8 +43,8 @@ const AdminSalesDashboard: React.FC = () => {
     try {
       setIsRefreshing(true);
       const [summaryRes, statsRes] = await Promise.all([
-        apiCall<SalesSummary>('/admin/v2/sales/revenue'),
-        apiCall<GameTypeStat[]>('/admin/v2/sales/by-game'),
+        adminApiCall<SalesSummary>('/admin/v2/sales/revenue'),
+        adminApiCall<GameTypeStat[]>('/admin/v2/sales/by-game'),
       ]);
 
       if (summaryRes) setSummary(summaryRes);

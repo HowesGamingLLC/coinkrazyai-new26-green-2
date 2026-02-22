@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { apiCall } from '@/lib/api';
+import { apiCall, adminApiCall } from '@/lib/api';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -58,14 +58,17 @@ export const EnhancedSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isAdm
 
   const fetchUnreadCounts = async () => {
     try {
-      const [msgRes, notifRes] = await Promise.all([
-        apiCall('/messages/unread'),
-        apiCall('/admin/notifications'),
-      ]);
+      const promises: Promise<any>[] = [apiCall('/messages/unread').catch(() => [])];
+
+      if (isAdmin) {
+        promises.push(adminApiCall('/admin/notifications').catch(() => []));
+      }
+
+      const [msgRes, notifRes] = await Promise.all(promises);
 
       setUnread({
         unreadCount: msgRes?.length || 0,
-        unreadNotifications: notifRes?.filter((n: any) => !n.read_at).length || 0,
+        unreadNotifications: isAdmin ? (notifRes?.filter((n: any) => !n.read_at).length || 0) : 0,
       });
     } catch (error) {
       console.error('Failed to fetch unread counts:', error);

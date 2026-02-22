@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, Trash2, Edit, Upload, Search, X } from 'lucide-react';
+import { Loader2, Plus, Trash2, Edit, Upload, Search, X, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { ScratchTicketDesigner } from './ScratchTicketDesigner';
 import { PullTabDesigner } from './PullTabDesigner';
