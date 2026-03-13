@@ -166,3 +166,35 @@ export const handleGetRecentReferrals: RequestHandler = asyncHandler(async (req,
     data: result.rows
   });
 });
+
+export const handleGetReferralLeaderboard: RequestHandler = asyncHandler(async (req, res) => {
+  const limit = parseInt(req.query.limit as string) || 50;
+
+  // Query to get top referrers ranked by number of completed referrals and earnings
+  const result = await dbQueries.query(
+    `SELECT
+      p.id,
+      p.username,
+      COUNT(CASE WHEN rc.status = 'completed' THEN 1 END) as referral_count,
+      COALESCE(SUM(rc.referral_bonus_sc), 0) as total_earned_sc
+    FROM players p
+    LEFT JOIN referral_claims rc ON p.id = rc.referrer_id
+    WHERE rc.status = 'completed'
+    GROUP BY p.id, p.username
+    HAVING COUNT(CASE WHEN rc.status = 'completed' THEN 1 END) > 0
+    ORDER BY referral_count DESC, total_earned_sc DESC
+    LIMIT $1`,
+    [limit]
+  );
+
+  // Transform the results to match the expected format
+  const leaderboard = result.rows.map((row, index) => ({
+    rank: index + 1,
+    username: row.username,
+    referral_count: parseInt(row.referral_count) || 0,
+    total_earned_sc: parseFloat(row.total_earned_sc) || 0,
+    avatar_url: undefined
+  }));
+
+  res.json(leaderboard);
+});

@@ -355,7 +355,8 @@ import {
   handleRegisterWithReferral,
   handleCompleteReferralClaim,
   handleGetReferralStats,
-  handleGetRecentReferrals
+  handleGetRecentReferrals,
+  handleGetReferralLeaderboard
 } from "./routes/referral-system";
 import {
   handleCreatePaymentMethod,
@@ -912,6 +913,7 @@ export function createServer() {
   // Referral System
   app.get("/api/referral/link", verifyPlayer, handleGetOrCreateReferralLink);
   app.get("/api/referral/recent", verifyPlayer, handleGetRecentReferrals);
+  app.get("/api/referral/leaderboard", handleGetReferralLeaderboard);
   app.post("/api/referral/register", handleRegisterWithReferral);
   app.post("/api/referral/claim/complete", handleCompleteReferralClaim);
   app.get("/api/referral/stats", verifyPlayer, handleGetReferralStats);
