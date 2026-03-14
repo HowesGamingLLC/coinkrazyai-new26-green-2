@@ -104,10 +104,10 @@ export function EnhancedAdminNotificationsPanel() {
       const response = await adminApiCall<AdminNotification[]>(
         `/admin-notifications?status=${activeStatus}`
       );
-      setNotifications(response.data || []);
+      setNotifications(response || []);
 
       // Update unread count
-      const unread = (response.data || []).filter((n) => !n.read_at).length;
+      const unread = (response || []).filter((n) => !n.read_at).length;
       setUnreadCount(unread);
     } catch (error: any) {
       console.error('Failed to fetch notifications:', error);
@@ -123,7 +123,7 @@ export function EnhancedAdminNotificationsPanel() {
       const response = await adminApiCall<NotificationTemplate[]>(
         '/admin-notifications/templates'
       );
-      setTemplates(response.data || []);
+      setTemplates(response || []);
     } catch (error) {
       console.error('Failed to fetch templates:', error);
     }
@@ -199,10 +199,8 @@ export function EnhancedAdminNotificationsPanel() {
         }
       );
 
-      if (response.success) {
-        toast.success(`Notification ${actionType} successfully`);
-        fetchNotifications();
-      }
+      toast.success(`Notification ${actionType} successfully`);
+      fetchNotifications();
     } catch (error: any) {
       console.error(`Failed to ${actionType} notification:`, error);
       toast.error(`Failed to ${actionType} notification`);

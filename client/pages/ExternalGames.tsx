@@ -96,7 +96,7 @@ const ExternalGames = () => {
       </Card>
 
       {/* Admin Note */}
-      <Alert variant="secondary">
+      <Alert variant="default">
         <AlertDescription className="text-xs text-muted-foreground">
           Admin: External games have been disabled and consolidated into the main games catalog. 
           All 5 CoinKrazy Studios games are now available in the admin panel for management.

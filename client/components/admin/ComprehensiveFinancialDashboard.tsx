@@ -36,8 +36,8 @@ const ComprehensiveFinancialDashboard: React.FC = () => {
     try {
       setIsLoading(true);
       const [revenueRes, gameStatsRes] = await Promise.all([
-        adminV2.getRevenueAnalytics(),
-        adminV2.getDashboardStats(),
+        adminV2.dashboard.getRevenue(),
+        adminV2.dashboard.getStats(),
       ]);
 
       if (revenueRes.success && revenueRes.data) {
@@ -193,7 +193,7 @@ const ComprehensiveFinancialDashboard: React.FC = () => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -211,7 +211,7 @@ const ComprehensiveFinancialDashboard: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
                 <Bar dataKey="value" fill="#8b5cf6" name="Revenue" />
               </BarChart>
             </ResponsiveContainer>

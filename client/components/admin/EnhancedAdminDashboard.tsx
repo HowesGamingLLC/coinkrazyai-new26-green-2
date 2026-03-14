@@ -48,8 +48,8 @@ const EnhancedAdminDashboard: React.FC = () => {
     try {
       setRefreshing(true);
       const [dashRes, metricsRes] = await Promise.all([
-        adminV2.getDashboardStats(),
-        adminV2.getDailyMetrics(),
+        adminV2.dashboard.getStats(),
+        adminV2.dashboard.getMetrics(),
       ]);
 
       if (dashRes.success && dashRes.data) {

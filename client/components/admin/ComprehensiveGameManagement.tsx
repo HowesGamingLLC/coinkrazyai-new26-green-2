@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, Toggle2, Eye, EyeOff, Settings, Trash2, Plus, Edit2 } from 'lucide-react';
+import { Loader2, Search, ToggleRight, Eye, EyeOff, Settings, Trash2, Plus, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { games, adminV2 } from '@/lib/api';
 
@@ -44,9 +44,9 @@ const ComprehensiveGameManagement: React.FC = () => {
   const loadGames = async () => {
     try {
       setIsLoading(true);
-      const response = await games.getGames();
-      const gamesData = Array.isArray(response) ? response : (response?.data || []);
-      setGameList(gamesData);
+      const response = await adminV2.games.list();
+      const gamesData = (response as any) || [];
+      setGameList(gamesData as GameData[]);
     } catch (error) {
       console.error('Failed to load games:', error);
       toast.error('Failed to load games');

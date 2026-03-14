@@ -63,10 +63,8 @@ const AdvancedPlayerManagement: React.FC = () => {
   const loadPlayers = async () => {
     try {
       setIsLoading(true);
-      const response = await adminV2.listPlayers();
-      if (response.success && response.data) {
-        setPlayers(response.data);
-      }
+      const response = await adminV2.players.list();
+      setPlayers(response as any);
     } catch (error) {
       console.error('Failed to load players:', error);
       toast.error('Failed to load players');
@@ -150,10 +148,10 @@ const AdvancedPlayerManagement: React.FC = () => {
       for (const playerId of selectedPlayers) {
         switch (action) {
           case 'block':
-            await adminV2.updatePlayerStatus(playerId, { status: 'Suspended' });
+            await adminV2.players.updateStatus(playerId, 'Suspended');
             break;
           case 'unblock':
-            await adminV2.updatePlayerStatus(playerId, { status: 'Active' });
+            await adminV2.players.updateStatus(playerId, 'Active');
             break;
           case 'verify':
             // Would need a verification endpoint

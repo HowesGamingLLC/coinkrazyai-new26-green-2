@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import {
   Search,
-  Toggle2,
+  ToggleRight,
   Edit2,
   Trash2,
   Zap,

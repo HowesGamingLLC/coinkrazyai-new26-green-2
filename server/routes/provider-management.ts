@@ -202,7 +202,7 @@ export const syncProviderGames: RequestHandler = async (req, res) => {
 
     // Run sync
     const syncResult = await providerIntegrations.syncProviderGamesToDb(
-      providerId,
+      parseInt(providerId as string),
       provider.slug,
       config,
       req.user?.id

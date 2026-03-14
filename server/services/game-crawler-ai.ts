@@ -38,7 +38,7 @@ export class GameCrawlerAI {
 
       // Extract game information from meta tags and page structure
       const gameName = this.extractGameName($);
-      const theme = this.extractTheme($, css);
+      const theme = this.extractTheme($);
       const mechanics = this.extractMechanics($);
       const payTable = this.extractPayTable($);
       const bonusRounds = this.extractBonusRounds($);

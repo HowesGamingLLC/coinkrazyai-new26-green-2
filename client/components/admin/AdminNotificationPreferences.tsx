@@ -69,7 +69,7 @@ export function AdminNotificationPreferences() {
       const response = await adminApiCall<NotificationPreferences>(
         '/admin-notifications/preferences'
       );
-      setPreferences(response.data);
+      setPreferences(response);
     } catch (error: any) {
       console.error('Failed to fetch preferences:', error);
       toast.error('Failed to load preferences');
@@ -83,7 +83,7 @@ export function AdminNotificationPreferences() {
 
     try {
       setIsSaving(true);
-      const response = await adminApiCall(
+      await adminApiCall(
         '/admin-notifications/preferences',
         {
           method: 'PUT',
@@ -91,9 +91,7 @@ export function AdminNotificationPreferences() {
         }
       );
 
-      if (response.success) {
-        toast.success('Preferences saved successfully');
-      }
+      toast.success('Preferences saved successfully');
     } catch (error: any) {
       console.error('Failed to save preferences:', error);
       toast.error('Failed to save preferences');
