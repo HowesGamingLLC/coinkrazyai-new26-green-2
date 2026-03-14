@@ -1,6 +1,27 @@
 import dotenv from "dotenv";
 import path from "path";
+import { Client } from "pg";
 
+export default {
+  async fetch(request, env, ctx): Promise<Response> {
+    // Create a new client instance for each request. Hyperdrive maintains the
+    // underlying database connection pool, so creating a new client is fast.
+    const client = new Client({
+      connectionString: env.HYPERDRIVE.connectionString,
+    });
+
+    try {
+      // Connect to the database
+      await client.connect();
+      // Sample SQL query
+      const result = await client.query("SELECT * FROM pg_tables");
+
+      return Response.json(result.rows);
+    } catch (e) {
+      return Response.json({ error: e instanceof Error ? e.message : e }, { status: 500 });
+    }
+  },
+} satisfies ExportedHandler<{ HYPERDRIVE: Hyperdrive }>;
 // Load .env from project root
 const envPath = path.join(process.cwd(), ".env");
 console.log('[DB] Loading .env from:', envPath);
