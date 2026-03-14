@@ -85,7 +85,7 @@ export function AdminNotifications() {
       const response = await adminApiCall<AdminNotification[]>(
         `/admin/notifications?status=${activeStatus}`
       );
-      const data = Array.isArray(response) ? response : response.data || [];
+      const data = (response || []) as any;
       setNotifications(data);
 
       // Update unread count
